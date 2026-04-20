@@ -1,0 +1,51 @@
+{
+  "name": "musicmesh",
+  "version": "1.0.0",
+  "description": "Clean-sheet bootstrap for the MusicMesh operator system.",
+  "private": true,
+  "main": "src/index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "startup": "npm run check && npm run smoke && npm run smoke:playwright",
+    "dev": "vite --config ui/vite.config.mjs",
+    "dev:api": "node src/index.js",
+    "build": "vite build --config ui/vite.config.mjs",
+    "preview": "vite preview --config ui/vite.config.mjs",
+    "dev:bootstrap": "node src/index.js",
+    "check": "node src/index.js --check",
+    "smoke": "node src/index.js --smoke",
+    "smoke:playwright": "node scripts/playwrightSmoke.js",
+    "tape": "node scripts/readConversationTape.js",
+    "test": "node src/index.js --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@radix-ui/react-context-menu": "^2.2.16",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tanstack/react-router": "^1.168.23",
+    "neo4j-driver": "^6.0.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "^4.10.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tanstack/router-devtools": "^1.166.13",
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.9"
+  }
+}

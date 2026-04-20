@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="musicmesh-gradient" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#60a5fa" />
+      <stop offset="1" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#161618" />
+  <path
+    d="M17 45V19h7.2l7.8 11.8L39.8 19H47v26h-6.7V30.1l-6.3 9.5-6.3-9.5V45Z"
+    fill="url(#musicmesh-gradient)"
+  />
+</svg>

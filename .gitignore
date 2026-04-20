@@ -1,0 +1,9 @@
+node_modules/
+.env
+.playwright-cli/
+output/
+test-results/
+STAY/
+_CLEAN_SHEET_ARCHIVE_2026-04-20.zip
+*.log
+ui-dist/

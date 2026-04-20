@@ -1,0 +1,340 @@
+import React, { useEffect, useRef, useState } from "react";
+import * as ScrollArea from "@radix-ui/react-scroll-area";
+import * as Separator from "@radix-ui/react-separator";
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const API_BASE_URL = `http://${window.location.hostname || "127.0.0.1"}:43101`;
+
+const seedMessages = [
+  {
+    id: "seed-assistant-1",
+    role: "assistant",
+    content:
+      "MusicMesh is now wired to a simple live API path. Send a message here and the request plus reply will be appended to the conversation tape on disk."
+  }
+];
+
+export function AppShell() {
+  const [messages, setMessages] = useState(seedMessages);
+  const [composerValue, setComposerValue] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [tapeEntries, setTapeEntries] = useState([]);
+  const [tapePath, setTapePath] = useState("");
+  const [runtimeEvents, setRuntimeEvents] = useState([]);
+  const [runtimeLogPath, setRuntimeLogPath] = useState("");
+  const viewportRef = useRef(null);
+
+  useEffect(() => {
+    loadTape();
+
+    const intervalId = window.setInterval(() => {
+      loadTape();
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const viewportElement = viewportRef.current;
+
+    if (!viewportElement) {
+      return;
+    }
+
+    viewportElement.scrollTop = viewportElement.scrollHeight;
+  }, [messages]);
+
+  async function loadTape() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat/tape?limit=80`);
+
+      if (!response.ok) {
+        throw new Error(`Tape request failed: ${response.status}`);
+      }
+
+      const payload = await response.json();
+      setTapeEntries(payload.entries || []);
+      setTapePath(payload.tapePath || "");
+    } catch {
+      setTapeEntries([]);
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/runtime/logs?limit=80`);
+
+      if (!response.ok) {
+        throw new Error(`Runtime log request failed: ${response.status}`);
+      }
+
+      const payload = await response.json();
+      setRuntimeEvents(payload.events || []);
+      setRuntimeLogPath(payload.runtimeLogPath || "");
+    } catch {
+      setRuntimeEvents([]);
+    }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const prompt = composerValue.trim();
+
+    if (!prompt || isSending) {
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSending(true);
+
+    const nextUserMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: prompt
+    };
+
+    const nextMessages = [...messages, nextUserMessage];
+    setMessages(nextMessages);
+    setComposerValue("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          threadId: "product-chat",
+          prompt,
+          messages: nextMessages.map((message) => ({
+            role: message.role,
+            content: message.content
+          }))
+        })
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || `Chat request failed: ${response.status}`);
+      }
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: payload.responseId || `assistant-${Date.now()}`,
+          role: "assistant",
+          content: payload.message
+        }
+      ]);
+      await loadTape();
+    } catch (error) {
+      setErrorMessage(error.message);
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: `assistant-error-${Date.now()}`,
+          role: "assistant",
+          content: `MusicMesh could not answer this request: ${error.message}`
+        }
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  return (
+    <div className="workspace">
+      <div className="app-shell">
+        <PanelGroup direction="horizontal">
+          <Panel className="chat-panel" defaultSize={68} minSize={52}>
+            <ChatSurface
+              composerValue={composerValue}
+              errorMessage={errorMessage}
+              isSending={isSending}
+              messages={messages}
+              onComposerChange={setComposerValue}
+              onSubmit={handleSubmit}
+              viewportRef={viewportRef}
+            />
+          </Panel>
+          <PanelResizeHandle className="resize-handle" />
+          <Panel className="worksurface-panel" defaultSize={32} minSize={24}>
+            <WorksurfacePanel
+              runtimeEvents={runtimeEvents}
+              runtimeLogPath={runtimeLogPath}
+              tapeEntries={tapeEntries}
+              tapePath={tapePath}
+            />
+          </Panel>
+        </PanelGroup>
+      </div>
+    </div>
+  );
+}
+
+function ChatSurface({
+  messages,
+  composerValue,
+  isSending,
+  errorMessage,
+  onComposerChange,
+  onSubmit,
+  viewportRef
+}) {
+  function handleComposerKeyDown(event) {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    onSubmit(event);
+  }
+
+  return (
+    <section className="chat-surface">
+      <header className="chat-header">
+        <div>
+          <p className="section-label">Chat</p>
+          <h1>Live operator chat</h1>
+        </div>
+      </header>
+
+      <Separator.Root className="separator" decorative orientation="horizontal" />
+
+      <ScrollArea.Root className="chat-scroll-root">
+        <ScrollArea.Viewport className="chat-scroll-viewport" ref={viewportRef}>
+          <div className="stream">
+            {messages.map((message) => (
+              <TranscriptEntry entry={message} key={message.id} />
+            ))}
+          </div>
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar className="scrollbar" orientation="vertical">
+          <ScrollArea.Thumb className="scrollbar-thumb" />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
+
+      <form className="composer-shell" onSubmit={onSubmit}>
+        <label className="composer-label" htmlFor="musicmesh-composer">
+          Message
+        </label>
+        <div className="composer-field">
+          <textarea
+            className="composer-input"
+            id="musicmesh-composer"
+            onChange={(event) => onComposerChange(event.target.value)}
+            onKeyDown={handleComposerKeyDown}
+            placeholder="Ask MusicMesh a music question."
+            rows={4}
+            value={composerValue}
+          />
+          <button className="composer-submit" disabled={isSending} type="submit">
+            {isSending ? "Thinking..." : "Send"}
+          </button>
+        </div>
+        {errorMessage ? <p className="composer-error">{errorMessage}</p> : null}
+      </form>
+    </section>
+  );
+}
+
+function TranscriptEntry({ entry }) {
+  if (entry.role === "user") {
+    return (
+      <div className="user-turn">
+        <div className="user-bubble">
+          <p>{entry.content}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <article className="assistant-stream">
+      <div className="markdown-stream">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.content}</ReactMarkdown>
+      </div>
+    </article>
+  );
+}
+
+function WorksurfacePanel({ tapeEntries, tapePath, runtimeEvents, runtimeLogPath }) {
+  return (
+    <aside className="worksurface">
+      <header className="worksurface-header">
+        <div>
+          <p className="section-label">Workspace</p>
+          <h2>Conversation tape</h2>
+        </div>
+      </header>
+
+      <Separator.Root className="separator" decorative orientation="horizontal" />
+
+      <ScrollArea.Root className="worksurface-scroll-root">
+        <ScrollArea.Viewport className="worksurface-scroll-viewport">
+          <div className="workspace-content">
+            <section className="workspace-block">
+              <p className="workspace-block-title">Tape file</p>
+              <code className="workspace-path">{tapePath || "Not written yet."}</code>
+            </section>
+
+            <section className="workspace-block">
+              <p className="workspace-block-title">Runtime log</p>
+              <code className="workspace-path">{runtimeLogPath || "Not written yet."}</code>
+            </section>
+
+            <section className="workspace-block">
+              <p className="workspace-block-title">Recent events</p>
+              {tapeEntries.length > 0 ? (
+                <div className="tape-list">
+                  {tapeEntries
+                    .slice()
+                    .reverse()
+                    .map((entry) => (
+                      <article className="tape-entry" key={entry.id}>
+                        <div className="tape-entry-header">
+                          <strong>{entry.type}</strong>
+                          <span>{new Date(entry.createdAt).toLocaleTimeString()}</span>
+                        </div>
+                        <pre>{JSON.stringify(entry.payload, null, 2)}</pre>
+                      </article>
+                    ))}
+                </div>
+              ) : (
+                <span>No tape entries yet.</span>
+              )}
+            </section>
+
+            <section className="workspace-block">
+              <p className="workspace-block-title">Recent runtime events</p>
+              {runtimeEvents.length > 0 ? (
+                <div className="tape-list">
+                  {runtimeEvents
+                    .slice()
+                    .reverse()
+                    .map((event) => (
+                      <article className="tape-entry" key={event.id}>
+                        <div className="tape-entry-header">
+                          <strong>{event.type}</strong>
+                          <span>{new Date(event.createdAt).toLocaleTimeString()}</span>
+                        </div>
+                        <pre>{JSON.stringify(event.payload, null, 2)}</pre>
+                      </article>
+                    ))}
+                </div>
+              ) : (
+                <span>No runtime events yet.</span>
+              )}
+            </section>
+          </div>
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar className="scrollbar" orientation="vertical">
+          <ScrollArea.Thumb className="scrollbar-thumb" />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
+    </aside>
+  );
+}
