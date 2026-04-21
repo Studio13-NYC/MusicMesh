@@ -102,7 +102,8 @@ function validateEnv() {
     missingRequired,
     presentOptional,
     missingOptional,
-    isValid: envFile.exists && missingRequired.length === 0
+    // Allow injected process.env (Azure SWA app settings, CI) without a repo-root .env file.
+    isValid: missingRequired.length === 0
   };
 }
 

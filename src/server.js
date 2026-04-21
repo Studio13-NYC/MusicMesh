@@ -1,12 +1,11 @@
 const http = require("http");
 const crypto = require("crypto");
-const fs = require("fs");
 const path = require("path");
 const { appendTapeEntry, readTapeEntries, tapePath } = require("./conversationTape");
 const { appendRuntimeEvent, readRuntimeEvents, runtimeLogPath } = require("./runtimeLog");
 const { validateEnv } = require("./env");
+const { createAssistantReply, DEFAULT_MODEL } = require("./chatService");
 
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5.4";
 const DEFAULT_PORT = Number(process.env.MUSICMESH_API_PORT || 43101);
 const SYSTEM_PROMPT_PATH = path.join(
   process.cwd(),
@@ -53,105 +52,6 @@ function parseJsonBody(request) {
 
     request.on("error", reject);
   });
-}
-
-function buildInputFromMessages(messages, prompt) {
-  const input = Array.isArray(messages)
-    ? messages.map((message) => ({
-        role: message.role,
-        content: message.content
-      }))
-    : [];
-
-  if (typeof prompt === "string" && prompt.trim()) {
-    const normalizedPrompt = prompt.trim();
-    const lastMessage = input[input.length - 1];
-    const promptAlreadyPresent =
-      lastMessage &&
-      lastMessage.role === "user" &&
-      typeof lastMessage.content === "string" &&
-      lastMessage.content.trim() === normalizedPrompt;
-
-    if (!promptAlreadyPresent) {
-      input.push({
-        role: "user",
-        content: normalizedPrompt
-      });
-    }
-  }
-
-  return input;
-}
-
-function getOutputText(payload) {
-  if (typeof payload.output_text === "string" && payload.output_text.trim()) {
-    return payload.output_text;
-  }
-
-  if (!Array.isArray(payload.output)) {
-    return "";
-  }
-
-  return payload.output
-    .flatMap((item) => item.content || [])
-    .filter((part) => part.type === "output_text" && typeof part.text === "string")
-    .map((part) => part.text)
-    .join("");
-}
-
-function loadSystemPrompt() {
-  return fs.readFileSync(SYSTEM_PROMPT_PATH, "utf8");
-}
-
-async function callResponsesApi({ input, instructions, threadId, purpose }) {
-  const envResult = validateEnv();
-
-  if (!envResult.isValid) {
-    throw new Error("MusicMesh API cannot run chat without a valid root .env.");
-  }
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      input,
-      instructions
-    })
-  });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(
-      `OpenAI ${purpose} request failed for thread ${threadId}: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`
-    );
-  }
-
-  return response.json();
-}
-
-async function createAssistantReply({ prompt, messages, threadId }) {
-  const input = buildInputFromMessages(messages, prompt);
-
-  const payload = await callResponsesApi({
-    threadId,
-    purpose: "chat",
-    input,
-    instructions: loadSystemPrompt()
-  });
-  const text = getOutputText(payload);
-
-  if (!text) {
-    throw new Error(`OpenAI chat request returned no assistant text for thread ${threadId}.`);
-  }
-
-  return {
-    responseId: payload.id || null,
-    text
-  };
 }
 
 async function handleChat(request, response) {
@@ -202,7 +102,8 @@ async function handleChat(request, response) {
     const assistantReply = await createAssistantReply({
       prompt,
       messages,
-      threadId
+      threadId,
+      systemPromptPath: SYSTEM_PROMPT_PATH
     });
 
     const assistantEntry = appendTapeEntry({

@@ -5,7 +5,9 @@ import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "reac
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-const API_BASE_URL = `http://${window.location.hostname || "127.0.0.1"}:43101`;
+const API_BASE_RAW = import.meta.env.VITE_MUSICMESH_API_BASE ?? "";
+const API_BASE_URL =
+  typeof API_BASE_RAW === "string" ? API_BASE_RAW.replace(/\/$/, "") : "";
 const REPO_URL = "https://github.com/Studio13-NYC/MusicMesh";
 
 const seedMessages = [
@@ -13,7 +15,7 @@ const seedMessages = [
     id: "seed-assistant-1",
     role: "assistant",
     content:
-      "MusicMesh is now wired to a simple live API path. Send a message here and the request plus reply will be appended to the conversation tape on disk."
+      "MusicMesh uses same-origin /api (Vite proxy locally, Azure Functions when deployed). Send a message to chat; tape and runtime logs load when the local Node API is running."
   }
 ];
 

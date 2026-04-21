@@ -18,6 +18,9 @@
     "check": "node src/index.js --check",
     "smoke": "node src/index.js --smoke",
     "smoke:playwright": "node scripts/playwrightSmoke.js",
+    "preview:e2e": "vite preview --config ui/vite.config.mjs --host 127.0.0.1 --strictPort --port 4173",
+    "test:e2e:local": "npm run build && cross-env MUSICMESH_E2E=local playwright test",
+    "test:e2e:deployed": "cross-env MUSICMESH_E2E=deployed playwright test",
     "tape": "node scripts/readConversationTape.js",
     "test": "node src/index.js --test"
   },
@@ -26,6 +29,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@azure/mcp": "^3.0.0-beta.3",
     "@radix-ui/react-context-menu": "^2.2.16",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -44,8 +48,10 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@tanstack/router-devtools": "^1.166.13",
     "@vitejs/plugin-react": "^6.0.1",
+    "cross-env": "^7.0.3",
     "vite": "^8.0.9"
   }
 }
