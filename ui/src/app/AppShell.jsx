@@ -66,7 +66,7 @@ export function AppShell() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/runtime/logs?limit=80`);
+      const response = await fetch(`${API_BASE_URL}/api/chat/runtime?limit=80`);
 
       if (!response.ok) {
         throw new Error(`Runtime log request failed: ${response.status}`);

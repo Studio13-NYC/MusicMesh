@@ -222,7 +222,11 @@ function startServer(port = DEFAULT_PORT) {
       return;
     }
 
-    if (request.method === "GET" && requestUrl.pathname === "/api/runtime/logs") {
+    if (
+      request.method === "GET" &&
+      (requestUrl.pathname === "/api/runtime/logs" ||
+        requestUrl.pathname === "/api/chat/runtime")
+    ) {
       handleRuntimeLog(request, response);
       return;
     }

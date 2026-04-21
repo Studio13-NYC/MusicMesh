@@ -87,7 +87,7 @@ To enable durable append-only tape and runtime logs in production, set these Sta
 With blob persistence enabled, the deployed API serves:
 
 - `GET /api/chat/tape`
-- `GET /api/runtime/logs`
+- `GET /api/chat/runtime`
 
 and returns path labels like `azureblob://<container>/conversation-tape.ndjson`.
 

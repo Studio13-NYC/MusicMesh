@@ -170,7 +170,7 @@ app.http("chatTape", {
 
 app.http("runtimeLogs", {
   methods: ["GET", "OPTIONS"],
-  route: "runtime/logs",
+  route: "chat/runtime",
   authLevel: "anonymous",
   handler: async (request) => {
     if (request.method === "OPTIONS") {
