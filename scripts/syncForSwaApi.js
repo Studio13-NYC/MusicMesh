@@ -17,6 +17,7 @@ fs.mkdirSync(contentDir, { recursive: true });
 
 const copies = [
   ["src/env.js", "shared/env.js"],
+  ["src/activityStore.js", "shared/activityStore.js"],
   ["src/chatService.js", "shared/chatService.js"],
   ["docs/product/MUSICMESH_CHAT_SYSTEM_PROMPT.md", "content/MUSICMESH_CHAT_SYSTEM_PROMPT.md"]
 ];
@@ -27,4 +28,4 @@ for (const [fromRel, toRel] of copies) {
   fs.copyFileSync(from, to);
 }
 
-console.log("syncForSwaApi: staged env.js, chatService.js, and system prompt under api/.");
+console.log("syncForSwaApi: staged shared runtime files and system prompt under api/.");

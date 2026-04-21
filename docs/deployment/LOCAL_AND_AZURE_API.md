@@ -63,19 +63,33 @@ Optional keys are listed in `src/env.js`. **Note:** the hosted Function does not
 2. Terminal A: `npm run dev:api` (or `npm run dev:api` / `node src/index.js`) — API on `43101`.
 3. Terminal B: `npm run dev` — Vite on `3000` with `/api` → `43101`.
 
-Tape and runtime NDJSON logs under `output/chat/` are written by the **local** Node server only. The Azure Function path does not write tape yet (`tapeEventIds` is an empty array).
+Tape and runtime NDJSON logs under `output/chat/` are written by the local Node server by default. When `MUSICMESH_BLOB_CONNECTION_STRING` is configured, both the local API and the Azure Function path write append-only NDJSON records to Azure Blob Storage instead.
 
 ## Logging and Application Insights
 
 | Mechanism | Where |
 |-----------|--------|
-| **Local API** | `console.log` on the Node process; structured events in `output/chat/runtime-events.ndjson`; conversation tape alongside it. |
-| **Azure Functions** | `context.log` / platform logging; `api/host.json` enables host-side sampling. |
+| **Local API** | `console.log` on the Node process; structured events in `output/chat/runtime-events.ndjson` by default, or Azure Blob when blob persistence is configured. |
+| **Azure Functions** | Platform logging via Application Insights plus append-only tape/runtime blobs when `MUSICMESH_BLOB_CONNECTION_STRING` is configured. |
 | **This repo** | No Application Insights SDK in the React app or the local Node server. |
 
 **Azure (MusicMesh):** resource group `rg-musicmesh` includes an Application Insights component **`appi-musicmesh`**. The Static Web App **`swa-musicmesh`** app settings include `APPLICATIONINSIGHTS_CONNECTION_STRING` and `ApplicationInsightsAgent_EXTENSION_VERSION=~3` so the integrated Functions host can emit telemetry. Use **Azure portal → Application Insights → Logs / Live metrics** (or SWA **Monitoring**) after deployments.
 
 To debug a failed deploy or runtime 500, use GitHub Actions logs, **Azure portal → Static Web App → Monitoring / Log stream**, or **Application Insights** queries as above.
+
+## Production append-only tape via Azure Blob
+
+To enable durable append-only tape and runtime logs in production, set these Static Web App environment variables:
+
+- `MUSICMESH_BLOB_CONNECTION_STRING`
+- `MUSICMESH_BLOB_CONTAINER` (optional, defaults to `musicmeshchat`)
+
+With blob persistence enabled, the deployed API serves:
+
+- `GET /api/chat/tape`
+- `GET /api/runtime/logs`
+
+and returns path labels like `azureblob://<container>/conversation-tape.ndjson`.
 
 ## Maintenance
 

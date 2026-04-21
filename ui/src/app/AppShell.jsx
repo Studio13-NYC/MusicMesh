@@ -15,7 +15,7 @@ const seedMessages = [
     id: "seed-assistant-1",
     role: "assistant",
     content:
-      "MusicMesh uses same-origin /api (Vite proxy locally, Azure Functions when deployed). Send a message to chat; tape and runtime logs load when the local Node API is running."
+      "MusicMesh uses same-origin /api (Vite proxy locally, Azure Functions when deployed). Send a message to chat; tape and runtime logs load from local disk in dev or Azure Blob when production persistence is configured."
   }
 ];
 

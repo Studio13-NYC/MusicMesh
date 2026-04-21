@@ -1,8 +1,14 @@
 const http = require("http");
 const crypto = require("crypto");
 const path = require("path");
-const { appendTapeEntry, readTapeEntries, tapePath } = require("./conversationTape");
-const { appendRuntimeEvent, readRuntimeEvents, runtimeLogPath } = require("./runtimeLog");
+const {
+  appendRuntimeEvent,
+  appendTapeEntry,
+  getRuntimeLogPathLabel,
+  getTapePathLabel,
+  readRuntimeEvents,
+  readTapeEntries
+} = require("./activityStore");
 const { validateEnv } = require("./env");
 const { createAssistantReply, DEFAULT_MODEL } = require("./chatService");
 
@@ -159,23 +165,31 @@ async function handleChat(request, response) {
 function handleTape(request, response) {
   const requestUrl = new URL(request.url, `http://${request.headers.host}`);
   const limitParam = Number(requestUrl.searchParams.get("limit") || 100);
-  const entries = readTapeEntries(limitParam);
-
-  sendJson(response, 200, {
-    tapePath,
-    entries
-  });
+  readTapeEntries(limitParam)
+    .then((entries) => {
+      sendJson(response, 200, {
+        tapePath: getTapePathLabel(),
+        entries
+      });
+    })
+    .catch((error) => {
+      sendJson(response, 500, { error: error.message });
+    });
 }
 
 function handleRuntimeLog(request, response) {
   const requestUrl = new URL(request.url, `http://${request.headers.host}`);
   const limitParam = Number(requestUrl.searchParams.get("limit") || 100);
-  const events = readRuntimeEvents(limitParam);
-
-  sendJson(response, 200, {
-    runtimeLogPath,
-    events
-  });
+  readRuntimeEvents(limitParam)
+    .then((events) => {
+      sendJson(response, 200, {
+        runtimeLogPath: getRuntimeLogPathLabel(),
+        events
+      });
+    })
+    .catch((error) => {
+      sendJson(response, 500, { error: error.message });
+    });
 }
 
 function startServer(port = DEFAULT_PORT) {
@@ -196,8 +210,8 @@ function startServer(port = DEFAULT_PORT) {
       sendJson(response, 200, {
         ok: true,
         model: DEFAULT_MODEL,
-        tapePath,
-        runtimeLogPath,
+        tapePath: getTapePathLabel(),
+        runtimeLogPath: getRuntimeLogPathLabel(),
         systemPromptPath: SYSTEM_PROMPT_PATH
       });
       return;
@@ -223,7 +237,7 @@ function startServer(port = DEFAULT_PORT) {
 
   server.listen(port, "127.0.0.1", () => {
     console.log(`MusicMesh API listening on http://127.0.0.1:${port}`);
-    console.log(`Conversation tape: ${tapePath}`);
+    console.log(`Conversation tape: ${getTapePathLabel()}`);
   });
 
   return server;
