@@ -21,9 +21,9 @@ The active repo is intentionally small.
 Product and process docs:
 
 - [LLM_OPERATOR_CONTRACT_V1.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/LLM_OPERATOR_CONTRACT_V1.md)
-- [REM_DISCOGRAPHY_ROLEPLAY_FLOW.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/REM_DISCOGRAPHY_ROLEPLAY_FLOW.md)
+- [roleplay-spec.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/roleplay-spec.md)
 - [CURRENT_STATE_AND_HANDOFF.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/CURRENT_STATE_AND_HANDOFF.md)
-- [project_startup_guide.md](/D:/Studio13/Lab/Code/MusicMesh/project_startup_guide.md)
+- [project_startup_guide.md](/D:/Studio13/Lab/Code/MusicMesh/docs/project_startup_guide.md)
 
 Current bootstrap code:
 
@@ -66,7 +66,7 @@ If you need the behavioral contract, read:
 
 If you need the transcript that shaped this direction, read:
 
-- [REM_DISCOGRAPHY_ROLEPLAY_FLOW.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/REM_DISCOGRAPHY_ROLEPLAY_FLOW.md)
+- [roleplay-spec.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/roleplay-spec.md)
 
 ## Startup Commands
 
@@ -153,15 +153,16 @@ As of the current repo state:
 - it is chat-first
 - it has a neighboring worksurface panel
 - it uses React, Vite, TanStack Router, Radix UI, and `react-resizable-panels`
-- the current shell is seeded with local sample conversation and panel data
-- it is not yet wired to a live GPT-5.4 chat backend
-- it is not yet wired to live logs, traces, or database returns from the running product
+- the current shell still includes seeded local conversation and panel scaffolding
+- it is wired to a thin GPT-5.4-backed local API path
+- the worksurface reads recent conversation tape entries and runtime events from disk
+- it is not yet wired to deeper trace, graph, or database returns from the running product
 
 This distinction matters:
 
 - the shell is real
 - the interaction model is real
-- the live product wiring is still the next step
+- the current product wiring is thin, not complete
 
 The current UI build has been verified with:
 
@@ -212,9 +213,8 @@ Additional repo guardrails:
 
 ## Next Likely Work
 
-The current startup guide points at the next practical slices:
+The current repo is best used for:
 
-- wire the chat UI to a live GPT-5.4-backed path
-- wire the worksurface to live logs, traces, and database returns
-- test product behavior inside the SPA shell
-- keep the LLM-native operator contract central as implementation continues
+- testing answer quality in the shell
+- tightening the interaction feel
+- improving what the worksurface shows without adding fake product layers

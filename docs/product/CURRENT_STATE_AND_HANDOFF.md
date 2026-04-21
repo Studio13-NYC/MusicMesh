@@ -73,11 +73,12 @@ Current shell shape:
 - resizable layout
 - simple local API path for chat requests
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
+- runtime event log written to `output/chat/runtime-events.ndjson`
 
 Important limitation:
 
 - the UI is now wired to a thin GPT-5.4-backed API path
-- the worksurface can now read recent conversation tape entries from disk
+- the worksurface can now read recent conversation tape entries and runtime events from disk
 - the product still does not have deeper log, trace, or database readback wiring
 
 So the shell is now minimally live, but the broader product wiring is still not finished.
@@ -95,8 +96,8 @@ So the shell is now minimally live, but the broader product wiring is still not 
 
 ## Immediate Priority
 
-The next useful product step is:
+The current repo is best used to test:
 
-- deepen the chat surface beyond the current thin GPT-5.4-backed interaction path
-- connect the worksurface to richer supporting product data
-- test that behavior from inside the UI, not only from the terminal
+- answer quality in the product shell
+- message rendering and interaction feel
+- tape and runtime-log visibility from the worksurface

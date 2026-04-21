@@ -1,10 +1,10 @@
 # SPA Architecture
 
-This document defines the frontend architecture direction for the clean-sheet MusicMesh app.
+This document describes the frontend architecture that actually exists in the repo today.
 
-## Decision
+## Stack
 
-MusicMesh will use:
+The current SPA uses:
 
 - `React`
 - `Vite`
@@ -12,184 +12,52 @@ MusicMesh will use:
 - `Radix UI`
 - `react-resizable-panels`
 
-## Why This Stack
+## Current App Shape
 
-This product is chat-centric.
+The current UI is a single-page shell with:
 
-The app shell needs to support:
-
-- chat as the primary surface
-- multiple coordinated panels
-- adaptive worksurfaces that can change with context
-- strong keyboard and accessibility behavior
-- SPA-level responsiveness and polish
-
-Plain HTML5 is still the design baseline in spirit:
-
-- simple DOM structure
-- no unnecessary abstraction
-- no giant component framework
-
-But for this product, the UI needs more polish and stronger state coordination than raw handcrafted HTML alone will give us efficiently.
-
-This stack is the chosen compromise.
-
-## Role Of Each Layer
-
-### React
-
-React is the component layer.
-
-Use it for:
-
-- the persistent app shell
-- streaming chat rendering
-- coordinated panel composition
-- reusable interaction primitives
-
-Do not use it as an excuse to over-componentize simple markup.
-
-### Vite
-
-Vite is the SPA build and development toolchain.
-
-Use it for:
-
-- fast local startup
-- fast HMR
-- predictable bundling
-
-Do not build custom tooling around problems Vite already solves.
-
-### TanStack Router
-
-TanStack Router is the navigation and URL-state layer.
-
-Use it for:
-
-- routing between major app contexts
-- preserving selected thread, workspace, and inspector state in the URL
-- deep-linking into chat and work surfaces
-
-Routing is not just page-to-page navigation here.
-It is part of the workspace model.
-
-### Radix UI
-
-Radix UI is the primitive interaction layer.
-
-Use it for:
-
-- dialogs
-- menus
-- tabs
-- tooltips
-- popovers
-- scroll areas
-
-Radix should provide behavior and accessibility, not visual identity.
-
-The visual system should still feel like MusicMesh, not a default component library.
-
-### react-resizable-panels
-
-This is the layout spine for the adaptive workspace.
-
-Use it for:
-
-- left navigation
-- center chat
-- right work surface
-- optional nested splits inside the work surface
-
-Resizable panels are part of the product, not just a convenience.
-
-## App Shape
-
-The app is a single-page application with a persistent shell.
-
-The shell should feel like one continuous operator environment, not a set of disconnected screens.
-
-Core structure:
-
-- left rail for global navigation
-- secondary navigation area for chats, projects, and scoped context
-- center chat surface as the primary interaction area
-- right adaptive worksurface for graph, file, proposal, evidence, and inspector views
-- overlays only when a transient flow truly needs one
-
-## Current Implementation Status
-
-The current repo now has a real SPA shell in `ui/`.
-
-What is implemented:
-
-- Vite-based SPA entry
-- TanStack Router root route
-- a chat-first shell
+- a primary chat surface
 - a neighboring worksurface panel
-- resizable horizontal split
-- seeded local data for threads, messages, logs, traces, database views, and artifacts
+- a horizontal resizable split
 
-What is not yet implemented:
+There is no left rail, secondary navigation column, or multi-view workspace model implemented today.
 
-- live GPT-5.4 chat wiring
-- live backend streaming
-- live worksurface data fed from actual product execution
+## What The UI Actually Does
 
-This means the shell is real, but still functioning as a controlled prototype until the product wiring is added.
+The current shell supports:
 
-## Architectural Rules
+- rendering user and assistant messages
+- markdown rendering for assistant replies
+- a textarea composer with send action
+- a right-side worksurface
+- reading recent conversation tape entries from the local API
+- reading recent runtime events from the local API
 
-- chat is the first-class citizen
-- the right-side worksurface is subordinate to chat context
-- avoid hard page transitions inside the operator loop
-- preserve workspace state in the URL when practical
-- keep layout state explicit
-- prefer a few strong primitives over many one-off widgets
+## What The UI Does Not Yet Do
 
-## File And Code Direction
+- token streaming
+- multiple real product views
+- graph readback views
+- trace/database/artifact inspectors
+- deep routed workspace state
 
-Current repo state already uses `src/` for clean-sheet bootstrap and startup checks.
+## Code Layout
 
-Frontend SPA code should therefore live in a dedicated UI area rather than colliding with the Node bootstrap files.
+Frontend code lives in `ui/`.
 
-Planned frontend area:
-
-- `ui/`
-
-Suggested structure:
+Current important files:
 
 - `ui/index.html`
 - `ui/src/main.jsx`
-- `ui/src/app/`
-- `ui/src/routes/`
-- `ui/src/components/`
-- `ui/src/features/chat/`
-- `ui/src/features/worksurface/`
-- `ui/src/features/navigation/`
-- `ui/src/styles/`
+- `ui/src/router.jsx`
+- `ui/src/app/AppShell.jsx`
+- `ui/src/styles/app.css`
 
-## State Boundaries
+Bootstrap and API code live separately in `src/`.
 
-Use local component state for:
+## Architecture Rules
 
-- open and closed UI details
-- hover and focus behavior
-- transient view-level state
-
-Use routed state for:
-
-- current chat
-- current workspace target
-- selected right-panel mode
-- filters that should survive refresh or sharing
-
-Do not create a broad global state layer early unless we have a real coordination problem that routing and local state cannot handle.
-
-## Non-Goals
-
-- do not rebuild the old app shell
-- do not add a heavy design framework
-- do not let the routing layer become business logic sprawl
-- do not hide poor information architecture behind visual polish
+- keep the shell chat-first
+- keep the worksurface subordinate to the current conversation
+- prefer simple direct wiring over extra frontend layers
+- do not document UI areas that do not exist yet

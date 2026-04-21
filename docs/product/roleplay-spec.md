@@ -261,7 +261,7 @@ Assistant action:
 
 Assistant summary at that point:
 
-`I documented the flow in docs/product/REM_DISCOGRAPHY_ROLEPLAY_FLOW.md and persisted the triples into Neo4j.`
+`I documented the flow in docs/product/roleplay-spec.md and persisted the triples into Neo4j.`
 
 `For the live graph write, I mapped your normalized triples into the current canonical shape the product already uses:`
 
@@ -287,7 +287,7 @@ User:
 
 Assistant follow-up:
 
-`I updated the documentation in docs/product/REM_DISCOGRAPHY_ROLEPLAY_FLOW.md to include the full transcript, the fact that I asked no clarifying questions in the roleplay, every suggestion I made, your response to each suggestion, and the final persistence mapping.`
+`I updated the documentation in docs/product/roleplay-spec.md to include the full transcript, the fact that I asked no clarifying questions in the roleplay, every suggestion I made, your response to each suggestion, and the final persistence mapping.`
 
 `I also updated the persisted graph so this R.E.M. slice now uses the simpler model you asked for: existing Artist, Album, and RELEASED_ALBUM were kept; AlbumType is now stored on each Album; release_year remains on Album; year remains on RELEASED_ALBUM.`
 
