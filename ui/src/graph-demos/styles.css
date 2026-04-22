@@ -59,6 +59,7 @@ input {
 }
 
 .graph-demo-page-embedded {
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
   padding: 0;
   gap: 0;

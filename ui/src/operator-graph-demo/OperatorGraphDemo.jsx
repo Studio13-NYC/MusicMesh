@@ -16,14 +16,7 @@ const WORKBENCH_MODES = [
   { id: "workflow", label: "Workflow" }
 ];
 
-const seedMessages = [
-  {
-    id: "seed-assistant-1",
-    role: "assistant",
-    content:
-      "This integrated workbench keeps chat and graph exploration in one SPA. Use the graph mode to inspect the Neo4j subgraph, or switch to workflow mode to review the tape and runtime stream."
-  }
-];
+const seedMessages = [];
 
 export function OperatorGraphDemo() {
   const [messages, setMessages] = useState(seedMessages);
@@ -187,6 +180,9 @@ export function OperatorGraphDemo() {
                 <div>
                   <p className="section-label">Chat</p>
                   <h2>Live operator thread</h2>
+                  <p className="operator-pane-subtitle">
+                    Ask the operator, then keep the graph or workflow visible beside the conversation.
+                  </p>
                 </div>
                 <p className="operator-pane-meta">
                   {messages.length} messages
