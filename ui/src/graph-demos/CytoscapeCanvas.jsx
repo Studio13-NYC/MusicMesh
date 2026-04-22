@@ -30,6 +30,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     onBackgroundSelect,
     onExpandNode,
     onHoverChange,
+    onNodePositionChange,
     onSelectElement
   },
   ref
@@ -40,6 +41,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     id: null,
     timestamp: 0
   });
+  const lastTopologySignatureRef = useRef("");
 
   useImperativeHandle(
     ref,
@@ -189,13 +191,26 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       });
     });
 
+    cy.on("dragfree", "node", (event) => {
+      const node = event.target;
+      const position = node.position();
+
+      onNodePositionChange([
+        {
+          id: node.id(),
+          x: Math.round(position.x),
+          y: Math.round(position.y)
+        }
+      ]);
+    });
+
     cyRef.current = cy;
 
     return () => {
       cy.destroy();
       cyRef.current = null;
     };
-  }, [onBackgroundSelect, onExpandNode, onHoverChange, onSelectElement]);
+  }, [onBackgroundSelect, onExpandNode, onHoverChange, onNodePositionChange, onSelectElement]);
 
   useEffect(() => {
     const cy = cyRef.current;
@@ -204,6 +219,11 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       return;
     }
 
+    const topologySignature = JSON.stringify({
+      nodeIds: graph.nodes.map((node) => node.id),
+      edgeIds: graph.edges.map((edge) => edge.id)
+    });
+    const shouldFit = lastTopologySignatureRef.current !== topologySignature;
     const elements = [
       ...graph.nodes.map((node) => ({
         data: {
@@ -243,10 +263,12 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       cy.layout({
         name: "preset",
         animate: false,
-        fit: true,
+        fit: shouldFit,
         padding: 80
       }).run();
     }
+
+    lastTopologySignatureRef.current = topologySignature;
   }, [graph]);
 
   useEffect(() => {

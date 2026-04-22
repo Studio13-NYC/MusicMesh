@@ -83,6 +83,16 @@ Important limitation:
 
 So the shell is now minimally live, but the broader product wiring is still not finished.
 
+Graph visualization decision:
+
+- Cytoscape is the chosen graph visualization path
+- NVL is deprecated and removed from the visible UI surface
+- the standalone NVL URL is retained only as a deprecated reference page
+
+Decision note:
+
+- [GRAPH_VISUALIZATION_DECISION.md](/D:/Studio13/Lab/Code/MusicMesh/docs/ui/GRAPH_VISUALIZATION_DECISION.md)
+
 ## How The Next Agent Should Work
 
 - run `npm run startup` first

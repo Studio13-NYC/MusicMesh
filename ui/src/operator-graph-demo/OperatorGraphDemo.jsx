@@ -166,9 +166,6 @@ export function OperatorGraphDemo() {
               <a className="operator-demo-link" href="/graph-cytoscape.html">
                 Cytoscape only
               </a>
-              <a className="operator-demo-link" href="/graph-nvl.html">
-                NVL only
-              </a>
             </nav>
           </div>
         </header>

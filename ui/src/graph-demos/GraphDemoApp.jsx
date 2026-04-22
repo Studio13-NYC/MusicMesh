@@ -6,6 +6,7 @@ import {
   searchGraphSeeds
 } from "./api";
 import {
+  applyNodePositions,
   applyFilters,
   createEmptyGraph,
   mergeGraphPayload,
@@ -14,16 +15,10 @@ import {
 
 const LIBRARY_COPY = {
   cytoscape: {
-    heading: "Cytoscape comparison demo",
+    heading: "Cytoscape graph demo",
     accent: "Cytoscape.js",
     notes:
-      "Preset server positions drive the initial mental map, while Cytoscape handles the canvas interaction and styling."
-  },
-  nvl: {
-    heading: "NVL comparison demo",
-    accent: "Neo4j Visualization Library",
-    notes:
-      "The same server payload is rendered through NVL so interaction and data shape stay comparable with the Cytoscape page."
+      "This is the active MusicMesh graph path. Server-shaped graph data, app-style drawers, and Cytoscape interaction behavior define the current visualization direction."
   }
 };
 
@@ -49,7 +44,7 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
   const autoLoadedRef = useRef(false);
   const suppressInspectOpenRef = useRef(false);
   const filteredGraph = applyFilters(graph, filters);
-  const libraryCopy = LIBRARY_COPY[library];
+  const libraryCopy = LIBRARY_COPY[library] || LIBRARY_COPY.cytoscape;
 
   useEffect(() => {
     let ignore = false;
@@ -257,6 +252,10 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
     }));
   }
 
+  function handleNodePositionChange(nextPositions) {
+    setGraph((currentGraph) => applyNodePositions(currentGraph, nextPositions));
+  }
+
   const selectedNode =
     selectedElement?.type === "node"
       ? graph.nodes.find((node) => node.id === selectedElement.id) || null
@@ -442,6 +441,7 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
                 onBackgroundSelect={() => setSelectedElement(null)}
                 onExpandNode={handleExpand}
                 onHoverChange={setHoveredElement}
+                onNodePositionChange={handleNodePositionChange}
                 onSelectElement={setSelectedElement}
                 selectedElement={selectedElement}
               />

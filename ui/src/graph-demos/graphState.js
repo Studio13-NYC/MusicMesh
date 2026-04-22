@@ -18,9 +18,12 @@ export function mergeGraphPayload(currentGraph, nextPayload) {
   const edgeMap = new Map(currentGraph.edges.map((edge) => [edge.id, edge]));
 
   for (const node of nextPayload.nodes || []) {
+    const currentNode = nodeMap.get(node.id) || null;
     nodeMap.set(node.id, {
-      ...(nodeMap.get(node.id) || {}),
-      ...node
+      ...currentNode,
+      ...node,
+      x: Number.isFinite(currentNode?.x) ? currentNode.x : node.x,
+      y: Number.isFinite(currentNode?.y) ? currentNode.y : node.y
     });
   }
 
@@ -59,6 +62,57 @@ export function mergeGraphPayload(currentGraph, nextPayload) {
   mergedGraph.meta.edgeCount = mergedGraph.edges.length;
 
   return mergedGraph;
+}
+
+export function applyNodePositions(graph, nextPositions) {
+  const positionsById = new Map(
+    (nextPositions || [])
+      .filter(
+        (position) =>
+          position &&
+          typeof position.id === "string" &&
+          Number.isFinite(position.x) &&
+          Number.isFinite(position.y)
+      )
+      .map((position) => [
+        position.id,
+        {
+          x: position.x,
+          y: position.y
+        }
+      ])
+  );
+
+  if (positionsById.size === 0) {
+    return graph;
+  }
+
+  const nextNodes = graph.nodes.map((node) => {
+    const position = positionsById.get(node.id);
+
+    if (!position) {
+      return node;
+    }
+
+    return {
+      ...node,
+      x: position.x,
+      y: position.y
+    };
+  });
+  const seedPosition = graph.seedNode ? positionsById.get(graph.seedNode.id) : null;
+
+  return {
+    ...graph,
+    seedNode: seedPosition
+      ? {
+          ...graph.seedNode,
+          x: seedPosition.x,
+          y: seedPosition.y
+        }
+      : graph.seedNode,
+    nodes: nextNodes
+  };
 }
 
 export function syncFilterState(currentFilters, graph) {

@@ -16,11 +16,7 @@ const GRAPH_DEMOS = [
   },
   {
     href: "/graph-cytoscape.html",
-    label: "Cytoscape demo"
-  },
-  {
-    href: "/graph-nvl.html",
-    label: "NVL demo"
+    label: "Cytoscape graph demo"
   }
 ];
 

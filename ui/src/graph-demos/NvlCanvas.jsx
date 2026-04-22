@@ -20,11 +20,27 @@ export const NvlCanvas = forwardRef(function NvlCanvas(
     onBackgroundSelect,
     onExpandNode,
     onHoverChange,
+    onNodePositionChange,
     onSelectElement
   },
   ref
 ) {
     const nvlRef = useRef(null);
+    function syncDraggedPositions(nodes) {
+      const positionMap = new Map(
+        (nvlRef.current?.getNodePositions() || []).map((node) => [node.id, node])
+      );
+      const nextPositions = (nodes || [])
+        .map((node) => positionMap.get(node.id))
+        .filter((node) => Number.isFinite(node?.x) && Number.isFinite(node?.y))
+        .map((node) => ({
+          id: node.id,
+          x: Math.round(node.x),
+          y: Math.round(node.y)
+        }));
+
+      onNodePositionChange(nextPositions);
+    }
     const nodeIds = graph.nodes.map((node) => node.id);
     const positions = graph.nodes.map((node) => ({
       id: node.id,
@@ -37,8 +53,7 @@ export const NvlCanvas = forwardRef(function NvlCanvas(
       color: COLOR_MAP[node.colorKey] || COLOR_MAP.node,
       size: node.isSeed ? 46 : 32,
       selected: selectedElement?.type === "node" && selectedElement.id === node.id,
-      hovered: hoveredElement?.type === "node" && hoveredElement.id === node.id,
-      pinned: true
+      hovered: hoveredElement?.type === "node" && hoveredElement.id === node.id
     }));
     const rels = graph.edges.map((edge) => ({
       id: edge.id,
@@ -118,6 +133,8 @@ export const NvlCanvas = forwardRef(function NvlCanvas(
             onNodeDoubleClick: (node) => {
               onExpandNode(node.id);
             },
+            onDrag: syncDraggedPositions,
+            onDragEnd: syncDraggedPositions,
             onRelationshipClick: (relationship) => {
               onSelectElement({
                 type: "edge",
