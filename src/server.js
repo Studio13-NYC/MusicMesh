@@ -10,6 +10,12 @@ const {
   readTapeEntries
 } = require("./activityStore");
 const { validateEnv } = require("./env");
+const {
+  expandGraphNode,
+  fetchSeededGraph,
+  getNodeDetail,
+  searchGraphSeeds
+} = require("./graphDemoRepository");
 const { createAssistantReply, DEFAULT_MODEL } = require("./chatService");
 
 const DEFAULT_PORT = Number(process.env.MUSICMESH_API_PORT || 43101);
@@ -69,7 +75,7 @@ async function handleChat(request, response) {
     const threadId = typeof body.threadId === "string" ? body.threadId : "default-thread";
     const messages = Array.isArray(body.messages) ? body.messages : [];
 
-    appendRuntimeEvent({
+    await appendRuntimeEvent({
       id: createId("log"),
       type: "chat_request_received",
       payload: {
@@ -82,7 +88,7 @@ async function handleChat(request, response) {
     });
 
     if (!prompt) {
-      appendRuntimeEvent({
+      await appendRuntimeEvent({
         id: createId("log"),
         type: "chat_request_rejected",
         payload: {
@@ -95,7 +101,7 @@ async function handleChat(request, response) {
       return;
     }
 
-    const userEntry = appendTapeEntry({
+    const userEntry = await appendTapeEntry({
       id: createId("evt"),
       type: "user_message",
       threadId,
@@ -112,7 +118,7 @@ async function handleChat(request, response) {
       systemPromptPath: SYSTEM_PROMPT_PATH
     });
 
-    const assistantEntry = appendTapeEntry({
+    const assistantEntry = await appendTapeEntry({
       id: createId("evt"),
       type: "assistant_message",
       threadId,
@@ -129,7 +135,7 @@ async function handleChat(request, response) {
       tapeEventIds: [userEntry.id, assistantEntry.id]
     });
 
-    appendRuntimeEvent({
+    await appendRuntimeEvent({
       id: createId("log"),
       type: "chat_request_completed",
       payload: {
@@ -140,7 +146,7 @@ async function handleChat(request, response) {
       }
     });
   } catch (error) {
-    appendTapeEntry({
+    await appendTapeEntry({
       id: createId("evt"),
       type: "chat_error",
       threadId: "default-thread",
@@ -149,7 +155,7 @@ async function handleChat(request, response) {
       }
     });
 
-    appendRuntimeEvent({
+    await appendRuntimeEvent({
       id: createId("log"),
       type: "chat_request_failed",
       payload: {
@@ -192,6 +198,67 @@ function handleRuntimeLog(request, response) {
     });
 }
 
+function handleGraphDemoSearch(request, response) {
+  const requestUrl = new URL(request.url, `http://${request.headers.host}`);
+  const query = requestUrl.searchParams.get("q") || "";
+  const limit = Number(requestUrl.searchParams.get("limit") || 8);
+
+  searchGraphSeeds(query, limit)
+    .then((results) => {
+      sendJson(response, 200, {
+        query,
+        results
+      });
+    })
+    .catch((error) => {
+      sendJson(response, 500, { error: error.message });
+    });
+}
+
+async function handleGraphDemoSubgraph(request, response) {
+  try {
+    const body = await parseJsonBody(request);
+    const payload = await fetchSeededGraph(body.seedId, {
+      depth: body.depth,
+      maxNodes: body.maxNodes,
+      maxEdges: body.maxEdges,
+      pathLimit: body.pathLimit
+    });
+
+    sendJson(response, 200, payload);
+  } catch (error) {
+    sendJson(response, 500, { error: error.message });
+  }
+}
+
+async function handleGraphDemoExpand(request, response) {
+  try {
+    const body = await parseJsonBody(request);
+    const payload = await expandGraphNode(body.nodeId, {
+      currentNodeIds: body.currentNodeIds,
+      currentEdgeIds: body.currentEdgeIds,
+      depth: body.depth,
+      maxNodes: body.maxNodes,
+      maxEdges: body.maxEdges,
+      pathLimit: body.pathLimit
+    });
+
+    sendJson(response, 200, payload);
+  } catch (error) {
+    sendJson(response, 500, { error: error.message });
+  }
+}
+
+function handleGraphDemoNodeDetail(request, response, nodeId) {
+  getNodeDetail(nodeId)
+    .then((detail) => {
+      sendJson(response, 200, detail);
+    })
+    .catch((error) => {
+      sendJson(response, 500, { error: error.message });
+    });
+}
+
 function startServer(port = DEFAULT_PORT) {
   const server = http.createServer((request, response) => {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
@@ -228,6 +295,32 @@ function startServer(port = DEFAULT_PORT) {
         requestUrl.pathname === "/api/chat/runtime")
     ) {
       handleRuntimeLog(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/graph-demo/search") {
+      handleGraphDemoSearch(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/graph-demo/subgraph") {
+      handleGraphDemoSubgraph(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/api/graph-demo/expand") {
+      handleGraphDemoExpand(request, response);
+      return;
+    }
+
+    if (
+      request.method === "GET" &&
+      requestUrl.pathname.startsWith("/api/graph-demo/node/")
+    ) {
+      const nodeId = decodeURIComponent(
+        requestUrl.pathname.slice("/api/graph-demo/node/".length)
+      );
+      handleGraphDemoNodeDetail(request, response, nodeId);
       return;
     }
 

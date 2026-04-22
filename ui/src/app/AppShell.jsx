@@ -9,6 +9,16 @@ const API_BASE_RAW = import.meta.env.VITE_MUSICMESH_API_BASE ?? "";
 const API_BASE_URL =
   typeof API_BASE_RAW === "string" ? API_BASE_RAW.replace(/\/$/, "") : "";
 const REPO_URL = "https://github.com/Studio13-NYC/MusicMesh";
+const GRAPH_DEMOS = [
+  {
+    href: "/graph-cytoscape.html",
+    label: "Cytoscape demo"
+  },
+  {
+    href: "/graph-nvl.html",
+    label: "NVL demo"
+  }
+];
 
 const seedMessages = [
   {
@@ -151,15 +161,24 @@ export function AppShell() {
   return (
     <div className="workspace">
       <div className="app-shell">
-        <a
-          className="app-github-link"
-          href={REPO_URL}
-          rel="noreferrer"
-          target="_blank"
-        >
-          <GitHubMark />
-          <span>GitHub</span>
-        </a>
+        <div className="app-top-actions">
+          <nav aria-label="Graph demos" className="app-demo-links">
+            {GRAPH_DEMOS.map((demo) => (
+              <a className="app-demo-link" href={demo.href} key={demo.href}>
+                {demo.label}
+              </a>
+            ))}
+          </nav>
+          <a
+            className="app-github-link"
+            href={REPO_URL}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <GitHubMark />
+            <span>GitHub</span>
+          </a>
+        </div>
         <PanelGroup direction="horizontal">
           <Panel className="chat-panel" defaultSize={68} minSize={52}>
             <ChatSurface

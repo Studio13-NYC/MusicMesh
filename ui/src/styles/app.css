@@ -48,11 +48,28 @@ input {
   background: var(--bg);
 }
 
-.app-github-link {
+.app-top-actions {
   position: absolute;
   top: 16px;
   right: 18px;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.app-demo-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.app-demo-link,
+.app-github-link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -69,12 +86,20 @@ input {
     transform 140ms ease;
 }
 
+.app-demo-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-demo-link:hover,
 .app-github-link:hover {
   background: rgba(30, 30, 34, 0.98);
   border-color: rgba(96, 165, 250, 0.35);
   transform: translateY(-1px);
 }
 
+.app-demo-link:focus-visible,
 .app-github-link:focus-visible {
   outline: 2px solid rgba(96, 165, 250, 0.5);
   outline-offset: 2px;
@@ -573,6 +598,17 @@ input {
   .app-shell {
     height: 100vh;
     border-radius: 0;
+  }
+
+  .app-top-actions {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    justify-content: space-between;
+  }
+
+  .app-demo-links {
+    flex: 1;
   }
 
   .chat-surface,

@@ -29,6 +29,13 @@ export default defineConfig({
   },
   build: {
     outDir: path.join(currentDir, "..", "output", "ui-dist"),
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.join(currentDir, "index.html"),
+        "graph-cytoscape": path.join(currentDir, "graph-cytoscape.html"),
+        "graph-nvl": path.join(currentDir, "graph-nvl.html")
+      }
+    }
   }
 });
