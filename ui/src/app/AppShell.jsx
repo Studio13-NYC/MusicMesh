@@ -11,6 +11,10 @@ const API_BASE_URL =
 const REPO_URL = "https://github.com/Studio13-NYC/MusicMesh";
 const GRAPH_DEMOS = [
   {
+    href: "/operator-graph-demo.html",
+    label: "Operator + graph demo"
+  },
+  {
     href: "/graph-cytoscape.html",
     label: "Cytoscape demo"
   },

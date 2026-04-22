@@ -58,6 +58,12 @@ input {
   overflow: hidden;
 }
 
+.graph-demo-page-embedded {
+  height: 100%;
+  padding: 0;
+  gap: 0;
+}
+
 .demo-topbar {
   display: flex;
   justify-content: space-between;

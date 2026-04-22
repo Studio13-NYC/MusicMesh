@@ -1,0 +1,261 @@
+.operator-demo-page {
+  min-height: 100vh;
+  height: 100vh;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.12), transparent 32%),
+    linear-gradient(180deg, #121316, #0f1012 52%, #0c0d0f);
+}
+
+.operator-demo-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(15, 16, 18, 0.96);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.35);
+}
+
+.operator-demo-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(19, 20, 23, 0.94);
+}
+
+.operator-demo-brand h1 {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.2;
+}
+
+.operator-demo-brand .section-label {
+  margin-bottom: 6px;
+}
+
+.operator-demo-nav,
+.operator-demo-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.operator-demo-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.42rem 0.72rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.81rem;
+  font-weight: 600;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.operator-demo-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(96, 165, 250, 0.4);
+  transform: translateY(-1px);
+}
+
+.operator-demo-panels {
+  min-height: 0;
+}
+
+.operator-demo-chat-panel,
+.operator-demo-workbench-panel {
+  min-width: 0;
+  height: 100%;
+}
+
+.operator-chat-surface,
+.operator-workbench {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.operator-chat-surface {
+  padding: 16px 16px 12px;
+}
+
+.operator-workbench {
+  padding: 14px 14px 12px 10px;
+  background: rgba(23, 24, 27, 0.9);
+}
+
+.operator-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 0;
+}
+
+.operator-pane-header h2 {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.2;
+}
+
+.operator-pane-meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.operator-stream {
+  width: min(920px, 100%);
+  padding-right: 10px;
+}
+
+.operator-composer {
+  padding-top: 10px;
+}
+
+.operator-composer-row {
+  position: relative;
+}
+
+.operator-composer-input {
+  min-height: 92px;
+  padding: 14px 16px 60px;
+  border-radius: 16px;
+}
+
+.operator-composer-submit {
+  right: 12px;
+  bottom: 12px;
+}
+
+.operator-demo-resize-handle {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.operator-workbench-header {
+  gap: 10px;
+}
+
+.operator-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.operator-mode-button {
+  min-height: 30px;
+  padding: 0.32rem 0.72rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.operator-mode-button.is-active {
+  background: rgba(96, 165, 250, 0.2);
+  color: var(--text);
+}
+
+.operator-demo-separator {
+  margin: 10px 0 12px;
+}
+
+.operator-workbench-body {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.operator-workflow-scroll-root {
+  min-height: 0;
+  height: 100%;
+}
+
+.operator-workflow-grid {
+  display: grid;
+  gap: 12px;
+  padding-right: 6px;
+}
+
+.operator-workflow-card {
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.operator-demo-page .graph-demo-page-embedded .demo-layout {
+  height: 100%;
+}
+
+.operator-demo-page .graph-demo-page-embedded .demo-canvas-panel {
+  border-radius: 16px;
+}
+
+.operator-demo-page .graph-demo-page-embedded .demo-toolbar-shell {
+  border-radius: 12px;
+}
+
+.operator-demo-page .graph-demo-page-embedded .demo-canvas-shell {
+  border-radius: 12px;
+}
+
+.operator-demo-page .graph-demo-page-embedded .demo-drawer {
+  top: 0;
+  bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .operator-demo-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .operator-demo-nav,
+  .operator-demo-links {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .operator-demo-page {
+    padding: 0;
+  }
+
+  .operator-demo-shell {
+    border-radius: 0;
+  }
+
+  .operator-demo-topbar {
+    padding: 12px;
+  }
+
+  .operator-chat-surface,
+  .operator-workbench {
+    padding: 12px;
+  }
+
+  .operator-demo-panels[data-panel-group-direction="horizontal"] {
+    flex-direction: column;
+  }
+}

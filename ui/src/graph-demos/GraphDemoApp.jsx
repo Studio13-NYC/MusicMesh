@@ -27,7 +27,7 @@ const LIBRARY_COPY = {
   }
 };
 
-export function GraphDemoApp({ GraphCanvas, library }) {
+export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
   const [graph, setGraph] = useState(createEmptyGraph());
   const [filters, setFilters] = useState({
     nodeKinds: {},
@@ -268,23 +268,25 @@ export function GraphDemoApp({ GraphCanvas, library }) {
   const selectedNodeDetail = selectedNode ? nodeDetails[selectedNode.id] || null : null;
 
   return (
-    <div className="graph-demo-page">
-      <header className="demo-topbar">
-        <div className="demo-topbar-copy">
-          <p className="demo-kicker">MusicMesh standalone graph demo</p>
-          <h1>{libraryCopy.heading}</h1>
-          <p className="demo-notes">{libraryCopy.notes}</p>
-        </div>
-        <div className="demo-topbar-actions">
-          <span className="demo-pill">{libraryCopy.accent}</span>
-          <span className="demo-pill">
-            {graph.meta.visibleNodeCount || 0} visible nodes / {graph.meta.visibleEdgeCount || 0} visible edges
-          </span>
-          <a className="demo-link" href="/">
-            Back to shell
-          </a>
-        </div>
-      </header>
+    <div className={`graph-demo-page${embedded ? " graph-demo-page-embedded" : ""}`}>
+      {!embedded ? (
+        <header className="demo-topbar">
+          <div className="demo-topbar-copy">
+            <p className="demo-kicker">MusicMesh standalone graph demo</p>
+            <h1>{libraryCopy.heading}</h1>
+            <p className="demo-notes">{libraryCopy.notes}</p>
+          </div>
+          <div className="demo-topbar-actions">
+            <span className="demo-pill">{libraryCopy.accent}</span>
+            <span className="demo-pill">
+              {graph.meta.visibleNodeCount || 0} visible nodes / {graph.meta.visibleEdgeCount || 0} visible edges
+            </span>
+            <a className="demo-link" href="/">
+              Back to shell
+            </a>
+          </div>
+        </header>
+      ) : null}
 
       <div className="demo-layout">
         <aside
