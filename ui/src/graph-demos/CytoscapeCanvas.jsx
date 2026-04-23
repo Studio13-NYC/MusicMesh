@@ -22,6 +22,19 @@ const EDGE_STYLE_MAP = {
   dotted: "dotted"
 };
 
+const FIT_PADDING = 148;
+
+function fitViewport(cy) {
+  const target = cy.nodes();
+
+  if (!target || target.length === 0) {
+    return;
+  }
+
+  cy.fit(target, FIT_PADDING);
+  cy.center(target);
+}
+
 export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
   {
     graph,
@@ -42,12 +55,20 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     timestamp: 0
   });
   const lastTopologySignatureRef = useRef("");
+  const pendingFitRef = useRef(false);
 
   useImperativeHandle(
     ref,
     () => ({
       fitToGraph() {
-        cyRef.current?.fit(undefined, 80);
+        const cy = cyRef.current;
+
+        if (!cy) {
+          return;
+        }
+
+        fitViewport(cy);
+        pendingFitRef.current = false;
       },
       resetView() {
         const cy = cyRef.current;
@@ -56,8 +77,8 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
           return;
         }
 
-        cy.fit(undefined, 80);
-        cy.center();
+        fitViewport(cy);
+        pendingFitRef.current = false;
       }
     }),
     []
@@ -206,7 +227,25 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
 
     cyRef.current = cy;
 
+    const resizeObserver = new ResizeObserver(() => {
+      const liveCy = cyRef.current;
+
+      if (!liveCy) {
+        return;
+      }
+
+      liveCy.resize();
+
+      if (pendingFitRef.current && liveCy.elements().length > 0) {
+        fitViewport(liveCy);
+        pendingFitRef.current = false;
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       cy.destroy();
       cyRef.current = null;
     };
@@ -263,9 +302,32 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       cy.layout({
         name: "preset",
         animate: false,
-        fit: shouldFit,
+        fit: false,
         padding: 80
       }).run();
+
+      cy.resize();
+
+      if (shouldFit) {
+        pendingFitRef.current = true;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const liveCy = cyRef.current;
+
+            if (!liveCy) {
+              return;
+            }
+
+            liveCy.resize();
+
+            if (pendingFitRef.current) {
+              fitViewport(liveCy);
+              pendingFitRef.current = false;
+            }
+          });
+        });
+      }
     }
 
     lastTopologySignatureRef.current = topologySignature;

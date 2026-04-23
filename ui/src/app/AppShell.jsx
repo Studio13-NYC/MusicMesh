@@ -12,22 +12,23 @@ const REPO_URL = "https://github.com/Studio13-NYC/MusicMesh";
 const GRAPH_DEMOS = [
   {
     href: "/operator-graph-demo.html",
-    label: "Operator + graph demo"
+    label: "Open operator workbench",
+    tone: "primary"
   },
   {
     href: "/graph-cytoscape.html",
-    label: "Cytoscape graph demo"
+    label: "Graph canvas",
+    tone: "secondary"
   }
 ];
 
-const seedMessages = [
-  {
-    id: "seed-assistant-1",
-    role: "assistant",
-    content:
-      "MusicMesh uses same-origin /api (Vite proxy locally, Azure Functions when deployed). Send a message to chat; tape and runtime logs load from local disk in dev or Azure Blob when production persistence is configured."
-  }
+const STARTER_PROMPTS = [
+  "Give me a quick orientation to Talking Heads and where to dig next.",
+  "Summarize how R.E.M.'s catalog is organized and which albums matter most.",
+  "Walk me through a post-punk scene starting from the artists that connect the most threads."
 ];
+
+const seedMessages = [];
 
 export function AppShell() {
   const [messages, setMessages] = useState(seedMessages);
@@ -39,6 +40,7 @@ export function AppShell() {
   const [runtimeEvents, setRuntimeEvents] = useState([]);
   const [runtimeLogPath, setRuntimeLogPath] = useState("");
   const viewportRef = useRef(null);
+  const composerRef = useRef(null);
 
   useEffect(() => {
     loadTape();
@@ -158,13 +160,24 @@ export function AppShell() {
     }
   }
 
+  function handleStarterPrompt(prompt) {
+    setComposerValue(prompt);
+    composerRef.current?.focus();
+  }
+
   return (
     <div className="workspace">
       <div className="app-shell">
         <div className="app-top-actions">
           <nav aria-label="Graph demos" className="app-demo-links">
             {GRAPH_DEMOS.map((demo) => (
-              <a className="app-demo-link" href={demo.href} key={demo.href}>
+              <a
+                className={`app-demo-link${
+                  demo.tone === "primary" ? " app-demo-link-primary" : ""
+                }`}
+                href={demo.href}
+                key={demo.href}
+              >
                 {demo.label}
               </a>
             ))}
@@ -184,10 +197,14 @@ export function AppShell() {
             <ChatSurface
               composerValue={composerValue}
               errorMessage={errorMessage}
+              isEmpty={messages.length === 0}
               isSending={isSending}
               messages={messages}
               onComposerChange={setComposerValue}
+              onPromptPick={handleStarterPrompt}
               onSubmit={handleSubmit}
+              starterPrompts={STARTER_PROMPTS}
+              textareaRef={composerRef}
               viewportRef={viewportRef}
             />
           </Panel>
@@ -222,8 +239,12 @@ function ChatSurface({
   composerValue,
   isSending,
   errorMessage,
+  isEmpty,
   onComposerChange,
+  onPromptPick,
   onSubmit,
+  starterPrompts,
+  textareaRef,
   viewportRef
 }) {
   function handleComposerKeyDown(event) {
@@ -249,9 +270,13 @@ function ChatSurface({
       <ScrollArea.Root className="chat-scroll-root">
         <ScrollArea.Viewport className="chat-scroll-viewport" ref={viewportRef}>
           <div className="stream">
+            {isEmpty ? (
+              <AppEmptyState onPromptPick={onPromptPick} starterPrompts={starterPrompts} />
+            ) : null}
             {messages.map((message) => (
               <TranscriptEntry entry={message} key={message.id} />
             ))}
+            {isSending ? <PendingAssistantEntry /> : null}
           </div>
         </ScrollArea.Viewport>
         <ScrollArea.Scrollbar className="scrollbar" orientation="vertical">
@@ -267,6 +292,7 @@ function ChatSurface({
           <textarea
             className="composer-input"
             id="musicmesh-composer"
+            ref={textareaRef}
             onChange={(event) => onComposerChange(event.target.value)}
             onKeyDown={handleComposerKeyDown}
             placeholder="Ask MusicMesh a music question."
@@ -279,6 +305,32 @@ function ChatSurface({
         </div>
         {errorMessage ? <p className="composer-error">{errorMessage}</p> : null}
       </form>
+    </section>
+  );
+}
+
+function AppEmptyState({ starterPrompts, onPromptPick }) {
+  return (
+    <section className="app-empty-state">
+      <div className="workspace-empty">
+        <p>Ask directly, then move into the operator workbench when you need the graph beside the answer.</p>
+        <span>
+          MusicMesh is strongest when the question stays conversational and the structured tooling shows up only when it helps.
+        </span>
+      </div>
+
+      <div className="app-starter-list">
+        {starterPrompts.map((prompt) => (
+          <button
+            className="app-starter-chip"
+            key={prompt}
+            onClick={() => onPromptPick(prompt)}
+            type="button"
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
@@ -303,13 +355,23 @@ function TranscriptEntry({ entry }) {
   );
 }
 
+function PendingAssistantEntry() {
+  return (
+    <article className="assistant-stream assistant-stream-pending">
+      <div className="markdown-stream">
+        <p>MusicMesh is working through that request...</p>
+      </div>
+    </article>
+  );
+}
+
 function WorksurfacePanel({ tapeEntries, tapePath, runtimeEvents, runtimeLogPath }) {
   return (
     <aside className="worksurface">
       <header className="worksurface-header">
         <div>
           <p className="section-label">Workspace</p>
-          <h2>Conversation tape</h2>
+          <h2>Recent activity</h2>
         </div>
       </header>
 

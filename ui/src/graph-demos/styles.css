@@ -65,6 +65,35 @@ input {
   gap: 0;
 }
 
+.graph-demo-page-embedded .demo-canvas-panel {
+  padding: 8px;
+  gap: 6px;
+  border-radius: 16px;
+}
+
+.graph-demo-page-embedded .demo-toolbar-shell {
+  padding: 6px 8px;
+}
+
+.graph-demo-page-embedded .demo-toolbar {
+  gap: 6px;
+}
+
+.graph-demo-page-embedded .demo-button-tight {
+  min-height: 30px;
+  padding: 0.36rem 0.58rem;
+  font-size: 0.78rem;
+}
+
+.graph-demo-page-embedded .demo-toolbar-meta {
+  font-size: 0.78rem;
+}
+
+.graph-demo-page-embedded .demo-panel,
+.graph-demo-page-embedded .demo-drawer-panel {
+  border-radius: 14px;
+}
+
 .demo-topbar {
   display: flex;
   justify-content: space-between;

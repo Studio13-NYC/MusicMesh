@@ -16,6 +16,12 @@ const WORKBENCH_MODES = [
   { id: "workflow", label: "Workflow" }
 ];
 
+const STARTER_PROMPTS = [
+  "Give me a tight overview of Talking Heads and the most important adjacent artists to inspect.",
+  "Map the relationship between R.E.M., their albums, and the producers worth checking next.",
+  "Show me how post-punk scenes connect through bands, members, and key releases."
+];
+
 const seedMessages = [];
 
 export function OperatorGraphDemo() {
@@ -29,6 +35,7 @@ export function OperatorGraphDemo() {
   const [runtimeLogPath, setRuntimeLogPath] = useState("");
   const [workspaceMode, setWorkspaceMode] = useState("graph");
   const viewportRef = useRef(null);
+  const composerRef = useRef(null);
 
   useEffect(() => {
     loadTape();
@@ -150,6 +157,11 @@ export function OperatorGraphDemo() {
     }
   }
 
+  function handleStarterPrompt(prompt) {
+    setComposerValue(prompt);
+    composerRef.current?.focus();
+  }
+
   return (
     <div className="operator-demo-page">
       <div className="operator-demo-shell">
@@ -157,6 +169,9 @@ export function OperatorGraphDemo() {
           <div className="operator-demo-brand">
             <p className="section-label">Integrated demo</p>
             <h1>Operator + graph workbench</h1>
+            <p className="operator-demo-summary">
+              Keep the answer stream live while switching the right rail between graph inspection and workflow detail.
+            </p>
           </div>
           <div className="operator-demo-nav">
             <nav aria-label="Operator demo destinations" className="operator-demo-links">
@@ -171,27 +186,31 @@ export function OperatorGraphDemo() {
         </header>
 
         <PanelGroup className="operator-demo-panels" direction="horizontal">
-          <Panel className="operator-demo-chat-panel" defaultSize={57} minSize={40}>
+          <Panel className="operator-demo-chat-panel" defaultSize={52} minSize={36}>
             <section className="operator-chat-surface">
               <header className="operator-pane-header">
                 <div>
                   <p className="section-label">Chat</p>
                   <h2>Live operator thread</h2>
                   <p className="operator-pane-subtitle">
-                    Ask the operator, then keep the graph or workflow visible beside the conversation.
+                    Ask directly, then keep graph or workflow context visible without leaving the conversation.
                   </p>
                 </div>
                 <p className="operator-pane-meta">
-                  {messages.length} messages
+                  {messages.length > 0 ? `${messages.length} messages` : "Ready"}
                 </p>
               </header>
 
               <ScrollArea.Root className="chat-scroll-root">
                 <ScrollArea.Viewport className="chat-scroll-viewport" ref={viewportRef}>
                   <div className="stream operator-stream">
+                    {messages.length === 0 ? (
+                      <OperatorEmptyState onPromptPick={handleStarterPrompt} />
+                    ) : null}
                     {messages.map((message) => (
                       <TranscriptEntry entry={message} key={message.id} />
                     ))}
+                    {isSending ? <PendingAssistantEntry /> : null}
                   </div>
                 </ScrollArea.Viewport>
                 <ScrollArea.Scrollbar className="scrollbar" orientation="vertical">
@@ -203,6 +222,7 @@ export function OperatorGraphDemo() {
                 <div className="operator-composer-row">
                   <textarea
                     className="composer-input operator-composer-input"
+                    ref={composerRef}
                     id="operator-demo-composer"
                     onChange={(event) => setComposerValue(event.target.value)}
                     onKeyDown={(event) => {
@@ -212,7 +232,7 @@ export function OperatorGraphDemo() {
                       }
                     }}
                     placeholder="Ask MusicMesh, then inspect the graph alongside the conversation."
-                    rows={3}
+                    rows={2}
                     value={composerValue}
                   />
                   <button className="composer-submit operator-composer-submit" disabled={isSending} type="submit">
@@ -226,12 +246,17 @@ export function OperatorGraphDemo() {
 
           <PanelResizeHandle className="resize-handle operator-demo-resize-handle" />
 
-          <Panel className="operator-demo-workbench-panel" defaultSize={43} minSize={28}>
+          <Panel className="operator-demo-workbench-panel" defaultSize={48} minSize={32}>
             <section className="operator-workbench">
               <header className="operator-pane-header operator-workbench-header">
                 <div>
                   <p className="section-label">Workbench</p>
                   <h2>{workspaceMode === "graph" ? "Graph workspace" : "Workflow stream"}</h2>
+                  <p className="operator-workbench-summary">
+                    {workspaceMode === "graph"
+                      ? "Use the graph as a live sidecar, not a separate destination."
+                      : "Trace recent tape and runtime events without losing the active thread."}
+                  </p>
                 </div>
                 <div className="operator-mode-switch" role="tablist" aria-label="Workbench mode">
                   {WORKBENCH_MODES.map((mode) => (
@@ -273,6 +298,34 @@ export function OperatorGraphDemo() {
   );
 }
 
+function OperatorEmptyState({ onPromptPick }) {
+  return (
+    <section className="operator-empty-state">
+      <div className="operator-empty-copy">
+        <p className="section-label">Start here</p>
+        <h3>Use the operator like a working session, not a form.</h3>
+        <p>
+          Ask for an answer first. Then use the graph rail to inspect neighbors, expand the subgraph,
+          and decide what deserves closer review.
+        </p>
+      </div>
+
+      <div className="operator-starter-list">
+        {STARTER_PROMPTS.map((prompt) => (
+          <button
+            className="operator-starter-chip"
+            key={prompt}
+            onClick={() => onPromptPick(prompt)}
+            type="button"
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function TranscriptEntry({ entry }) {
   if (entry.role === "user") {
     return (
@@ -288,6 +341,16 @@ function TranscriptEntry({ entry }) {
     <article className="assistant-stream">
       <div className="markdown-stream">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.content}</ReactMarkdown>
+      </div>
+    </article>
+  );
+}
+
+function PendingAssistantEntry() {
+  return (
+    <article className="assistant-stream assistant-stream-pending">
+      <div className="markdown-stream">
+        <p>MusicMesh is working through that request...</p>
       </div>
     </article>
   );

@@ -145,9 +145,11 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
         suppressInspectOpenRef.current = false;
         return;
       }
-      setIsRightDrawerOpen(true);
+      if (!embedded) {
+        setIsRightDrawerOpen(true);
+      }
     }
-  }, [selectedElement]);
+  }, [embedded, selectedElement]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -403,7 +405,7 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
               </div>
               <div className="demo-toolbar-meta">
                 <span className="demo-toolbar-seed">
-                  {graph.seedNode?.label || "No seed"}
+                  {graph.seedNode?.label || "No seed loaded"}
                 </span>
                 <span>
                   {graph.meta.nodeCount || 0}n / {graph.meta.edgeCount || 0}e
@@ -447,7 +449,7 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
               />
             ) : (
               <div className="demo-empty-state">
-                Load a seed node to render the graph demo.
+                Load a seed node to inspect the graph.
               </div>
             )}
           </div>
