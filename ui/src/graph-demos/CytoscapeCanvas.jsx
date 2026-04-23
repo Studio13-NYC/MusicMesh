@@ -55,6 +55,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     timestamp: 0
   });
   const lastTopologySignatureRef = useRef("");
+  const lastPositionSignatureRef = useRef("");
   const pendingFitRef = useRef(false);
 
   useImperativeHandle(
@@ -262,7 +263,15 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       nodeIds: graph.nodes.map((node) => node.id),
       edgeIds: graph.edges.map((edge) => edge.id)
     });
-    const shouldFit = lastTopologySignatureRef.current !== topologySignature;
+    const positionSignature = JSON.stringify(
+      graph.nodes.map((node) => [
+        node.id,
+        Number.isFinite(node.x) ? Math.round(node.x) : 0,
+        Number.isFinite(node.y) ? Math.round(node.y) : 0
+      ])
+    );
+    const hasTopologyChanged = lastTopologySignatureRef.current !== topologySignature;
+    const havePositionsChanged = lastPositionSignatureRef.current !== positionSignature;
     const elements = [
       ...graph.nodes.map((node) => ({
         data: {
@@ -290,25 +299,41 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       }))
     ];
 
-    cy.batch(() => {
-      cy.elements().remove();
+    if (hasTopologyChanged) {
+      cy.batch(() => {
+        cy.elements().remove();
 
-      if (elements.length > 0) {
-        cy.add(elements);
-      }
-    });
+        if (elements.length > 0) {
+          cy.add(elements);
+        }
+      });
+    } else if (havePositionsChanged) {
+      cy.batch(() => {
+        for (const node of graph.nodes) {
+          const element = cy.getElementById(node.id);
+
+          if (element.empty()) {
+            continue;
+          }
+
+          element.position({
+            x: Number.isFinite(node.x) ? node.x : 0,
+            y: Number.isFinite(node.y) ? node.y : 0
+          });
+        }
+      });
+    }
 
     if (graph.nodes.length > 0) {
-      cy.layout({
-        name: "preset",
-        animate: false,
-        fit: false,
-        padding: 80
-      }).run();
+      if (hasTopologyChanged) {
+        cy.layout({
+          name: "preset",
+          animate: false,
+          fit: false,
+          padding: 80
+        }).run();
 
-      cy.resize();
-
-      if (shouldFit) {
+        cy.resize();
         pendingFitRef.current = true;
 
         requestAnimationFrame(() => {
@@ -328,9 +353,12 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
           });
         });
       }
+    } else if (hasTopologyChanged) {
+      pendingFitRef.current = false;
     }
 
     lastTopologySignatureRef.current = topologySignature;
+    lastPositionSignatureRef.current = positionSignature;
   }, [graph]);
 
   useEffect(() => {

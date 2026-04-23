@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   expandGraphNode,
   fetchGraphSubgraph,
@@ -43,7 +43,7 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
   const canvasRef = useRef(null);
   const autoLoadedRef = useRef(false);
   const suppressInspectOpenRef = useRef(false);
-  const filteredGraph = applyFilters(graph, filters);
+  const filteredGraph = useMemo(() => applyFilters(graph, filters), [graph, filters]);
   const libraryCopy = LIBRARY_COPY[library] || LIBRARY_COPY.cytoscape;
 
   useEffect(() => {
