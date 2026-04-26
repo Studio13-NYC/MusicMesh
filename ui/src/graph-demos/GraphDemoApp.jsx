@@ -62,9 +62,17 @@ export function GraphDemoApp({
 
       try {
         if (threadId) {
-          const focusPayload = await fetchThreadFocusedGraph(threadId);
+          let focusPayload = null;
 
-          if (!ignore && focusPayload.hasFocus && focusPayload.graph) {
+          try {
+            focusPayload = await fetchThreadFocusedGraph(threadId);
+          } catch (error) {
+            if (!ignore) {
+              setSearchStatus("Thread focus unavailable; loading an available graph seed.");
+            }
+          }
+
+          if (!ignore && focusPayload?.hasFocus && focusPayload.graph) {
             autoLoadedRef.current = true;
             setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphProposalId || "");
             setSearchStatus(

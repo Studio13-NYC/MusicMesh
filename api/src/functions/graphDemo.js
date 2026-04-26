@@ -1,7 +1,9 @@
 const { app } = require("@azure/functions");
+const { readTapeEntries } = require("../../shared/activityStore");
 const {
   expandGraphNode,
   fetchSeededGraph,
+  findGraphProposalSeed,
   getNodeDetail,
   searchGraphSeeds
 } = require("../../shared/graphDemoRepository");
@@ -58,6 +60,71 @@ app.http("graphDemoSearch", {
       return jsonResponse(200, { results });
     } catch (error) {
       return jsonResponse(500, { error: error.message || "Graph demo search failed." });
+    }
+  }
+});
+
+app.http("graphDemoThreadFocus", {
+  methods: ["GET", "OPTIONS"],
+  route: "graph-demo/thread-focus",
+  authLevel: "anonymous",
+  handler: async (request) => {
+    const optionsResponse = handleOptions(request);
+
+    if (optionsResponse) {
+      return optionsResponse;
+    }
+
+    try {
+      const requestUrl = new URL(request.url);
+      const threadId = stableThreadId(requestUrl.searchParams.get("threadId"));
+      const tapeWindowSize = Number(requestUrl.searchParams.get("window") || 200);
+      const entries = await readTapeEntries(tapeWindowSize);
+      const latestProposalId = findLatestThreadProposalId(entries, threadId);
+
+      if (!latestProposalId) {
+        return jsonResponse(200, {
+          threadId,
+          hasFocus: false,
+          graphProposalId: null,
+          reason: "No graph proposal found for this thread yet."
+        });
+      }
+
+      const directProposalSeed = await findGraphProposalSeed(latestProposalId);
+      const candidates = await searchGraphSeeds(latestProposalId, 25);
+      const fallbackProposalSeed =
+        candidates.find((candidate) => candidate.kind === "GraphProposal") ||
+        candidates.find((candidate) => candidate.label === latestProposalId) ||
+        candidates[0] ||
+        null;
+      const focusSeed = directProposalSeed || fallbackProposalSeed;
+
+      if (!focusSeed) {
+        return jsonResponse(200, {
+          threadId,
+          hasFocus: false,
+          graphProposalId: latestProposalId,
+          reason: "Proposal exists but no focusable graph node was found."
+        });
+      }
+
+      const graph = await fetchSeededGraph(focusSeed.id, {
+        depth: 2,
+        maxNodes: 90,
+        maxEdges: 140,
+        pathLimit: 180
+      });
+
+      return jsonResponse(200, {
+        threadId,
+        hasFocus: true,
+        graphProposalId: latestProposalId,
+        focusSeed,
+        graph
+      });
+    } catch (error) {
+      return jsonResponse(500, { error: error.message || "Graph demo thread focus failed." });
     }
   }
 });
@@ -125,3 +192,29 @@ app.http("graphDemoNodeDetail", {
     }
   }
 });
+
+function stableThreadId(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : "default-thread";
+}
+
+function findLatestThreadProposalId(entries, threadId) {
+  if (!Array.isArray(entries)) {
+    return null;
+  }
+
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+
+    if (entry?.threadId !== threadId || entry?.type !== "assistant_message") {
+      continue;
+    }
+
+    const proposalId = entry?.payload?.graphProposalId;
+
+    if (typeof proposalId === "string" && proposalId.trim()) {
+      return proposalId.trim();
+    }
+  }
+
+  return null;
+}
