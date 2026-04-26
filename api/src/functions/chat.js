@@ -17,7 +17,7 @@ const GRAPH_ENRICHMENT_TOOL = {
   type: "function",
   name: "create_graph_enrichment",
   description:
-    "Create a proposed graph enrichment from the current conversation turn. Use for durable entities/relationships worth staging in graph workspace.",
+    "Create a proposed graph enrichment from the current conversation turn. Use for durable entities/relationships worth staging in graph workspace. Use reasoning to supply resolved music entities, not task phrases or raw search questions.",
   parameters: {
     type: "object",
     additionalProperties: false,
@@ -146,8 +146,10 @@ app.http("chat", {
 
           if (entities.length === 0) {
             return {
-              status: "skipped",
-              reason: "No valid entities supplied."
+              status: "needs_human_input",
+              reason: "No graph entities were identified from the model tool arguments.",
+              promptForHuman:
+                "I could not identify concrete graph entities to stage. Ask the user whether to retry with a narrower list, provide explicit entities, or continue without graph persistence."
             };
           }
 
@@ -158,18 +160,30 @@ app.http("chat", {
               ? args.contextNote.trim()
               : prompt;
 
-          const proposal = await createGraphProposalFromEntities({
-            entities,
-            context: {
-              title: `Chat graph proposal for ${entities
-                .slice(0, 3)
-                .map((entity) => entity.name)
-                .join(", ")}`,
-              note: contextNote
-            },
-            evidenceMode,
-            traversalDepth
-          });
+          let proposal;
+
+          try {
+            proposal = await createGraphProposalFromEntities({
+              entities,
+              context: {
+                title: `Chat graph proposal for ${entities
+                  .slice(0, 3)
+                  .map((entity) => entity.name)
+                  .join(", ")}`,
+                note: contextNote
+              },
+              evidenceMode,
+              traversalDepth
+            });
+          } catch (error) {
+            return {
+              status: "needs_human_input",
+              reason: error.message || "Graph proposal generation failed.",
+              entities,
+              promptForHuman:
+                "Graph proposal generation hit a blocker. Ask the user whether to retry, narrow the entity list, inspect canon first, or proceed without creating a proposal."
+            };
+          }
 
           graphProposalId = proposal.id;
 

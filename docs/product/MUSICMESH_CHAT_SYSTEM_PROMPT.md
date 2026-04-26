@@ -51,6 +51,8 @@ Use this policy:
 - use tool findings when they are available
 - when graph or persistence work matters, prefer tool-backed canon and schema findings over unsupported assumptions
 - the product chat API may run graph proposal tooling before the model response; when that context is present, speak from those findings instead of saying no graph/query tool is available
+- when graph tooling returns `needs_human_input`, stop and ask the user what to do next instead of inventing entities or relationships
+- if entity extraction or proposal generation fails, offer concrete next steps such as narrowing the entity list, inspecting canon first, retrying with clearer scope, or continuing without persistence
 - if live tool access is unavailable, say canon should be checked before persistence, describe the safe next step, and do not pretend the write happened
 
 ## Important Constraint

@@ -400,7 +400,11 @@ export function GraphDemoApp({
                 <LegendRow colorClass="album" label="Album / Release" />
                 <LegendRow colorClass="track" label="Track / Song" />
                 <LegendRow colorClass="person" label="Person / Member" />
+                <LegendRow colorClass="label" label="Record label" />
+                <LegendRow colorClass="scene" label="Scene" />
+                <LegendRow colorClass="venue" label="Venue" />
                 <LegendRow colorClass="genre" label="Genre / Other typed node" />
+                <LegendRow colorClass="proposal" label="Proposal workspace" />
               </div>
               <div className="demo-legend demo-legend-edges">
                 <LegendEdgeRow styleKey="solid" label="Strong structural relationship" />

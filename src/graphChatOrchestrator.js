@@ -61,33 +61,15 @@ function getOutputText(payload) {
     .join("");
 }
 
-function fallbackExtractEntities(prompt) {
-  const cleanedPrompt = stableString(prompt)
-    .replace(/^(please\s+)?(add|create|persist|insert|ingest)\s+(the\s+following\s+)?(entities\s+)?(to\s+the\s+graph)?/i, "")
-    .replace(/^check\s+(whether\s+)?(these\s+)?(already\s+)?(exist|exists).*?:?/i, "")
-    .trim();
-
-  if (!cleanedPrompt) {
-    return [];
-  }
-
-  return cleanedPrompt
-    .split(/\r?\n|,|;|\band\b/i)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 1)
-    .map((name) => ({ name }));
-}
-
 async function extractGraphRequest(prompt, messages) {
   const envResult = validateEnv();
-  const fallbackEntities = fallbackExtractEntities(prompt);
 
   if (!envResult.isValid) {
     return {
       intent: "other",
-      entities: fallbackEntities,
+      entities: [],
       contextNote: prompt,
-      extractionWarning: "Environment validation failed before LLM extraction."
+      extractionWarning: "Environment validation failed before LLM extraction; graph entities were not inferred deterministically."
     };
   }
 
@@ -105,6 +87,8 @@ async function extractGraphRequest(prompt, messages) {
         "Return only JSON with keys: intent, entities, contextNote.",
         "intent must be one of: graph_proposal, graph_lookup, other.",
         "entities must be an array of objects with name and optional type.",
+        "Use reasoning to separate operator intent from graph entities; do not turn task phrases, questions, or search phrases into entities.",
+        "Resolve aliases and informal names to the best music-domain entity names.",
         "Preserve canonical punctuation when obvious: I.R.S. Records, The Record Plant, Los Angeles, The Record Plant, New York.",
         "If a user says CBGBs, normalize the name to CBGB and put CBGBs in aliases.",
         "Do not include instructions or prose."
@@ -124,9 +108,9 @@ async function extractGraphRequest(prompt, messages) {
   if (!response.ok) {
     return {
       intent: "other",
-      entities: fallbackEntities,
+      entities: [],
       contextNote: prompt,
-      extractionWarning: `Entity extraction failed: ${response.status} ${response.statusText}`
+      extractionWarning: `Entity extraction failed: ${response.status} ${response.statusText}; graph entities were not inferred deterministically.`
     };
   }
 
@@ -136,9 +120,9 @@ async function extractGraphRequest(prompt, messages) {
   if (!parsed || !Array.isArray(parsed.entities)) {
     return {
       intent: "other",
-      entities: fallbackEntities,
+      entities: [],
       contextNote: prompt,
-      extractionWarning: "Entity extraction returned invalid JSON."
+      extractionWarning: "Entity extraction returned invalid JSON; graph entities were not inferred deterministically."
     };
   }
 
@@ -238,22 +222,34 @@ async function maybeHandleGraphChat({ prompt, messages }) {
     return {
       proposal: null,
       extraction,
-      summary: ""
+      summary: extraction.extractionWarning
+        ? `Graph proposal work needs human input before continuing: ${extraction.extractionWarning}`
+        : ""
     };
   }
 
-  const proposal = await createGraphProposalFromEntities({
-    entities: extraction.entities,
-    context: {
-      title: `Chat graph proposal for ${extraction.entities
-        .slice(0, 3)
-        .map((entity) => entity.name)
-        .join(", ")}`,
-      note: extraction.contextNote
-    },
-    evidenceMode: "model_knowledge",
-    traversalDepth: 2
-  });
+  let proposal;
+
+  try {
+    proposal = await createGraphProposalFromEntities({
+      entities: extraction.entities,
+      context: {
+        title: `Chat graph proposal for ${extraction.entities
+          .slice(0, 3)
+          .map((entity) => entity.name)
+          .join(", ")}`,
+        note: extraction.contextNote
+      },
+      evidenceMode: "model_knowledge",
+      traversalDepth: 2
+    });
+  } catch (error) {
+    return {
+      proposal: null,
+      extraction,
+      summary: `Graph proposal work needs human input before continuing: ${error.message}`
+    };
+  }
 
   return {
     proposal,

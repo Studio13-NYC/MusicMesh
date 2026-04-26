@@ -139,19 +139,80 @@ function normalizeDuplicateKeyPart(value) {
   return stableString(value).toLocaleLowerCase();
 }
 
-function pickNodeKind(labels) {
+function parseJsonProperty(value, fallback) {
+  if (typeof value !== "string" || !value.trim()) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function hasLabel(labels, expectedLabel) {
+  return (Array.isArray(labels) ? labels : []).some(
+    (label) => stableString(label).toLowerCase() === expectedLabel.toLowerCase()
+  );
+}
+
+function pickNodeKind(labels, properties = {}) {
   if (!Array.isArray(labels) || labels.length === 0) {
     return "Node";
   }
 
-  return [...labels].sort((left, right) => left.localeCompare(right))[0];
+  if (hasLabel(labels, "GraphProposal")) {
+    return "GraphProposal";
+  }
+
+  if (hasLabel(labels, "ProposedRelationship")) {
+    return "ProposedRelationship";
+  }
+
+  if (hasLabel(labels, "ProposedEntity")) {
+    const proposedLabels = parseJsonProperty(properties.proposedLabelsJson, []);
+    const displayLabels = Array.isArray(proposedLabels)
+      ? proposedLabels.map((label) => stableString(label)).filter(Boolean)
+      : [];
+    const preferredProposedLabel = displayLabels.find(
+      (label) => !["Entity", "Node", "ProposalItem", "ProposedEntity"].includes(label)
+    );
+
+    return preferredProposedLabel || displayLabels[0] || "ProposedEntity";
+  }
+
+  const priority = [
+    "Artist",
+    "Band",
+    "Album",
+    "Release",
+    "Track",
+    "Song",
+    "Person",
+    "Member",
+    "RecordLabel",
+    "Label",
+    "Genre",
+    "Scene",
+    "Venue",
+    "Entity"
+  ];
+
+  for (const label of priority) {
+    if (hasLabel(labels, label)) {
+      return label;
+    }
+  }
+
+  return labels.map((label) => stableString(label)).filter(Boolean)[0] || "Node";
 }
 
 function pickColorKey(kind) {
   const normalized = String(kind || "node").toLowerCase();
 
   if (normalized.includes("graphproposal")) {
-    return "label";
+    return "proposal";
   }
 
   if (
@@ -178,12 +239,20 @@ function pickColorKey(kind) {
     return "person";
   }
 
-  if (normalized.includes("genre")) {
-    return "genre";
+  if (normalized.includes("recordlabel") || normalized.includes("label")) {
+    return "label";
   }
 
-  if (normalized.includes("label")) {
-    return "label";
+  if (normalized.includes("venue")) {
+    return "venue";
+  }
+
+  if (normalized.includes("scene")) {
+    return "scene";
+  }
+
+  if (normalized.includes("genre")) {
+    return "genre";
   }
 
   return "node";
@@ -239,6 +308,14 @@ function pickRelationshipStyle(type) {
 }
 
 function pickNodeSubtitle(kind, labels, properties) {
+  if (hasLabel(labels, "ProposedEntity")) {
+    const reviewStatus = stableString(properties.reviewStatus);
+    const canonicalStatus = stableString(properties.canonicalStatus);
+    const status = reviewStatus || canonicalStatus;
+
+    return status ? `Proposed ${kind} · ${status}` : `Proposed ${kind}`;
+  }
+
   const candidates = [
     properties.role,
     properties.type,
@@ -266,7 +343,7 @@ function normalizeNodeRecord(record, { seedId, positionsById }) {
   const id = stableString(record.id);
   const labels = Array.isArray(record.labels) ? record.labels.map((label) => stableString(label)) : [];
   const properties = toNativeValue(record.properties || {});
-  const kind = pickNodeKind(labels);
+  const kind = pickNodeKind(labels, properties);
   const label = pickNodeLabel(properties, id);
   const position = positionsById.get(id) || { x: 0, y: 0 };
 
@@ -299,6 +376,16 @@ function normalizeRelationshipRecord(record) {
       propertyCount: Object.keys(toNativeValue(record.properties || {})).length
     }
   };
+}
+
+function isProposalRelationshipItem(record) {
+  return hasLabel(record?.labels, "ProposedRelationship");
+}
+
+function shouldHideRelationshipRecord(record) {
+  const type = stableString(record?.type).toUpperCase();
+
+  return type === "PROPOSED_SOURCE" || type === "PROPOSED_TARGET";
 }
 
 function countMeaningfulProperties(properties) {
@@ -372,7 +459,7 @@ function collapseExactLabelDuplicates(seedRecord, rawNodes, rawRelationships) {
     const id = stableString(node.id);
     const properties = toNativeValue(node.properties || {});
     const label = pickNodeLabel(properties, id);
-    const kind = pickNodeKind(node.labels);
+    const kind = pickNodeKind(node.labels, properties);
     const duplicateKey = `${normalizeDuplicateKeyPart(kind)}|||${normalizeDuplicateKeyPart(label)}`;
 
     if (!duplicateGroups.has(duplicateKey)) {
@@ -570,7 +657,19 @@ function summarizeGraph(nodes, relationships, diagnostics = {}) {
 }
 
 function transformGraphRecords(seedRecord, rawNodes, rawRelationships, diagnostics = {}) {
-  const collapsedGraph = collapseExactLabelDuplicates(seedRecord, rawNodes, rawRelationships);
+  const visibleRawNodes = (rawNodes || []).filter((node) => !isProposalRelationshipItem(node));
+  const visibleNodeIds = new Set(visibleRawNodes.map((node) => stableString(node.id)));
+  const visibleRawRelationships = (rawRelationships || []).filter(
+    (relationship) =>
+      !shouldHideRelationshipRecord(relationship) &&
+      visibleNodeIds.has(stableString(relationship.source)) &&
+      visibleNodeIds.has(stableString(relationship.target))
+  );
+  const collapsedGraph = collapseExactLabelDuplicates(
+    seedRecord,
+    visibleRawNodes,
+    visibleRawRelationships
+  );
   const nextSeedRecord = collapsedGraph.seedRecord;
   const nextRawNodes = collapsedGraph.rawNodes;
   const nextRawRelationships = collapsedGraph.rawRelationships;
@@ -578,7 +677,7 @@ function transformGraphRecords(seedRecord, rawNodes, rawRelationships, diagnosti
   const normalizedBaseNodes = nextRawNodes.map((record) => ({
     id: stableString(record.id),
     label: pickNodeLabel(toNativeValue(record.properties || {}), stableString(record.id)),
-    kind: pickNodeKind(record.labels),
+    kind: pickNodeKind(record.labels, toNativeValue(record.properties || {})),
     raw: record
   }));
   const normalizedRelationships = sortRelationships(
@@ -606,6 +705,8 @@ function transformGraphRecords(seedRecord, rawNodes, rawRelationships, diagnosti
       seedNodeId: seedId,
       ...summarizeGraph(nodes, normalizedRelationships, {
         ...diagnostics,
+        hiddenProposalRelationshipItemCount: (rawNodes || []).filter(isProposalRelationshipItem).length,
+        hiddenProposalScaffoldEdgeCount: (rawRelationships || []).filter(shouldHideRelationshipRecord).length,
         ...collapsedGraph.diagnostics
       })
     }
@@ -658,7 +759,7 @@ async function searchGraphSeeds(query, limit = DEFAULT_SEARCH_LIMIT) {
   const mappedResults = records.map((record) => {
     const properties = toNativeValue(record.properties || {});
     const labels = Array.isArray(record.labels) ? record.labels.map((label) => stableString(label)) : [];
-    const kind = pickNodeKind(labels);
+    const kind = pickNodeKind(labels, properties);
     const label = pickNodeLabel(properties, stableString(record.id));
 
     return {
@@ -739,7 +840,7 @@ async function findGraphProposalSeed(proposalId) {
 
   const properties = toNativeValue(record.properties || {});
   const labels = Array.isArray(record.labels) ? record.labels.map((label) => stableString(label)) : [];
-  const kind = pickNodeKind(labels);
+  const kind = pickNodeKind(labels, properties);
   const label = pickNodeLabel(properties, stableString(record.id));
 
   return {
@@ -909,7 +1010,7 @@ async function getNodeDetail(nodeId) {
   const labels = Array.isArray(payload.node.labels)
     ? payload.node.labels.map((label) => stableString(label))
     : [];
-  const kind = pickNodeKind(labels);
+  const kind = pickNodeKind(labels, properties);
 
   return {
     id: stableString(payload.node.id),

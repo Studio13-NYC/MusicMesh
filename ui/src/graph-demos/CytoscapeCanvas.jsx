@@ -13,6 +13,9 @@ const COLOR_MAP = {
   person: "#ffd166",
   genre: "#c49bff",
   label: "#ff6fae",
+  proposal: "#f15bb5",
+  scene: "#a3e635",
+  venue: "#f97316",
   node: "#8ba3c7"
 };
 
@@ -28,7 +31,7 @@ function resolveNodeColor(node) {
   const normalizedKind = String(node?.kind || "").toLowerCase();
 
   if (normalizedKind.includes("graphproposal")) {
-    return COLOR_MAP.label;
+    return COLOR_MAP.proposal;
   }
 
   if (

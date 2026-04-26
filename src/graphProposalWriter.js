@@ -385,7 +385,85 @@ async function applyApprovedProposal(proposal) {
   };
 }
 
+async function updateProposalWorkspaceReview(proposal) {
+  const session = createWriteSession();
+  const now = new Date().toISOString();
+  const items = [
+    ...(proposal.candidateNodes || []),
+    ...(proposal.candidateRelationships || [])
+  ].filter((item) => item?.tempId);
+
+  try {
+    await session.executeWrite(async (tx) => {
+      await tx.run(
+        `
+          MATCH (proposal:GraphProposal {id: $proposalId})
+          SET proposal.status = $status,
+              proposal.updatedAt = $now
+        `,
+        {
+          proposalId: proposal.id,
+          status: proposal.status,
+          now
+        }
+      );
+
+      for (const item of items) {
+        await tx.run(
+          `
+            MATCH (item:ProposalItem {id: $itemId})
+            SET item.reviewStatus = $reviewStatus,
+                item.reviewNote = $reviewNote,
+                item.updatedAt = $now
+          `,
+          {
+            itemId: proposalItemId(proposal.id, item.tempId),
+            reviewStatus: item.reviewStatus || "pending",
+            reviewNote: item.reviewNote || "",
+            now
+          }
+        );
+      }
+    });
+  } finally {
+    await session.close();
+  }
+}
+
+async function markProposalWorkspaceApplied(proposal, applyResult) {
+  const session = createWriteSession();
+  const now = new Date().toISOString();
+
+  try {
+    await session.executeWrite(async (tx) => {
+      await tx.run(
+        `
+          MATCH (proposal:GraphProposal {id: $proposalId})
+          SET proposal.status = "applied",
+              proposal.appliedAt = $appliedAt,
+              proposal.appliedNodeCount = $appliedNodeCount,
+              proposal.appliedRelationshipCount = $appliedRelationshipCount,
+              proposal.skippedRelationshipCount = $skippedRelationshipCount,
+              proposal.updatedAt = $now
+        `,
+        {
+          proposalId: proposal.id,
+          appliedAt: applyResult.appliedAt,
+          appliedNodeCount: applyResult.appliedNodes.length,
+          appliedRelationshipCount: applyResult.appliedRelationships.length,
+          skippedRelationshipCount: applyResult.skippedRelationships.length,
+          now
+        }
+      );
+    });
+  } finally {
+    await session.close();
+  }
+}
+
 module.exports = {
   applyApprovedProposal,
-  persistProposalWorkspace
+  markProposalWorkspaceApplied,
+  persistProposalWorkspace,
+  updateProposalWorkspaceReview
 };

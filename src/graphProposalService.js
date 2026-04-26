@@ -7,7 +7,12 @@ const {
   traverseCanonNeighborhood
 } = require("./graphCanonRepository");
 const { createProposal, getProposal, listProposals, updateProposal } = require("./graphProposalStore");
-const { applyApprovedProposal, persistProposalWorkspace } = require("./graphProposalWriter");
+const {
+  applyApprovedProposal,
+  markProposalWorkspaceApplied,
+  persistProposalWorkspace,
+  updateProposalWorkspaceReview
+} = require("./graphProposalWriter");
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
 const DEFAULT_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || "medium";
@@ -87,6 +92,10 @@ async function callStructuredProposalModel({ entities, context, schema, canonLoo
     "Create a reviewable graph proposal, not canonical writes.",
     "Prefer existing labels, relationship types, and properties from the supplied schema.",
     "Use relationship properties for nuance such as role, capacity, confidence, degree, evidenceBasis, and sourceUrl.",
+    "Treat submitted terms as operator intent, not automatically as graph nodes.",
+    "If a submitted term is a question, task, or search phrase, use it to guide discovery but do not create a candidate node for the phrase itself.",
+    "Resolve aliases and informal inputs to the best music-domain entity; for example, prefer an Artist node named R.E.M. over a generic Entity named REM.",
+    "Do not create a generic Entity for a submitted phrase when a more specific candidate node already represents the intended artist, album, person, scene, venue, label, genre, or release.",
     "Return only valid JSON with keys candidateNodes, candidateRelationships, relationshipCompletionNotes, evidenceNotes.",
     "Each candidate node needs: tempId, name, labels, properties, rationale, confidenceScore.",
     "Each candidate relationship needs: tempId, sourceName, targetName, type, properties, rationale, confidenceScore, evidenceBasis."
@@ -199,44 +208,46 @@ async function fetchBraveEvidence(entities) {
   };
 }
 
-function fallbackDraftFromEntities(entities, canonLookups) {
-  const candidateNodes = entities.map((entity, index) => {
-    const lookup = canonLookups.find((entry) => entry.input.name === entity.name);
-    const bestMatch = lookup?.matches?.[0] || null;
+function normalizeEntityKey(value) {
+  return stableString(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
 
-    return {
-      tempId: `node-${index + 1}`,
-      name: entity.name,
-      labels: [entity.type || bestMatch?.kind || "Entity"],
-      properties: {
-        name: entity.name,
-        sourceMode: "submitted_entity"
-      },
-      matchedCanonId: bestMatch?.matchRank === 0 ? bestMatch.id : null,
-      duplicateCandidates: lookup?.matches || [],
-      rationale: bestMatch
-        ? "Created from submitted entity with canon lookup candidates."
-        : "Created from submitted entity with no canon match.",
-      confidenceScore: bestMatch?.matchRank === 0 ? 0.9 : 0.55
-    };
-  });
+function collectNodeNameKeys(node) {
+  const keys = new Set();
+  const candidates = [
+    node.name,
+    node.label,
+    node.title,
+    node.properties?.name,
+    node.properties?.label,
+    node.properties?.title
+  ];
 
-  return {
-    responseId: null,
-    draft: {
-      candidateNodes,
-      candidateRelationships: [],
-      relationshipCompletionNotes: [
-        "Fallback draft used because structured LLM generation was unavailable."
-      ],
-      evidenceNotes: []
+  for (const candidate of candidates) {
+    const key = normalizeEntityKey(candidate);
+
+    if (key) {
+      keys.add(key);
     }
-  };
+  }
+
+  for (const alias of Array.isArray(node.properties?.aliases) ? node.properties.aliases : []) {
+    const key = normalizeEntityKey(alias);
+
+    if (key) {
+      keys.add(key);
+    }
+  }
+
+  return keys;
 }
 
 function normalizeCandidateNodes(draftNodes, entities, canonLookups) {
   const nodes = Array.isArray(draftNodes) && draftNodes.length > 0 ? draftNodes : [];
   const seenNames = new Set();
+  const seenEntityKeys = new Set();
   const normalizedNodes = nodes.map((node, index) => {
     const name = stableString(node.name || node.label || node.properties?.name) || `Candidate ${index + 1}`;
     const lookup = canonLookups.find(
@@ -245,6 +256,9 @@ function normalizeCandidateNodes(draftNodes, entities, canonLookups) {
     const exactMatch = lookup?.matches?.find((match) => match.matchRank === 0) || null;
 
     seenNames.add(name.toLowerCase());
+    for (const key of collectNodeNameKeys(node)) {
+      seenEntityKeys.add(key);
+    }
 
     return {
       tempId: stableString(node.tempId) || `node-${index + 1}`,
@@ -265,30 +279,6 @@ function normalizeCandidateNodes(draftNodes, entities, canonLookups) {
       reviewStatus: "pending"
     };
   });
-
-  for (const entity of entities) {
-    if (seenNames.has(entity.name.toLowerCase())) {
-      continue;
-    }
-
-    const lookup = canonLookups.find((entry) => entry.input.name === entity.name);
-    const exactMatch = lookup?.matches?.find((match) => match.matchRank === 0) || null;
-
-    normalizedNodes.push({
-      tempId: `node-${normalizedNodes.length + 1}`,
-      name: entity.name,
-      labels: [entity.type || exactMatch?.kind || "Entity"],
-      properties: {
-        name: entity.name,
-        sourceMode: "submitted_entity"
-      },
-      matchedCanonId: exactMatch?.id || null,
-      duplicateCandidates: lookup?.matches || [],
-      rationale: "Added from submitted entity because it was missing from the LLM draft.",
-      confidenceScore: exactMatch ? 0.9 : 0.55,
-      reviewStatus: "pending"
-    });
-  }
 
   return normalizedNodes;
 }
@@ -463,8 +453,9 @@ async function createGraphProposalFromEntities(requestBody) {
       evidence
     });
   } catch (error) {
-    modelResult = fallbackDraftFromEntities(entities, canonLookups);
-    modelResult.generationWarning = error.message;
+    throw new Error(
+      `Graph proposal generation failed; no deterministic entity fallback was applied. ${error.message}`
+    );
   }
 
   const candidateNodes = normalizeCandidateNodes(
@@ -472,6 +463,13 @@ async function createGraphProposalFromEntities(requestBody) {
     entities,
     canonLookups
   );
+
+  if (candidateNodes.length === 0) {
+    throw new Error(
+      "Graph proposal generation produced no candidate nodes; human input is needed before continuing."
+    );
+  }
+
   const candidateRelationships = normalizeCandidateRelationships(
     modelResult.draft.candidateRelationships,
     candidateNodes
@@ -554,7 +552,7 @@ function countStatus(items, status) {
 }
 
 async function reviewGraphProposal(proposalId, body) {
-  return updateProposal(proposalId, (proposal) => {
+  const reviewedProposal = await updateProposal(proposalId, (proposal) => {
     const candidateNodes = updateReviewStatus(proposal.candidateNodes || [], body.nodes);
     const candidateRelationships = updateReviewStatus(
       proposal.candidateRelationships || [],
@@ -574,17 +572,25 @@ async function reviewGraphProposal(proposalId, body) {
       }
     };
   });
+
+  await updateProposalWorkspaceReview(reviewedProposal);
+
+  return reviewedProposal;
 }
 
 async function applyGraphProposal(proposalId) {
   const proposal = await getProposal(proposalId);
   const applyResult = await applyApprovedProposal(proposal);
 
-  return updateProposal(proposalId, (currentProposal) => ({
+  const appliedProposal = await updateProposal(proposalId, (currentProposal) => ({
     ...currentProposal,
     status: "applied",
     applyResult
   }));
+
+  await markProposalWorkspaceApplied(appliedProposal, applyResult);
+
+  return appliedProposal;
 }
 
 module.exports = {
