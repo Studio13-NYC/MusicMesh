@@ -39,10 +39,22 @@ Local file convention: `ui/.env.development` (not committed) can set overrides f
 
 GitHub Actions runs:
 
-1. `app_build_command` — `npm ci && npm run build` (Vite → `output/ui-dist`).
-2. `api_build_command` — `node ../scripts/syncForSwaApi.js && npm ci`  
-   - Copies `src/env.js`, `src/chatService.js`, and `docs/product/MUSICMESH_CHAT_SYSTEM_PROMPT.md` into `api/shared/` and `api/content/` so the Functions bundle is self-contained.
+1. `app_build_command` — `npm ci && npm run build`.
+   - Runs `scripts/syncForSwaApi.js`.
+   - Builds the Vite app into `output/ui-dist`.
+2. `api_build_command` — `npm run sync && npm ci && npm run check`.
+   - Runs the same API sync from inside `api/`.
+   - Installs the Functions package from `api/package-lock.json`.
+   - Loads `api/src/index.js` through `scripts/verifySwaApiBundle.js` so missing copied files or missing function dependencies fail the deploy build.
 3. SWA deploy action uploads the static app + the API.
+
+The local equivalents are:
+
+- `npm run build` for the coordinated UI build.
+- `npm run build:api` for the coordinated API package build.
+- `npm run verify` for check + API build + UI build + local Playwright.
+
+The sync copies shared runtime modules and `docs/product/MUSICMESH_CHAT_SYSTEM_PROMPT.md` into `api/shared/` and `api/content/` so the Functions bundle is self-contained.
 
 ### App settings (environment variables)
 
@@ -99,4 +111,5 @@ When changing chat logic or env validation, update:
 
 - `src/chatService.js` (shared OpenAI path),
 - `scripts/syncForSwaApi.js` if new files must be copied into `api/`,
+- run `npm run build:api` so the copied Functions bundle is verified,
 - this document if URLs or workflow commands change.

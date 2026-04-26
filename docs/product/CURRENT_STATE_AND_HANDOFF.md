@@ -42,6 +42,7 @@ Verified commands:
 - `npm run smoke`
 - `npm run smoke:playwright`
 - `npm run build`
+- `npm run build:api`
 
 What `npm run check` currently verifies:
 
@@ -80,6 +81,12 @@ Important limitation:
 - the UI is now wired to a thin GPT-5.5-backed API path
 - the workbench can now read recent conversation tape entries and runtime events from disk
 - graph proposal and graph demo routes can read and write Neo4j through the local API
+
+Build/deploy note:
+
+- `npm run build` stages the shared Azure Functions bundle before building the SPA
+- `npm run build:api` installs and verifies the SWA Functions package
+- GitHub Actions runs the same API sync/check path during deployment
 
 So the operator surface is now minimally live, with graph proposal wiring present but still intentionally conservative.
 

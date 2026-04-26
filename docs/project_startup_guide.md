@@ -62,6 +62,8 @@ npm run check
 npm run smoke
 npm run smoke:playwright
 npm run build
+npm run build:api
+npm run verify
 ```
 
 Start the local API:

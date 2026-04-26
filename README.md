@@ -115,7 +115,7 @@ Start the SPA:
 npm run dev
 ```
 
-Build the UI:
+Build the app bundle:
 
 ```powershell
 npm run build
@@ -142,7 +142,17 @@ npm run tape -- 50
 - `npm run dev`
   - starts the Vite SPA for product-side testing
 - `npm run build`
+  - stages the Azure Functions shared bundle under `api/`
   - verifies the SPA builds successfully
+- `npm run build:api`
+  - stages the Azure Functions shared bundle
+  - installs API package dependencies from `api/package-lock.json`
+  - verifies the Functions entrypoint loads
+- `npm run verify`
+  - runs environment/infrastructure checks
+  - verifies the deployable API bundle
+  - builds the SPA
+  - runs the local Playwright suite
 - `npm run smoke`
   - proves the runtime entrypoint boots
 - `npm run smoke:playwright`

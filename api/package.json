@@ -5,6 +5,8 @@
   "description": "Azure Functions for MusicMesh Static Web Apps (chat API).",
   "main": "src/index.js",
   "scripts": {
+    "sync": "node ../scripts/syncForSwaApi.js",
+    "check": "node ../scripts/verifySwaApiBundle.js",
     "start": "func start"
   },
   "engines": {

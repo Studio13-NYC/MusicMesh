@@ -1,7 +1,8 @@
 /**
  * Copies shared Node modules and the chat system prompt into api/ so the Azure
  * Functions bundle can load them without depending on the full monorepo layout.
- * Run before `npm ci` in the api folder (see GitHub workflow api_build_command).
+ * The root `npm run build` and SWA API build both run this so local and deployed
+ * bundles stay coordinated.
  */
 
 const fs = require("fs");

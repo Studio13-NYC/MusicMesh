@@ -30,7 +30,7 @@ jobs:
           api_location: "api"
           output_location: "output/ui-dist"
           app_build_command: "npm ci && npm run build"
-          api_build_command: "node ../scripts/syncForSwaApi.js && npm ci"
+          api_build_command: "npm run sync && npm ci && npm run check"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
