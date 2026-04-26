@@ -1,8 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { RouterProvider } from "@tanstack/react-router";
-import { router } from "./router";
+import { OperatorGraphDemo } from "./operator-graph-demo/OperatorGraphDemo";
 import "./styles/app.css";
+import "./graph-demos/styles.css";
+import "./operator-graph-demo/styles.css";
 
 const rootElement = document.getElementById("root");
 
@@ -12,6 +13,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <OperatorGraphDemo />
   </React.StrictMode>
 );

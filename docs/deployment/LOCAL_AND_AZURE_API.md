@@ -53,9 +53,11 @@ Configure required keys on the Static Web App (or linked Function settings) the 
 
 Optional keys are listed in `src/env.js`. **Note:** the hosted Function does not use Neo4j for chat today, but validation still expects those variables until that requirement is split for “chat-only” deployments.
 
+For the current OpenAI chat path, `OPENAI_MODEL` can override the default model and `OPENAI_REASONING_EFFORT` can override the default reasoning effort.
+
 ### SPA routing
 
-`ui/public/staticwebapp.config.json` is copied into the build output so unknown paths fall back to `index.html` for the client router, while `/api/*` is excluded.
+`ui/public/staticwebapp.config.json` is copied into the build output when present so unknown paths can fall back to `index.html`, while `/api/*` is excluded. The active UI is currently a single root screen rather than a client-routed app.
 
 ## Local development quick reference
 

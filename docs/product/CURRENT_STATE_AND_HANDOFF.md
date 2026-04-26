@@ -53,7 +53,7 @@ What `npm run check` currently verifies:
 
 ## Current UI Reality
 
-A basic SPA shell now exists.
+The operator graph workbench is now the default SPA at `/`.
 
 It is not just a plan.
 
@@ -61,33 +61,33 @@ Current stack:
 
 - React
 - Vite
-- TanStack Router
 - Radix UI
 - `react-resizable-panels`
 
-Current shell shape:
+Current workbench shape:
 
 - chat-first main surface
-- neighboring worksurface panel
-- local sample thread and sample panel data
+- neighboring graph/proposal/workflow panel
 - resizable layout
 - simple local API path for chat requests
+- graph seed search and Cytoscape graph inspection
+- entity-list graph proposal creation, review, and apply actions
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
 
 Important limitation:
 
-- the UI is now wired to a thin GPT-5.4-backed API path
-- the worksurface can now read recent conversation tape entries and runtime events from disk
-- the product still does not have deeper log, trace, or database readback wiring
+- the UI is now wired to a thin GPT-5.5-backed API path
+- the workbench can now read recent conversation tape entries and runtime events from disk
+- graph proposal and graph demo routes can read and write Neo4j through the local API
 
-So the shell is now minimally live, but the broader product wiring is still not finished.
+So the operator surface is now minimally live, with graph proposal wiring present but still intentionally conservative.
 
 Graph visualization decision:
 
 - Cytoscape is the chosen graph visualization path
-- NVL is deprecated and removed from the visible UI surface
-- the standalone NVL URL is retained only as a deprecated reference page
+- NVL is removed from the active UI surface
+- standalone graph demo HTML pages are removed from the active build
 
 Decision note:
 

@@ -42,6 +42,7 @@ Primary docs:
 
 - [LLM Operator Contract](./docs/product/LLM_OPERATOR_CONTRACT_V1.md)
 - [Roleplay Spec](./docs/product/roleplay-spec.md)
+- [Graph Ingestion Proposals](./docs/product/GRAPH_INGESTION_PROPOSALS.md)
 - [Current State And Handoff](./docs/product/CURRENT_STATE_AND_HANDOFF.md)
 - [Project Startup Guide](./docs/project_startup_guide.md)
 
@@ -81,6 +82,7 @@ Optional env keys:
 
 - `BRAVE_API_KEY`
 - `DISCOGS_TOKEN`
+- `OPENAI_REASONING_EFFORT`
 - `MUSICMESH_HTTP_USER_AGENT`
 - `MUSICMESH_BLOB_CONNECTION_STRING`
 - `MUSICMESH_BLOB_CONTAINER`

@@ -150,6 +150,18 @@ function pickNodeKind(labels) {
 function pickColorKey(kind) {
   const normalized = String(kind || "node").toLowerCase();
 
+  if (normalized.includes("graphproposal")) {
+    return "label";
+  }
+
+  if (
+    normalized.includes("proposalitem") ||
+    normalized.includes("proposedentity") ||
+    normalized.includes("proposedrelationship")
+  ) {
+    return "genre";
+  }
+
   if (normalized.includes("artist") || normalized.includes("band")) {
     return "artist";
   }
@@ -702,6 +714,44 @@ async function searchGraphSeeds(query, limit = DEFAULT_SEARCH_LIMIT) {
     .slice(0, boundedLimit);
 }
 
+async function findGraphProposalSeed(proposalId) {
+  const normalizedProposalId = stableString(proposalId);
+
+  if (!normalizedProposalId) {
+    return null;
+  }
+
+  const cypher = `
+    MATCH (proposal:GraphProposal {id: $proposalId})
+    RETURN
+      elementId(proposal) AS id,
+      labels(proposal) AS labels,
+      properties(proposal) AS properties,
+      count { (proposal)--() } AS degree
+    LIMIT 1
+  `;
+  const records = await runRead(cypher, { proposalId: normalizedProposalId });
+  const record = records[0];
+
+  if (!record) {
+    return null;
+  }
+
+  const properties = toNativeValue(record.properties || {});
+  const labels = Array.isArray(record.labels) ? record.labels.map((label) => stableString(label)) : [];
+  const kind = pickNodeKind(labels);
+  const label = pickNodeLabel(properties, stableString(record.id));
+
+  return {
+    id: stableString(record.id),
+    label,
+    kind,
+    colorKey: pickColorKey(kind),
+    subtitle: pickNodeSubtitle(kind, labels, properties),
+    degree: Number(toNativeValue(record.degree) || 0)
+  };
+}
+
 async function fetchSeededGraph(seedId, options = {}) {
   const normalizedSeedId = stableString(seedId);
 
@@ -875,6 +925,7 @@ async function getNodeDetail(nodeId) {
 module.exports = {
   expandGraphNode,
   fetchSeededGraph,
+  findGraphProposalSeed,
   getNodeDetail,
   searchGraphSeeds
 };

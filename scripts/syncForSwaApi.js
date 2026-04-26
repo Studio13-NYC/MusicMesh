@@ -19,7 +19,12 @@ const copies = [
   ["src/env.js", "shared/env.js"],
   ["src/activityStore.js", "shared/activityStore.js"],
   ["src/chatService.js", "shared/chatService.js"],
+  ["src/graphChatOrchestrator.js", "shared/graphChatOrchestrator.js"],
   ["src/graphDemoRepository.js", "shared/graphDemoRepository.js"],
+  ["src/graphCanonRepository.js", "shared/graphCanonRepository.js"],
+  ["src/graphProposalService.js", "shared/graphProposalService.js"],
+  ["src/graphProposalStore.js", "shared/graphProposalStore.js"],
+  ["src/graphProposalWriter.js", "shared/graphProposalWriter.js"],
   ["docs/product/MUSICMESH_CHAT_SYSTEM_PROMPT.md", "content/MUSICMESH_CHAT_SYSTEM_PROMPT.md"]
 ];
 

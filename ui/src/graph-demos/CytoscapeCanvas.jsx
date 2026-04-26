@@ -24,6 +24,24 @@ const EDGE_STYLE_MAP = {
 
 const FIT_PADDING = 148;
 
+function resolveNodeColor(node) {
+  const normalizedKind = String(node?.kind || "").toLowerCase();
+
+  if (normalizedKind.includes("graphproposal")) {
+    return COLOR_MAP.label;
+  }
+
+  if (
+    normalizedKind.includes("proposalitem") ||
+    normalizedKind.includes("proposedentity") ||
+    normalizedKind.includes("proposedrelationship")
+  ) {
+    return COLOR_MAP.genre;
+  }
+
+  return COLOR_MAP[node?.colorKey] || COLOR_MAP.node;
+}
+
 function fitViewport(cy) {
   const target = cy.nodes();
 
@@ -57,6 +75,23 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
   const lastTopologySignatureRef = useRef("");
   const lastPositionSignatureRef = useRef("");
   const pendingFitRef = useRef(false);
+  const handlersRef = useRef({
+    onBackgroundSelect,
+    onExpandNode,
+    onHoverChange,
+    onNodePositionChange,
+    onSelectElement
+  });
+
+  useEffect(() => {
+    handlersRef.current = {
+      onBackgroundSelect,
+      onExpandNode,
+      onHoverChange,
+      onNodePositionChange,
+      onSelectElement
+    };
+  }, [onBackgroundSelect, onExpandNode, onHoverChange, onNodePositionChange, onSelectElement]);
 
   useImperativeHandle(
     ref,
@@ -89,6 +124,10 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     if (!containerRef.current) {
       return undefined;
     }
+
+    lastTopologySignatureRef.current = "";
+    lastPositionSignatureRef.current = "";
+    pendingFitRef.current = false;
 
     const cy = cytoscape({
       container: containerRef.current,
@@ -168,19 +207,19 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       const element = event.target;
       const nextType = element.isNode() ? "node" : "edge";
 
-      onHoverChange({
+      handlersRef.current.onHoverChange({
         type: nextType,
         id: element.id()
       });
     });
 
     cy.on("mouseout", "node,edge", () => {
-      onHoverChange(null);
+      handlersRef.current.onHoverChange(null);
     });
 
     cy.on("tap", (event) => {
       if (event.target === cy) {
-        onBackgroundSelect();
+        handlersRef.current.onBackgroundSelect();
       }
     });
 
@@ -188,7 +227,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       const node = event.target;
       const timestamp = Date.now();
 
-      onSelectElement({
+      handlersRef.current.onSelectElement({
         type: "node",
         id: node.id()
       });
@@ -197,7 +236,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
         lastTapRef.current.id === node.id() &&
         timestamp - lastTapRef.current.timestamp < 340
       ) {
-        onExpandNode(node.id());
+        handlersRef.current.onExpandNode(node.id());
       }
 
       lastTapRef.current = {
@@ -207,7 +246,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     });
 
     cy.on("tap", "edge", (event) => {
-      onSelectElement({
+      handlersRef.current.onSelectElement({
         type: "edge",
         id: event.target.id()
       });
@@ -217,7 +256,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       const node = event.target;
       const position = node.position();
 
-      onNodePositionChange([
+      handlersRef.current.onNodePositionChange([
         {
           id: node.id(),
           x: Math.round(position.x),
@@ -249,8 +288,11 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
       resizeObserver.disconnect();
       cy.destroy();
       cyRef.current = null;
+      lastTopologySignatureRef.current = "";
+      lastPositionSignatureRef.current = "";
+      pendingFitRef.current = false;
     };
-  }, [onBackgroundSelect, onExpandNode, onHoverChange, onNodePositionChange, onSelectElement]);
+  }, []);
 
   useEffect(() => {
     const cy = cyRef.current;
@@ -278,7 +320,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
           id: node.id,
           label: node.label,
           shape: node.shapeKey || "ellipse",
-          color: COLOR_MAP[node.colorKey] || COLOR_MAP.node,
+          color: resolveNodeColor(node),
           size: node.isSeed ? 58 : 42
         },
         position: {

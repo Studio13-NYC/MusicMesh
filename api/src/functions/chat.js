@@ -10,8 +10,45 @@ const {
   readTapeEntries
 } = require("../../shared/activityStore");
 const { createAssistantReply } = require("../../shared/chatService");
+const { createGraphProposalFromEntities } = require("../../shared/graphProposalService");
 
 const SYSTEM_PROMPT_PATH = path.join(__dirname, "..", "..", "content", "MUSICMESH_CHAT_SYSTEM_PROMPT.md");
+const GRAPH_ENRICHMENT_TOOL = {
+  type: "function",
+  name: "create_graph_enrichment",
+  description:
+    "Create a proposed graph enrichment from the current conversation turn. Use for durable entities/relationships worth staging in graph workspace.",
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      entities: {
+        type: "array",
+        minItems: 1,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            name: { type: "string" },
+            type: { type: "string" },
+            aliases: {
+              type: "array",
+              items: { type: "string" }
+            }
+          },
+          required: ["name"]
+        }
+      },
+      contextNote: { type: "string" },
+      traversalDepth: { type: "integer", minimum: 1, maximum: 3 },
+      evidenceMode: {
+        type: "string",
+        enum: ["model_knowledge", "web_search"]
+      }
+    },
+    required: ["entities"]
+  }
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,12 +126,67 @@ app.http("chat", {
         }
       });
 
+      let graphProposalId = null;
       const assistantReply = await createAssistantReply({
         prompt,
         messages,
         threadId,
-        systemPromptPath: SYSTEM_PROMPT_PATH
+        systemPromptPath: SYSTEM_PROMPT_PATH,
+        tools: [GRAPH_ENRICHMENT_TOOL],
+        executeToolCall: async (call) => {
+          if (!call || call.name !== "create_graph_enrichment") {
+            return {
+              status: "ignored",
+              reason: "Unsupported tool call."
+            };
+          }
+
+          const args = parseToolArguments(call.arguments);
+          const entities = normalizeToolEntities(args.entities);
+
+          if (entities.length === 0) {
+            return {
+              status: "skipped",
+              reason: "No valid entities supplied."
+            };
+          }
+
+          const traversalDepth = clampTraversalDepth(args.traversalDepth);
+          const evidenceMode = args.evidenceMode === "web_search" ? "web_search" : "model_knowledge";
+          const contextNote =
+            typeof args.contextNote === "string" && args.contextNote.trim()
+              ? args.contextNote.trim()
+              : prompt;
+
+          const proposal = await createGraphProposalFromEntities({
+            entities,
+            context: {
+              title: `Chat graph proposal for ${entities
+                .slice(0, 3)
+                .map((entity) => entity.name)
+                .join(", ")}`,
+              note: contextNote
+            },
+            evidenceMode,
+            traversalDepth
+          });
+
+          graphProposalId = proposal.id;
+
+          return {
+            status: "created",
+            graphProposalId: proposal.id,
+            proposalTitle: proposal.title,
+            candidateNodeCount: proposal.candidateNodes?.length || 0,
+            candidateRelationshipCount: proposal.candidateRelationships?.length || 0,
+            workspacePersistence: proposal.workspacePersistence || null,
+            review: proposal.review || null
+          };
+        }
       });
+      const assistantText = graphProposalId
+        ? `${assistantReply.text}\n\n---\nGraph enrichment: created proposal ${graphProposalId} (review/apply required before canon).`
+        : assistantReply.text;
 
       const assistantEntry = await appendTapeEntry({
         id: createId("evt"),
@@ -102,7 +194,8 @@ app.http("chat", {
         threadId,
         payload: {
           responseId: assistantReply.responseId,
-          text: assistantReply.text
+          text: assistantText,
+          graphProposalId
         }
       });
 
@@ -113,14 +206,16 @@ app.http("chat", {
           requestId,
           threadId,
           responseId: assistantReply.responseId,
+          graphProposalId,
           tapeEventIds: [userEntry.id, assistantEntry.id]
         }
       });
 
       return jsonResponse(200, {
         threadId,
-        message: assistantReply.text,
+        message: assistantText,
         responseId: assistantReply.responseId,
+        graphProposalId,
         tapeEventIds: [userEntry.id, assistantEntry.id]
       });
     } catch (error) {
@@ -147,6 +242,45 @@ app.http("chat", {
     }
   }
 });
+
+function parseToolArguments(rawArguments) {
+  if (!rawArguments || typeof rawArguments !== "string") {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawArguments);
+  } catch {
+    return {};
+  }
+}
+
+function normalizeToolEntities(entities) {
+  if (!Array.isArray(entities)) {
+    return [];
+  }
+
+  return entities
+    .map((entity) => ({
+      name: typeof entity?.name === "string" ? entity.name.trim() : "",
+      type: typeof entity?.type === "string" ? entity.type.trim() : "",
+      aliases: Array.isArray(entity?.aliases)
+        ? entity.aliases.filter((alias) => typeof alias === "string" && alias.trim())
+        : []
+    }))
+    .filter((entity) => entity.name);
+}
+
+function clampTraversalDepth(value) {
+  const numeric = Number(value);
+
+  if (!Number.isFinite(numeric)) {
+    return 2;
+  }
+
+  const rounded = Math.trunc(numeric);
+  return Math.max(1, Math.min(3, rounded));
+}
 
 app.http("chatTape", {
   methods: ["GET", "OPTIONS"],

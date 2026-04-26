@@ -123,6 +123,7 @@ Current optional env keys:
 
 - `BRAVE_API_KEY`
 - `DISCOGS_TOKEN`
+- `OPENAI_REASONING_EFFORT`
 - `MUSICMESH_HTTP_USER_AGENT`
 - `AURA_INSTANCEID`
 - `AURA_INSTANCENAME`
@@ -154,7 +155,7 @@ As of the current repo state:
 - it has a neighboring worksurface panel
 - it uses React, Vite, TanStack Router, Radix UI, and `react-resizable-panels`
 - the current shell still includes seeded local conversation and panel scaffolding
-- it is wired to a thin GPT-5.4-backed local API path
+- it is wired to a thin GPT-5.5-backed local API path
 - the worksurface reads recent conversation tape entries and runtime events from disk
 - it is not yet wired to deeper trace, graph, or database returns from the running product
 

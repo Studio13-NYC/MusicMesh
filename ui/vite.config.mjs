@@ -32,10 +32,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: path.join(currentDir, "index.html"),
-        "operator-graph-demo": path.join(currentDir, "operator-graph-demo.html"),
-        "graph-cytoscape": path.join(currentDir, "graph-cytoscape.html"),
-        "graph-nvl": path.join(currentDir, "graph-nvl.html")
+        main: path.join(currentDir, "index.html")
       }
     }
   }

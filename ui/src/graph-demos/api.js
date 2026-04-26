@@ -25,7 +25,7 @@ export async function searchGraphSeeds(query, limit = 8) {
   return fetchJson(`/api/graph-demo/search?${params.toString()}`);
 }
 
-export async function fetchGraphSubgraph(seedId) {
+export async function fetchGraphSubgraph(seedId, options = {}) {
   return fetchJson("/api/graph-demo/subgraph", {
     method: "POST",
     headers: {
@@ -33,12 +33,20 @@ export async function fetchGraphSubgraph(seedId) {
     },
     body: JSON.stringify({
       seedId,
-      depth: 2,
-      maxNodes: 60,
-      maxEdges: 90,
-      pathLimit: 120
+      depth: options.depth ?? 2,
+      maxNodes: options.maxNodes ?? 60,
+      maxEdges: options.maxEdges ?? 90,
+      pathLimit: options.pathLimit ?? 120
     })
   });
+}
+
+export async function fetchThreadFocusedGraph(threadId, window = 200) {
+  const params = new URLSearchParams();
+  params.set("threadId", threadId);
+  params.set("window", String(window));
+
+  return fetchJson(`/api/graph-demo/thread-focus?${params.toString()}`);
 }
 
 export async function expandGraphNode(nodeId, currentNodeIds, currentEdgeIds) {

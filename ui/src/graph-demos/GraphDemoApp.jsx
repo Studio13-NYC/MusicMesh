@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   expandGraphNode,
   fetchGraphSubgraph,
+  fetchThreadFocusedGraph,
   fetchNodeDetail,
   searchGraphSeeds
 } from "./api";
@@ -22,7 +23,13 @@ const LIBRARY_COPY = {
   }
 };
 
-export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
+export function GraphDemoApp({
+  GraphCanvas,
+  library,
+  embedded = false,
+  threadId = "",
+  focusKey = ""
+}) {
   const [graph, setGraph] = useState(createEmptyGraph());
   const [filters, setFilters] = useState({
     nodeKinds: {},
@@ -54,6 +61,31 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
       setSearchStatus("");
 
       try {
+        if (threadId) {
+          const focusPayload = await fetchThreadFocusedGraph(threadId);
+
+          if (!ignore && focusPayload.hasFocus && focusPayload.graph) {
+            autoLoadedRef.current = true;
+            setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphProposalId || "");
+            setSearchStatus(
+              `Loaded active proposal ${focusPayload.graphProposalId || ""}`.trim()
+            );
+            setGraph(focusPayload.graph);
+            setFilters((currentFilters) => syncFilterState(currentFilters, focusPayload.graph));
+            suppressInspectOpenRef.current = true;
+            setSelectedElement(
+              focusPayload.graph.seedNode
+                ? {
+                    type: "node",
+                    id: focusPayload.graph.seedNode.id
+                  }
+                : null
+            );
+            setHoveredElement(null);
+            return;
+          }
+        }
+
         const payload = await searchGraphSeeds("", 1);
 
         if (ignore) {
@@ -86,7 +118,7 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [focusKey, threadId]);
 
   useEffect(() => {
     if (!selectedElement || selectedElement.type !== "node") {
@@ -282,9 +314,6 @@ export function GraphDemoApp({ GraphCanvas, library, embedded = false }) {
             <span className="demo-pill">
               {graph.meta.visibleNodeCount || 0} visible nodes / {graph.meta.visibleEdgeCount || 0} visible edges
             </span>
-            <a className="demo-link" href="/">
-              Back to shell
-            </a>
           </div>
         </header>
       ) : null}

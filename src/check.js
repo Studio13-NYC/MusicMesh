@@ -2,7 +2,7 @@ const { spawnSync } = require("child_process");
 const { validateEnv } = require("./env");
 
 const OPENAI_API_URL = "https://api.openai.com/v1/models";
-const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.4";
+const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
 const REQUIRED_DOCKER_MCP_TOOLS = ["read_neo4j_cypher", "browser_navigate"];
 
 function fail(message) {

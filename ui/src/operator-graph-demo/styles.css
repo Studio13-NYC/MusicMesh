@@ -353,3 +353,18 @@
     flex-direction: column;
   }
 }
+
+.operator-proposal-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.operator-proposal-actions .operator-composer-submit {
+  position: static;
+}
+
+.operator-proposal-apply-result {
+  margin-top: 12px;
+}
