@@ -1,104 +1,189 @@
-# Operator Graph Proposal Walkthrough
+# MusicMesh Operator Workbench Walkthrough
 
-This walkthrough documents the corrected proposal graph behavior after the duplicate-looking proposal flow.
+This walkthrough shows the main paths a human user can trigger in the MusicMesh Operator Workbench. It uses a clean Athens, Georgia music-scene run with:
 
-## 1. Start From The Operator Workbench
+- `R.E.M.`
+- `The B-52's`
+- `Pylon`
+- `Athens, Georgia`
 
-Open the local app:
+The screenshots are annotated so you can follow the workflow visually first, then use the short text under each image as confirmation.
 
-```powershell
-npm run dev:api
-npm run dev
-```
+## Full Visual Sequence
 
-Then load:
+Use this contact sheet as the quick map of the complete walkthrough.
+
+![Contact sheet of the full Operator Workbench walkthrough](docs/assets/walkthrough/operator-workbench/00-contact-sheet.png)
+
+## 1. Start On The Operator Workbench
+
+Open `http://127.0.0.1:3000/`. The default screen keeps chat on the left and the workbench on the right.
+
+![Default Operator Workbench screen](docs/assets/walkthrough/operator-workbench/01-start-default-screen.png)
+
+What to do:
+
+1. Use the left side for questions.
+2. Use the right side to switch between `Graph`, `Proposals`, and `Workflow`.
+3. Type into the composer at the bottom-left.
+
+## 2. Ask The Athens Scene Question
+
+Type the Athens prompt into the chat composer.
+
+![Athens prompt entered in chat](docs/assets/walkthrough/operator-workbench/02-chat-prompt-ready.png)
+
+Prompt used in this walkthrough:
 
 ```text
-http://127.0.0.1:3000/
+How do R.E.M., The B-52's, Pylon, and Athens, Georgia connect as a music scene? Give a concise answer and prepare graph-worthy relationship proposals.
 ```
 
-The default screen is the MusicMesh operator workbench. The graph panel loads the most recent proposal for the active thread when one is available.
+Click `Send`.
 
-![Graph after proposal display fix](docs/assets/walkthrough/operator-graph-fix-01.png)
+![MusicMesh thinking after the prompt is sent](docs/assets/walkthrough/operator-workbench/03-chat-thinking.png)
 
-## 2. Confirm The Graph Is Showing Domain Nodes
+When the answer completes, read it in the live operator thread while the graph workspace stays visible.
 
-Open **Browse** in the graph toolbar.
+![Completed chat answer](docs/assets/walkthrough/operator-workbench/04-chat-answer-complete.png)
 
-The node filters should now show music-domain kinds, not only proposal wrapper kinds:
+Expected result:
 
-- `Album`
-- `Artist`
-- `GraphProposal`
-- `Person`
-- `RecordLabel`
-- `Scene`
+- The answer explains the Athens scene connection.
+- MusicMesh prepares graph-worthy relationships for review instead of silently canonizing them.
 
-The important correction is that proposal entity items are displayed using their intended proposed domain kind. For example, a proposed R.E.M. artist item is colored and filtered as `Artist`, not as a generic `ProposalItem`.
+## 3. Create A Proposal From Entities
 
-![Filters and legend after proposal display fix](docs/assets/walkthrough/operator-graph-fix-02.png)
+Switch to `Proposals`.
 
-## 3. Understand What Is Hidden
+![Proposals tab open](docs/assets/walkthrough/operator-workbench/05-proposals-tab-open.png)
 
-The graph still keeps proposal workspace structure in the database, but the visual graph no longer draws `ProposedRelationship` items as entity nodes.
+Enter the Athens entity list and context.
 
-That means labels such as:
+![Proposal fields filled](docs/assets/walkthrough/operator-workbench/06-proposals-fields-filled.png)
 
-- `R.E.M. MEMBER_OF Michael Stipe`
-- `R.E.M. RELEASED_ALBUM Murmur`
-- `R.E.M. ASSOCIATED_WITH_SCENE Athens, Georgia music scene`
+Entity list:
 
-should appear as relationships or relationship context, not as circular nodes.
+```text
+R.E.M.
+The B-52's
+Pylon
+Athens, Georgia
+```
 
-## 4. Color Rules
+Context:
 
-The graph uses domain color coding:
+```text
+Create graph-worthy music relationships for the Athens, Georgia music scene. Prefer LLM reasoning about entity meaning and relationship intent. Do not create duplicate relationship-as-entity nodes.
+```
 
-- Artist / band: orange
-- Album / release: blue
-- Person / member: yellow
-- Record label: pink
-- Scene: green
-- Proposal workspace: magenta
-- Generic or other typed nodes: purple
+Click `Create Proposal`.
 
-This makes proposal graphs readable while preserving the distinction between proposed workspace structure and music entities.
+![Generated proposal summary](docs/assets/walkthrough/operator-workbench/07-proposal-created.png)
 
-## 5. LLM Interpretation Rule
+Expected result:
 
-Entity interpretation belongs to the LLM, not regex or brittle prompt parsing.
+- A latest proposal appears.
+- Candidate relationships are shown for review before apply.
 
-The proposal system now instructs the LLM to:
+## 4. Approve And Apply The Proposal
 
-- treat submitted terms as operator intent, not automatically as graph nodes
-- use questions or search phrases to guide discovery
-- avoid creating candidate nodes for task phrases
-- resolve aliases and informal input to the best music-domain entity
-- prefer `R.E.M.` as an `Artist` over a generic `Entity` named `REM`
+Click `Approve all pending`.
 
-If the LLM or proposal generator cannot complete that interpretation, the system asks for human input instead of inventing entities deterministically.
+![Proposal approved](docs/assets/walkthrough/operator-workbench/08-proposal-approved.png)
 
-## 6. Human-In-The-Loop Failure Rule
+Click `Apply approved`.
 
-When graph tooling gets stuck, the assistant should ask the user what to do next.
+![Proposal applied](docs/assets/walkthrough/operator-workbench/09-proposal-applied.png)
 
-Good next-step options include:
+Expected result:
 
-- retry with a narrower entity list
-- inspect canon first
-- clarify whether the phrase is a search request or a graph entity
-- continue with an answer but skip persistence
+- Approved graph items are persisted.
+- The graph workspace can now show the applied proposal structure.
 
-The system should not silently create generic entities from failed extraction.
+## 5. Inspect The Graph
 
-## 7. Verification Evidence
+Switch back to `Graph`.
 
-For the current local graph payload:
+![Graph after applying proposal](docs/assets/walkthrough/operator-workbench/10-graph-after-apply.png)
 
-- visible graph nodes: `16`
-- visible graph edges: `34`
-- visible node kinds: `Album`, `Artist`, `GraphProposal`, `Person`, `RecordLabel`, `Scene`
-- hidden proposal relationship item nodes: `19`
-- hidden proposal scaffold edges: `38`
+Expected result:
 
-The key result: proposal relationship descriptors are no longer drawn as entity nodes, and proposed entities are colored by their intended domain kind.
+- The graph contains the applied Athens proposal.
+- Domain entities are shown as graph nodes.
+- Proposed relationship records are not displayed as fake relationship-as-entity nodes.
+
+Click `Browse` to open filters and the legend.
+
+![Browse filters and legend](docs/assets/walkthrough/operator-workbench/11-graph-browse-filters.png)
+
+Use the node-kind filters when you want to focus the view.
+
+![Node-kind filters focused](docs/assets/walkthrough/operator-workbench/12-graph-proposalitem-filtered.png)
+
+The legend explains the color coding:
+
+- Artist / Band
+- Album / Release
+- Track / Song
+- Person / Member
+- Record label
+- Scene
+- Venue
+- Genre / Other typed node
+- Proposal workspace
+
+## 6. Inspect, Expand, Fit, And Reset
+
+Click `Inspect`, then click a graph node or relationship.
+
+![Inspect drawer with graph selection](docs/assets/walkthrough/operator-workbench/13-graph-inspect-selection.png)
+
+Expected result:
+
+- The inspect drawer opens.
+- Selection details appear when a node or relationship is selected.
+
+Close the inspect drawer if it covers toolbar controls, then click `Expand`.
+
+![Expanded graph neighborhood](docs/assets/walkthrough/operator-workbench/14-graph-expand.png)
+
+Click `Fit` to frame the current graph.
+
+![Fit graph view](docs/assets/walkthrough/operator-workbench/15-graph-fit.png)
+
+Click `Reset` to return the layout to its default framing.
+
+![Reset graph layout](docs/assets/walkthrough/operator-workbench/16-graph-reset.png)
+
+## 7. Check Workflow Evidence
+
+Switch to `Workflow`.
+
+![Workflow evidence tab](docs/assets/walkthrough/operator-workbench/17-workflow-tab.png)
+
+Expected result:
+
+- Recent conversation events are visible.
+- Recent runtime events confirm the user-triggered flow.
+- This is the place to check what happened after a chat, proposal, review, apply, or graph action.
+
+## 8. If A Graph Operation Blocks
+
+If graph tooling hits a blocker, the correct behavior is to stop and ask the human for next steps in the chat thread.
+
+![Human-in-the-loop blocker note](docs/assets/walkthrough/operator-workbench/18-human-loop-note.png)
+
+Do not treat a blocked graph operation as success. Confirm the visible graph and the Workflow evidence before calling the run complete.
+
+## Successful Outcome Checklist
+
+The walkthrough is successful when:
+
+- The clean database starts empty.
+- The Athens proposal can be created from the `Proposals` tab.
+- Pending proposal items can be approved and applied.
+- The graph shows domain entities with useful color coding.
+- Relationship records do not appear as duplicate relationship-labeled entity nodes.
+- The Workflow tab shows fresh evidence from the walkthrough run.
+- Neo4j contains persisted nodes and relationships after apply.
