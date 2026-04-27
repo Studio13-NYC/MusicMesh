@@ -79,9 +79,9 @@ app.http("graphDemoThreadFocus", {
       const threadId = stableThreadId(requestUrl.searchParams.get("threadId"));
       const tapeWindowSize = Number(requestUrl.searchParams.get("window") || 200);
       const entries = await readTapeEntries(tapeWindowSize);
-      const latestAnchor = findLatestThreadGraphAnchor(entries, threadId);
+      const latestFocus = findLatestThreadGraphFocus(entries, threadId);
 
-      if (!latestAnchor?.id) {
+      if (!latestFocus) {
         return jsonResponse(200, {
           threadId,
           hasFocus: false,
@@ -90,7 +90,21 @@ app.http("graphDemoThreadFocus", {
         });
       }
 
-      const graph = await fetchSeededGraph(latestAnchor.id, {
+      if (latestFocus.kind === "preview") {
+        return jsonResponse(200, {
+          threadId,
+          hasFocus: true,
+          focusKind: "preview",
+          graphAnchorId: latestFocus.id,
+          focusSeed: {
+            id: latestFocus.id,
+            label: latestFocus.name || latestFocus.graph?.seedNode?.label || latestFocus.id
+          },
+          graph: latestFocus.graph
+        });
+      }
+
+      const graph = await fetchSeededGraph(latestFocus.id, {
         depth: 2,
         maxNodes: 90,
         maxEdges: 140,
@@ -100,10 +114,11 @@ app.http("graphDemoThreadFocus", {
       return jsonResponse(200, {
         threadId,
         hasFocus: true,
-        graphAnchorId: latestAnchor.id,
+        focusKind: "persisted",
+        graphAnchorId: latestFocus.id,
         focusSeed: {
-          id: latestAnchor.id,
-          label: latestAnchor.name || graph.seedNode?.label || latestAnchor.id
+          id: latestFocus.id,
+          label: latestFocus.name || graph.seedNode?.label || latestFocus.id
         },
         graph
       });
@@ -181,7 +196,19 @@ function stableThreadId(value) {
   return typeof value === "string" && value.trim() ? value.trim() : "default-thread";
 }
 
-function findLatestThreadGraphAnchor(entries, threadId) {
+function stableString(value) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "";
+}
+
+function findLatestThreadGraphFocus(entries, threadId) {
   if (!Array.isArray(entries)) {
     return null;
   }
@@ -189,20 +216,37 @@ function findLatestThreadGraphAnchor(entries, threadId) {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index];
 
-    if (entry?.threadId !== threadId || entry?.type !== "assistant_message") {
+    if (entry?.threadId !== threadId) {
       continue;
+    }
+
+    if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
+      const graph = entry.payload.graph;
+      const previewId = stableString(entry.payload.previewGraphId || graph.seedNode?.id || entry.id);
+
+      return {
+        kind: "preview",
+        id: previewId,
+        name: stableString(graph.seedNode?.label || previewId),
+        graph
+      };
     }
 
     const anchorId = entry?.payload?.graphAnchorId;
 
     if (typeof anchorId === "string" && anchorId.trim()) {
       return {
+        kind: "persisted",
         id: anchorId.trim(),
         name:
           typeof entry?.payload?.graphAnchorName === "string"
             ? entry.payload.graphAnchorName.trim()
             : ""
       };
+    }
+
+    if (entry?.type === "assistant_message" && entry?.payload?.graphPending) {
+      return null;
     }
   }
 

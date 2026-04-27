@@ -94,20 +94,39 @@ export function GraphDemoApp({
           }
 
           if (!ignore && focusPayload?.hasFocus && focusPayload.graph) {
+            const isPreview = Boolean(focusPayload.graph.meta?.preview);
             autoLoadedRef.current = true;
             setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphAnchorId || "");
-            setSearchStatus(`Loaded ${focusPayload.focusSeed?.label || "active graph anchor"}`);
+            setSearchStatus(
+              isPreview
+                ? `Previewing ${focusPayload.focusSeed?.label || "answer graph"}`
+                : `Loaded ${focusPayload.focusSeed?.label || "active graph anchor"}`
+            );
             setGraph(focusPayload.graph);
             setFilters((currentFilters) => syncFilterState(currentFilters, focusPayload.graph));
             suppressInspectOpenRef.current = true;
             setSelectedElement(
-              focusPayload.graph.seedNode
+              !isPreview && focusPayload.graph.seedNode
                 ? {
                     type: "node",
                     id: focusPayload.graph.seedNode.id
                   }
                 : null
             );
+            setHoveredElement(null);
+            return;
+          }
+
+          if (!ignore) {
+            autoLoadedRef.current = false;
+            setSearchQuery("");
+            setSearchStatus("Building graph from the current answer...");
+            setGraph(createEmptyGraph());
+            setFilters({
+              nodeKinds: {},
+              relationshipTypes: {}
+            });
+            setSelectedElement(null);
             setHoveredElement(null);
             return;
           }
@@ -148,7 +167,7 @@ export function GraphDemoApp({
   }, [focusKey, threadId]);
 
   useEffect(() => {
-    if (!selectedElement || selectedElement.type !== "node") {
+    if (!selectedElement || selectedElement.type !== "node" || graph.meta?.preview) {
       return;
     }
 
@@ -179,7 +198,7 @@ export function GraphDemoApp({
     return () => {
       ignore = true;
     };
-  }, [nodeDetails, selectedElement]);
+  }, [graph.meta?.preview, nodeDetails, selectedElement]);
 
   useEffect(() => {
     if (!selectedElement) {
@@ -468,7 +487,9 @@ export function GraphDemoApp({
               </div>
               <div className="demo-toolbar-meta">
                 <span className="demo-toolbar-seed">
-                  {graph.seedNode?.label || "No seed loaded"}
+                  {graph.meta?.preview
+                    ? `${graph.seedNode?.label || "Answer graph"} preview`
+                    : graph.seedNode?.label || "No seed loaded"}
                 </span>
                 <span>
                   {graph.meta.nodeCount || 0}n / {graph.meta.edgeCount || 0}e
@@ -581,6 +602,25 @@ function LegendEdgeRow({ styleKey, label }) {
 function NodeDetailCard({ detail, fallbackNode, errorMessage }) {
   if (errorMessage) {
     return <p className="demo-error">{errorMessage}</p>;
+  }
+
+  if (!detail && fallbackNode?.isPreview) {
+    return (
+      <div className="demo-detail-card">
+        <h2>{fallbackNode.label}</h2>
+        <p className="demo-detail-subtitle">
+          {fallbackNode.summary?.subtitle || fallbackNode.kind}
+        </p>
+        <div className="demo-tag-list demo-tag-list-tight">
+          {(fallbackNode.summary?.labels || [fallbackNode.kind]).map((label) => (
+            <span className="demo-tag" key={label}>
+              {label}
+            </span>
+          ))}
+          <span className="demo-tag">Preview</span>
+        </div>
+      </div>
+    );
   }
 
   if (!detail) {

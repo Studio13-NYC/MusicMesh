@@ -18,7 +18,7 @@ const {
 } = require("./graphDemoRepository");
 const { runChatTurnPipeline } = require("./graphChatOrchestrator");
 const { createAssistantReply, DEFAULT_MODEL } = require("./chatService");
-const { resolveChatGraphSyncTimeoutMs } = require("./reasoningConfig");
+const { queueGraphPreview } = require("./graphPreview");
 const { queueRunQualityAssessment } = require("./runQualityAssessment");
 
 const DEFAULT_PORT = Number(process.env.MUSICMESH_API_PORT || 43101);
@@ -82,27 +82,6 @@ function pendingGraphPipelineResult() {
   };
 }
 
-function graphPipelineTimeout(timeoutMs) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        timedOut: true,
-        graphPipeline: pendingGraphPipelineResult()
-      });
-    }, timeoutMs);
-  });
-}
-
-function waitForGraphPipeline(graphPipelinePromise, timeoutMs) {
-  return Promise.race([
-    graphPipelinePromise.then((graphPipeline) => ({
-      timedOut: false,
-      graphPipeline
-    })),
-    graphPipelineTimeout(timeoutMs)
-  ]);
-}
-
 async function appendGraphPipelineCompleted({
   requestId,
   threadId,
@@ -138,7 +117,7 @@ async function appendGraphPipelineFailed({ requestId, threadId, error, deferred 
   });
 }
 
-async function appendGraphUpdate({ threadId, graphPipeline }) {
+async function appendGraphUpdate({ threadId, graphPipeline, requestId, responseId }) {
   if (!graphPipeline?.graphAnchorId) {
     return null;
   }
@@ -148,6 +127,8 @@ async function appendGraphUpdate({ threadId, graphPipeline }) {
     type: "graph_update",
     threadId,
     payload: {
+      requestId,
+      responseId,
       graphAnchorId: graphPipeline.graphAnchorId,
       graphAnchorName: graphPipeline.graphAnchorName,
       graphNodeCount: graphPipeline.graphNodeCount,
@@ -198,6 +179,7 @@ async function handleChat(request, response) {
       type: "user_message",
       threadId,
       payload: {
+        requestId,
         prompt,
         messageCount: messages.length
       }
@@ -212,6 +194,36 @@ async function handleChat(request, response) {
         requestId,
         threadId,
         turnId: requestId
+      }
+    });
+
+    const assistantEntry = await appendTapeEntry({
+      id: createId("evt"),
+      type: "assistant_message",
+      threadId,
+      payload: {
+        requestId,
+        responseId: assistantReply.responseId,
+        text: assistantReply.text,
+        graphAnchorId: null,
+        graphAnchorName: "",
+        graphNodeCount: 0,
+        graphRelationshipCount: 0,
+        graphMode: "pending",
+        humanInputNeeded: false,
+        graphPending: true,
+        previewGraphPending: true
+      }
+    });
+
+    await appendRuntimeEvent({
+      id: createId("log"),
+      type: "chat_answer_returned",
+      payload: {
+        requestId,
+        threadId,
+        responseId: assistantReply.responseId,
+        tapeEventIds: [userEntry.id, assistantEntry.id]
       }
     });
 
@@ -237,87 +249,30 @@ async function handleChat(request, response) {
         turnId: requestId
       }
     });
-    const graphSyncTimeoutMs = resolveChatGraphSyncTimeoutMs();
-    const graphWaitResult = await waitForGraphPipeline(graphPipelinePromise, graphSyncTimeoutMs);
-    const graphPipeline = graphWaitResult.graphPipeline;
-    const assistantText = graphPipeline.humanInputNeeded && graphPipeline.humanMessage
-      ? `${assistantReply.text}\n\n${graphPipeline.humanMessage}`
-      : assistantReply.text;
 
-    const assistantEntry = await appendTapeEntry({
-      id: createId("evt"),
-      type: "assistant_message",
+    queueGraphPreview({
+      requestId,
       threadId,
-      payload: {
-        responseId: assistantReply.responseId,
-        text: assistantText,
-        graphAnchorId: graphPipeline.graphAnchorId,
-        graphAnchorName: graphPipeline.graphAnchorName,
-        graphNodeCount: graphPipeline.graphNodeCount,
-        graphRelationshipCount: graphPipeline.graphRelationshipCount,
-        graphMode: graphPipeline.mode,
-        humanInputNeeded: graphPipeline.humanInputNeeded,
-        graphPending: graphWaitResult.timedOut
-      }
+      prompt,
+      assistantText: assistantReply.text,
+      responseId: assistantReply.responseId
     });
 
     sendJson(response, 200, {
+      requestId,
       threadId,
-      message: assistantText,
+      message: assistantReply.text,
       responseId: assistantReply.responseId,
-      graphAnchorId: graphPipeline.graphAnchorId,
-      graphAnchorName: graphPipeline.graphAnchorName,
-      graphNodeCount: graphPipeline.graphNodeCount,
-      graphRelationshipCount: graphPipeline.graphRelationshipCount,
-      graphMode: graphPipeline.mode,
-      humanInputNeeded: graphPipeline.humanInputNeeded,
-      graphPending: graphWaitResult.timedOut,
+      graphAnchorId: null,
+      graphAnchorName: "",
+      graphNodeCount: 0,
+      graphRelationshipCount: 0,
+      graphMode: "pending",
+      humanInputNeeded: false,
+      graphPending: true,
+      previewGraphPending: true,
       tapeEventIds: [userEntry.id, assistantEntry.id]
     });
-
-    if (graphWaitResult.timedOut) {
-      graphPipelinePromise
-        .then(async (deferredGraphPipeline) => {
-          await appendGraphUpdate({ threadId, graphPipeline: deferredGraphPipeline });
-          await appendGraphPipelineCompleted({
-            requestId,
-            threadId,
-            graphPipeline: deferredGraphPipeline,
-            deferred: true
-          });
-          queueRunQualityAssessment({
-            requestId,
-            threadId,
-            prompt,
-            assistantText,
-            responseId: assistantReply.responseId,
-            graphPipeline: deferredGraphPipeline,
-            graphPending: false,
-            tapeEventIds: [userEntry.id, assistantEntry.id]
-          });
-        })
-        .catch(async (error) => {
-          await appendGraphPipelineFailed({ requestId, threadId, error, deferred: true });
-          queueRunQualityAssessment({
-            requestId,
-            threadId,
-            prompt,
-            assistantText,
-            responseId: assistantReply.responseId,
-            graphPipeline,
-            graphPending: false,
-            graphErrorMessage: error.message || "Graph pipeline failed.",
-            tapeEventIds: [userEntry.id, assistantEntry.id]
-          });
-        });
-    } else {
-      await appendGraphPipelineCompleted({
-        requestId,
-        threadId,
-        graphPipeline,
-        deferred: false
-      });
-    }
 
     await appendRuntimeEvent({
       id: createId("log"),
@@ -326,25 +281,53 @@ async function handleChat(request, response) {
         requestId,
         threadId,
         responseId: assistantReply.responseId,
-        graphAnchorId: graphPipeline.graphAnchorId,
-        graphMode: graphPipeline.mode,
-        graphPending: graphWaitResult.timedOut,
+        graphAnchorId: null,
+        graphMode: "pending",
+        graphPending: true,
+        previewGraphPending: true,
         tapeEventIds: [userEntry.id, assistantEntry.id]
       }
     });
 
-    if (!graphWaitResult.timedOut) {
-      queueRunQualityAssessment({
-        requestId,
-        threadId,
-        prompt,
-        assistantText,
-        responseId: assistantReply.responseId,
-        graphPipeline,
-        graphPending: false,
-        tapeEventIds: [userEntry.id, assistantEntry.id]
+    graphPipelinePromise
+      .then(async (deferredGraphPipeline) => {
+        const graphUpdateEntry = await appendGraphUpdate({
+          threadId,
+          graphPipeline: deferredGraphPipeline,
+          requestId,
+          responseId: assistantReply.responseId
+        });
+        await appendGraphPipelineCompleted({
+          requestId,
+          threadId,
+          graphPipeline: deferredGraphPipeline,
+          deferred: true
+        });
+        queueRunQualityAssessment({
+          requestId,
+          threadId,
+          prompt,
+          assistantText: assistantReply.text,
+          responseId: assistantReply.responseId,
+          graphPipeline: deferredGraphPipeline,
+          graphPending: false,
+          tapeEventIds: [userEntry.id, assistantEntry.id, graphUpdateEntry?.id].filter(Boolean)
+        });
+      })
+      .catch(async (error) => {
+        await appendGraphPipelineFailed({ requestId, threadId, error, deferred: true });
+        queueRunQualityAssessment({
+          requestId,
+          threadId,
+          prompt,
+          assistantText: assistantReply.text,
+          responseId: assistantReply.responseId,
+          graphPipeline: pendingGraphPipelineResult(),
+          graphPending: false,
+          graphErrorMessage: error.message || "Graph pipeline failed.",
+          tapeEventIds: [userEntry.id, assistantEntry.id]
+        });
       });
-    }
   } catch (error) {
     await appendTapeEntry({
       id: createId("evt"),
@@ -374,35 +357,51 @@ async function handleGraphDemoThreadFocus(request, response) {
     const threadId = stableThreadId(requestUrl.searchParams.get("threadId"));
     const tapeWindowSize = Number(requestUrl.searchParams.get("window") || 200);
     const entries = await readTapeEntries(tapeWindowSize);
-    const latestAnchor = findLatestThreadGraphAnchor(entries, threadId);
+      const latestFocus = findLatestThreadGraphFocus(entries, threadId);
 
-    if (!latestAnchor?.id) {
-      sendJson(response, 200, {
-        threadId,
-        hasFocus: false,
-        graphAnchorId: null,
+      if (!latestFocus) {
+        sendJson(response, 200, {
+          threadId,
+          hasFocus: false,
+          graphAnchorId: null,
         reason: "No graph anchor found for this thread yet."
       });
-      return;
-    }
+        return;
+      }
 
-    const graph = await fetchSeededGraph(latestAnchor.id, {
-      depth: 2,
-      maxNodes: 90,
-      maxEdges: 140,
+      if (latestFocus.kind === "preview") {
+        sendJson(response, 200, {
+          threadId,
+          hasFocus: true,
+          focusKind: "preview",
+          graphAnchorId: latestFocus.id,
+          focusSeed: {
+            id: latestFocus.id,
+            label: latestFocus.name || latestFocus.graph?.seedNode?.label || latestFocus.id
+          },
+          graph: latestFocus.graph
+        });
+        return;
+      }
+
+      const graph = await fetchSeededGraph(latestFocus.id, {
+        depth: 2,
+        maxNodes: 90,
+        maxEdges: 140,
       pathLimit: 180
     });
 
     sendJson(response, 200, {
-      threadId,
-      hasFocus: true,
-      graphAnchorId: latestAnchor.id,
-      focusSeed: {
-        id: latestAnchor.id,
-        label: latestAnchor.name || graph.seedNode?.label || latestAnchor.id
-      },
-      graph
-    });
+        threadId,
+        hasFocus: true,
+        focusKind: "persisted",
+        graphAnchorId: latestFocus.id,
+        focusSeed: {
+          id: latestFocus.id,
+          label: latestFocus.name || graph.seedNode?.label || latestFocus.id
+        },
+        graph
+      });
   } catch (error) {
     sendJson(response, 500, { error: error.message });
   }
@@ -412,7 +411,19 @@ function stableThreadId(value) {
   return typeof value === "string" && value.trim() ? value.trim() : "default-thread";
 }
 
-function findLatestThreadGraphAnchor(entries, threadId) {
+function stableString(value) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "";
+}
+
+function findLatestThreadGraphFocus(entries, threadId) {
   if (!Array.isArray(entries)) {
     return null;
   }
@@ -424,16 +435,33 @@ function findLatestThreadGraphAnchor(entries, threadId) {
       continue;
     }
 
+    if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
+      const graph = entry.payload.graph;
+      const previewId = stableString(entry.payload.previewGraphId || graph.seedNode?.id || entry.id);
+
+      return {
+        kind: "preview",
+        id: previewId,
+        name: stableString(graph.seedNode?.label || previewId),
+        graph
+      };
+    }
+
     const anchorId = entry?.payload?.graphAnchorId;
 
     if (typeof anchorId === "string" && anchorId.trim()) {
       return {
+        kind: "persisted",
         id: anchorId.trim(),
         name:
           typeof entry?.payload?.graphAnchorName === "string"
             ? entry.payload.graphAnchorName.trim()
             : ""
       };
+    }
+
+    if (entry?.type === "assistant_message" && entry?.payload?.graphPending) {
+      return null;
     }
   }
 

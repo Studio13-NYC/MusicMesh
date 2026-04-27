@@ -19,7 +19,7 @@ const WORKBENCH_MODES = [
 const seedMessages = [];
 const OPERATOR_THREAD_ID = "operator-graph-demo";
 
-function findLatestThreadGraphAnchorId(entries, threadId) {
+function findLatestThreadGraphFocusKey(entries, threadId) {
   if (!Array.isArray(entries)) {
     return "";
   }
@@ -31,10 +31,18 @@ function findLatestThreadGraphAnchorId(entries, threadId) {
       continue;
     }
 
+    if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
+      return `preview:${entry.payload.requestId || entry.id}`;
+    }
+
     const anchorId = entry?.payload?.graphAnchorId;
 
     if (typeof anchorId === "string" && anchorId.trim()) {
-      return anchorId.trim();
+      return `graph:${anchorId.trim()}`;
+    }
+
+    if (entry?.type === "assistant_message" && entry?.payload?.graphPending) {
+      return `pending:${entry.payload.requestId || entry.id}`;
     }
   }
 
@@ -87,7 +95,7 @@ export function OperatorGraphDemo() {
       const entries = tapePayload.entries || [];
       setTapeEntries(entries);
       setTapePath(tapePayload.tapePath || "");
-      setGraphFocusAnchorId(findLatestThreadGraphAnchorId(entries, OPERATOR_THREAD_ID));
+      setGraphFocusAnchorId(findLatestThreadGraphFocusKey(entries, OPERATOR_THREAD_ID));
     } catch {
       setTapeEntries([]);
       setTapePath("");
@@ -161,7 +169,9 @@ export function OperatorGraphDemo() {
       }
 
       if (typeof payload.graphAnchorId === "string" && payload.graphAnchorId.trim()) {
-        setGraphFocusAnchorId(payload.graphAnchorId.trim());
+        setGraphFocusAnchorId(`graph:${payload.graphAnchorId.trim()}`);
+      } else if (typeof payload.requestId === "string" && payload.requestId.trim()) {
+        setGraphFocusAnchorId(`pending:${payload.requestId.trim()}`);
       }
 
       setMessages((currentMessages) => [
@@ -169,9 +179,7 @@ export function OperatorGraphDemo() {
         {
           id: payload.responseId || `assistant-${Date.now()}`,
           role: "assistant",
-          content: payload.graphPending
-            ? `${payload.message}\n\nI'm still building the graph for this answer; it will appear in the workbench when it finishes.`
-            : payload.message
+          content: payload.message
         }
       ]);
       await loadTape();

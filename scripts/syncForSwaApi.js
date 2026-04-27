@@ -24,6 +24,7 @@ const copies = [
   ["src/reasoningConfig.js", "shared/reasoningConfig.js"],
   ["src/llmTelemetry.js", "shared/llmTelemetry.js"],
   ["src/chatService.js", "shared/chatService.js"],
+  ["src/graphPreview.js", "shared/graphPreview.js"],
   ["src/runQualityAssessment.js", "shared/runQualityAssessment.js"],
   ["src/graphChatOrchestrator.js", "shared/graphChatOrchestrator.js"],
   ["src/graphDomainWriter.js", "shared/graphDomainWriter.js"],

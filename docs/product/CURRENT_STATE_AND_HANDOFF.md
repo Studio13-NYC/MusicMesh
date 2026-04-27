@@ -76,6 +76,8 @@ Current workbench shape:
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
 - post-run quality assessment writes `run_quality_assessment` tape entries after completed chat/graph runs
+- answer-first chat responses now return after the chat LLM completes; graph preview, graph persistence, and run review continue as background work
+- provisional graph previews are written as `graph_preview` tape entries and are never persisted to Neo4j
 - graph writes persist real domain relationships; relationship examples are guidance, not an allow-list
 - `canonicalStatus` / `isProposed` are hidden maintenance metadata and must not be overwritten on existing canonized graph objects
 
@@ -84,6 +86,7 @@ Important limitation:
 - the UI is now wired to a thin GPT-5.5-backed API path
 - the workbench can now read recent conversation tape entries and runtime events from disk
 - chat and graph demo routes can read and write Neo4j through the local API
+- the graph rail prefers completed `graph_update` entries and falls back to the latest `graph_preview` while persistence is still running
 
 Build/deploy note:
 

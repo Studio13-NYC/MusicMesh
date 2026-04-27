@@ -169,7 +169,7 @@ function selectTapeEntries(tapeEntries, { threadId, tapeEventIds, start, end }) 
     }
 
     return createdAtInWindow(entry?.createdAt, start, end) &&
-      ["user_message", "assistant_message", "graph_update", "chat_error", "run_quality_assessment"].includes(entry?.type);
+      ["user_message", "assistant_message", "graph_preview", "graph_update", "chat_error", "run_quality_assessment"].includes(entry?.type);
   });
 }
 

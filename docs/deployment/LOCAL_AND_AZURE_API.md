@@ -74,6 +74,7 @@ Reasoning effort is stage-specific and can be configured with the same environme
 | `OPENAI_REASONING_EFFORT_DEFAULT` | `medium` | fallback for any stage without a more specific setting |
 | `OPENAI_REASONING_EFFORT_KNOWLEDGE` | `low` | direct answer from model knowledge |
 | `OPENAI_REASONING_EFFORT_CHAT_COMPLEX` | `medium` | longer or multi-turn answer synthesis |
+| `OPENAI_REASONING_EFFORT_GRAPH_PREVIEW` | `low` | provisional answer-derived graph preview |
 | `OPENAI_REASONING_EFFORT_GRAPH_PLAN` | `medium` | deriving graph structure from the answer |
 | `OPENAI_REASONING_EFFORT_GRAPH_GROUNDING` | `high` | canon matching and duplicate avoidance |
 | `OPENAI_REASONING_EFFORT_HUMAN_LOOP` | `low` | short human-in-the-loop clarification |
@@ -85,7 +86,7 @@ Legacy `OPENAI_REASONING_EFFORT` remains supported as a compatibility fallback.
 
 `OPENAI_VERBOSITY` can be `low`, `medium`, or `high` and defaults to `medium`.
 
-`MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS` controls how long `/api/chat` waits for graph persistence before returning the answer with `graphPending: true`. The default is `25000`, which keeps Azure Static Web Apps from returning a plain-text backend timeout while longer graph work continues as a deferred graph update.
+`/api/chat` now returns after the chat answer LLM completes. Graph preview, graph persistence, and run review continue as background stages. `MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS` is still accepted for compatibility but is no longer on the answer-return path.
 
 ### SPA routing
 

@@ -12,6 +12,7 @@ const REASONING_STAGES = {
   DEFAULT: "default",
   KNOWLEDGE: "knowledge",
   CHAT_COMPLEX: "chat_complex",
+  GRAPH_PREVIEW: "graph_preview",
   GRAPH_PLAN: "graph_plan",
   GRAPH_GROUNDING: "graph_grounding",
   HUMAN_LOOP: "human_loop",
@@ -31,6 +32,10 @@ const STAGE_CONFIG = {
   [REASONING_STAGES.CHAT_COMPLEX]: {
     envKey: "OPENAI_REASONING_EFFORT_CHAT_COMPLEX",
     defaultEffort: "medium"
+  },
+  [REASONING_STAGES.GRAPH_PREVIEW]: {
+    envKey: "OPENAI_REASONING_EFFORT_GRAPH_PREVIEW",
+    defaultEffort: "low"
   },
   [REASONING_STAGES.GRAPH_PLAN]: {
     envKey: "OPENAI_REASONING_EFFORT_GRAPH_PLAN",

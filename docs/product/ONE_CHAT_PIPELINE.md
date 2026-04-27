@@ -67,6 +67,7 @@ Reasoning effort is configured by pipeline stage through environment variables, 
 
 - simple knowledge answers default to `low`
 - longer or multi-turn answer synthesis defaults to `medium`
+- provisional graph preview defaults to `low`
 - graph planning defaults to `medium`
 - canon grounding defaults to `high`
 - human-in-the-loop clarification defaults to `low`
@@ -76,7 +77,7 @@ The runtime emits one durable telemetry event for each OpenAI Responses API call
 
 After a run completes, the post-run reviewer emits `run_quality_assessment_started`, `run_quality_assessment_completed`, or `run_quality_assessment_failed`. Completed reviews assess answering the prompt, speed, process efficiency, bugs or anomalies, and suggested system enhancements.
 
-In deployed Static Web Apps, chat answers return before the graph pipeline can hit the platform backend timeout. If graph persistence takes longer than `MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS`, the response carries `graphPending: true`; the graph pipeline continues as a deferred update and writes a `graph_update` tape entry when it finishes.
+In deployed Static Web Apps, chat answers return after the chat answer LLM completes. A provisional `graph_preview` can appear from the assistant answer while the grounded graph pipeline continues as a deferred update and writes a `graph_update` tape entry when persistence finishes.
 
 Use this report to inspect long-term behavior by stage and reasoning setting:
 
