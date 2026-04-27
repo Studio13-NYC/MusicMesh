@@ -49,6 +49,22 @@ function findLatestThreadGraphFocusKey(entries, threadId) {
   return "";
 }
 
+function findLatestThreadAssessment(entries, threadId) {
+  if (!Array.isArray(entries)) {
+    return null;
+  }
+
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+
+    if (entry?.threadId === threadId && entry?.type === "run_quality_assessment") {
+      return entry;
+    }
+  }
+
+  return null;
+}
+
 export function OperatorGraphDemo() {
   const [messages, setMessages] = useState(seedMessages);
   const [composerValue, setComposerValue] = useState("");
@@ -362,6 +378,8 @@ function PendingAssistantEntry() {
 }
 
 function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPath }) {
+  const latestAssessmentEntry = findLatestThreadAssessment(tapeEntries, OPERATOR_THREAD_ID);
+
   return (
     <ScrollArea.Root className="operator-workflow-scroll-root">
       <ScrollArea.Viewport className="worksurface-scroll-viewport">
@@ -375,6 +393,8 @@ function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPat
             <p className="workspace-block-title">Runtime log</p>
             <code className="workspace-path">{runtimeLogPath || "Not written yet."}</code>
           </section>
+
+          <RunQualityAssessmentCard entry={latestAssessmentEntry} />
 
           <section className="workspace-block operator-workflow-card">
             <p className="workspace-block-title">Recent events</p>
@@ -426,4 +446,99 @@ function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPat
       </ScrollArea.Scrollbar>
     </ScrollArea.Root>
   );
+}
+
+function RunQualityAssessmentCard({ entry }) {
+  const assessment = entry?.payload?.assessment || null;
+
+  return (
+    <section className="workspace-block operator-workflow-card run-quality-card">
+      <div className="run-quality-header">
+        <div>
+          <p className="workspace-block-title">Run quality</p>
+          <p className="run-quality-meta">
+            {entry?.createdAt ? new Date(entry.createdAt).toLocaleTimeString() : "Pending"}
+          </p>
+        </div>
+        <span className="run-quality-score">
+          {assessment?.overallScore ? `${assessment.overallScore}/5` : "-"}
+        </span>
+      </div>
+
+      {assessment ? (
+        <div className="run-quality-body">
+          <div className="run-quality-tags">
+            <span>{assessment.outcome || "unknown"}</span>
+            <span>{assessment.needsOperatorAttention ? "attention" : "ok"}</span>
+          </div>
+          <p className="run-quality-summary">{assessment.summary || "No summary returned."}</p>
+          <StageTimingList timings={assessment.stageTimings} />
+          <AssessmentList title="Top findings" items={assessment.topFindings} />
+          <AssessmentList title="Next actions" items={assessment.nextActions} />
+        </div>
+      ) : (
+        <span>No run assessment yet.</span>
+      )}
+    </section>
+  );
+}
+
+function StageTimingList({ timings }) {
+  const rows = Array.isArray(timings) ? timings.slice(0, 8) : [];
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="run-quality-section">
+      <p className="run-quality-section-title">Stage timings</p>
+      <div className="run-quality-stage-list">
+        {rows.map((timing) => (
+          <div className="run-quality-stage-row" key={timing.stage || timing.label}>
+            <div>
+              <strong>{timing.label || timing.stage}</strong>
+              <span>{timing.explanation || timing.status}</span>
+            </div>
+            <code>{formatDuration(timing.elapsedMs)}</code>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AssessmentList({ title, items }) {
+  const rows = Array.isArray(items) ? items.slice(0, 3) : [];
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="run-quality-section">
+      <p className="run-quality-section-title">{title}</p>
+      <ul className="run-quality-list">
+        {rows.map((item, index) => (
+          <li key={`${title}-${index}`}>
+            <span>{item.description || item.evidence || String(item)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function formatDuration(value) {
+  const duration = Number(value);
+
+  if (!Number.isFinite(duration)) {
+    return "-";
+  }
+
+  if (duration >= 1000) {
+    return `${(duration / 1000).toFixed(1)}s`;
+  }
+
+  return `${Math.round(duration)}ms`;
 }

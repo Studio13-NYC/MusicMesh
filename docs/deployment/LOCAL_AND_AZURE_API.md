@@ -110,7 +110,7 @@ Tape and runtime NDJSON logs under `output/chat/` are written by the local Node 
 
 Every OpenAI Responses API call emits an `llm_call_completed` or `llm_call_failed` runtime event with stage, model, requested reasoning effort, env source, duration, response id, status, token usage, and reasoning token usage when returned by the API. To summarize long-term local or blob-backed logs:
 
-After each completed chat run, the post-run reviewer writes a `run_quality_assessment` tape entry and emits `run_quality_assessment_started`, `run_quality_assessment_completed`, or `run_quality_assessment_failed` runtime events. The review is append-only and uses the existing tape/runtime logs plus the assistant output; it does not change graph state.
+After each completed chat run, the post-run reviewer writes a `run_quality_assessment` tape entry and emits `run_quality_assessment_started`, `run_quality_assessment_completed`, or `run_quality_assessment_failed` runtime events. The review is append-only and uses a compact packet built from the existing tape/runtime logs plus the assistant output; it does not change graph state. Code computes mechanical facts such as elapsed stage timings and counts, while the LLM performs the qualitative review.
 
 ```powershell
 npm run llm:report
@@ -121,6 +121,8 @@ Pass a numeric limit to summarize only the most recent runtime events:
 ```powershell
 npm run llm:report -- 500
 ```
+
+The report includes run-quality scores, outcomes, follow-up rate, operator-attention rate, and slowest average stages when `run_quality_assessment` tape entries are present.
 
 **Azure (MusicMesh):** resource group `rg-musicmesh` includes an Application Insights component **`appi-musicmesh`**. The Static Web App **`swa-musicmesh`** app settings include `APPLICATIONINSIGHTS_CONNECTION_STRING` and `ApplicationInsightsAgent_EXTENSION_VERSION=~3` so the integrated Functions host can emit telemetry. Use **Azure portal → Application Insights → Logs / Live metrics** (or SWA **Monitoring**) after deployments.
 

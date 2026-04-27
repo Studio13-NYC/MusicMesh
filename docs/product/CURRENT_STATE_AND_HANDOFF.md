@@ -75,7 +75,7 @@ Current workbench shape:
 - chat-derived domain graph persistence
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
-- post-run quality assessment writes `run_quality_assessment` tape entries after completed chat/graph runs
+- post-run quality assessment writes `run_quality_assessment` tape entries after completed chat/graph runs, with outcome, stage timings, findings, next actions, and an operator-attention flag
 - answer-first chat responses now return after the chat LLM completes; graph preview, graph persistence, and run review continue as background work
 - provisional graph previews are written as `graph_preview` tape entries and are never persisted to Neo4j
 - graph writes persist real domain relationships; relationship examples are guidance, not an allow-list
@@ -85,6 +85,7 @@ Important limitation:
 
 - the UI is now wired to a thin GPT-5.5-backed API path
 - the workbench can now read recent conversation tape entries and runtime events from disk
+- the Workflow rail surfaces the latest run-quality assessment before the raw tape/runtime event streams
 - chat and graph demo routes can read and write Neo4j through the local API
 - the graph rail prefers completed `graph_update` entries and falls back to the latest `graph_preview` while persistence is still running
 
@@ -121,7 +122,7 @@ Decision note:
 - run `npm start` to start the local API server
 - run `npm run dev` to work in the SPA
 - run `npm run tape -- 50` to inspect recent tape entries from the terminal
-- run `npm run llm:report` to summarize LLM stage, reasoning effort, latency, token, and graph outcome telemetry
+- run `npm run llm:report` to summarize LLM stage, reasoning effort, latency, token, graph outcome, and run-quality telemetry
 - treat the SPA as the main place to test the product experience
 - keep terminal scripts for startup and infrastructure validation
 - avoid rebuilding old architecture from the archive

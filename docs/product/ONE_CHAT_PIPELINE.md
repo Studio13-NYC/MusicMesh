@@ -12,7 +12,7 @@ MusicMesh has one user-facing graph creation path: chat.
 4. `graphChatOrchestrator.groundGraphPlan` asks the LLM to resolve planned entities against Neo4j candidates.
 5. `graphDomainWriter.persistChatGraph` MERGEs domain nodes and real relationship types directly.
 6. The graph workbench loads from `graphAnchorId`, which is a real music-domain node.
-7. `runQualityAssessment` reviews the completed run from the prompt, assistant output, conversation tape, and runtime events, then writes a `run_quality_assessment` tape entry.
+7. `runQualityAssessment` builds a compact operational packet from the prompt, assistant output, conversation tape, and runtime events, then asks the LLM to assess the completed run and writes a `run_quality_assessment` tape entry.
 
 ## Visible Model
 
@@ -75,7 +75,17 @@ Reasoning effort is configured by pipeline stage through environment variables, 
 
 The runtime emits one durable telemetry event for each OpenAI Responses API call: `llm_call_completed` or `llm_call_failed`. These events include the stage, model, selected reasoning effort, env source, response id, duration, status, token usage, and reasoning-token usage when the API returns it.
 
-After a run completes, the post-run reviewer emits `run_quality_assessment_started`, `run_quality_assessment_completed`, or `run_quality_assessment_failed`. Completed reviews assess answering the prompt, speed, process efficiency, bugs or anomalies, and suggested system enhancements.
+After a run completes, the post-run reviewer emits `run_quality_assessment_started`, `run_quality_assessment_completed`, or `run_quality_assessment_failed`. Deterministic code computes mechanical facts such as event order, elapsed stage timings, counts, packet size, and graph outcome. The LLM receives those facts and assesses answering the prompt, speed, process efficiency, bugs or anomalies, and suggested system enhancements.
+
+Completed reviews include:
+
+- `outcome`
+- `overallScore`
+- the five quality dimensions
+- `stageTimings` with elapsed milliseconds and one-sentence explanations
+- `topFindings`
+- `nextActions`
+- `needsOperatorAttention`
 
 In deployed Static Web Apps, chat answers return after the chat answer LLM completes. A provisional `graph_preview` can appear from the assistant answer while the grounded graph pipeline continues as a deferred update and writes a `graph_update` tape entry when persistence finishes.
 
@@ -84,6 +94,8 @@ Use this report to inspect long-term behavior by stage and reasoning setting:
 ```powershell
 npm run llm:report
 ```
+
+The report also summarizes run-quality scores, follow-up rate, operator-attention rate, outcomes, and slowest average stages.
 
 ## Fresh Headed Verification
 

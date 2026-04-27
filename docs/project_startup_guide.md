@@ -100,7 +100,7 @@ Inspect recent tape entries:
 npm run tape -- 50
 ```
 
-Summarize LLM reasoning telemetry:
+Summarize LLM reasoning and run-quality telemetry:
 
 ```powershell
 npm run llm:report
