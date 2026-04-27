@@ -75,6 +75,8 @@ Current workbench shape:
 - chat-derived domain graph persistence
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
+- graph writes persist real domain relationships; relationship examples are guidance, not an allow-list
+- `canonicalStatus` / `isProposed` are hidden maintenance metadata and must not be overwritten on existing canonized graph objects
 
 Important limitation:
 
@@ -89,6 +91,15 @@ Build/deploy note:
 - GitHub Actions runs the same API sync/check path during deployment
 
 So the operator surface is now minimally live, with one chat-driven graph path and no separate graph creation workspace.
+
+Latest headed-browser proof from a cleared Neo4j database:
+
+- prompt: `show me what is connected to REM`
+- graph anchor: `R.E.M.`
+- result: `57` nodes, `82` relationships
+- housekeeping nodes: `0`
+- `PROPOSED_RELATIONSHIP` edges: `0`
+- runtime path: one chat pipeline sequence, not tool-call plus fallback plus proposal flow
 
 Graph visualization decision:
 

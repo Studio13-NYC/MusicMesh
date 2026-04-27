@@ -97,6 +97,42 @@ function proposedProperties(baseProperties, context) {
   };
 }
 
+function relationshipUpdateProperties(baseProperties, context) {
+  const {
+    canonicalStatus,
+    isProposed,
+    source,
+    threadId,
+    turnId,
+    ...rest
+  } = proposedProperties(baseProperties, context);
+
+  return {
+    ...rest,
+    lastChatThreadId: threadId,
+    lastChatTurnId: turnId,
+    lastChatSource: source
+  };
+}
+
+function nodeUpdateProperties(baseProperties, context) {
+  const {
+    canonicalStatus,
+    isProposed,
+    source,
+    threadId,
+    turnId,
+    ...rest
+  } = proposedProperties(baseProperties, context);
+
+  return {
+    ...rest,
+    lastChatThreadId: threadId,
+    lastChatTurnId: turnId,
+    lastChatSource: source
+  };
+}
+
 function toJsonProperty(value) {
   if (value === null || value === undefined) {
     return "";
@@ -148,6 +184,18 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
           },
           context
         );
+        const updateProperties = nodeUpdateProperties(
+          {
+            ...(node.properties || {}),
+            id: nodeId,
+            name,
+            label: name,
+            aliasesJson: toJsonProperty(node.aliases || []),
+            confidenceScore: node.confidenceScore ?? null,
+            evidenceBasis: node.evidenceBasis || "assistant_answer"
+          },
+          context
+        );
 
         let result;
 
@@ -172,12 +220,14 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
           result = await tx.run(
             `
               MERGE (n:${primaryLabel} {id: $id})
-              SET n += $properties
+              ON CREATE SET n += $properties
+              ON MATCH SET n += $updateProperties
               RETURN elementId(n) AS elementId
             `,
             {
               id: nodeId,
-              properties
+              properties,
+              updateProperties
             }
           );
         }
@@ -225,18 +275,28 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
           },
           context
         );
+        const updateProperties = relationshipUpdateProperties(
+          {
+            ...(relationship.properties || {}),
+            confidenceScore: relationship.confidenceScore ?? null,
+            evidenceBasis: relationship.evidenceBasis || "assistant_answer"
+          },
+          context
+        );
         const result = await tx.run(
           `
             MATCH (source), (target)
             WHERE elementId(source) = $sourceElementId AND elementId(target) = $targetElementId
             MERGE (source)-[relationship:${relationshipType}]->(target)
-            SET relationship += $properties
+            ON CREATE SET relationship += $properties
+            ON MATCH SET relationship += $updateProperties
             RETURN elementId(relationship) AS elementId
           `,
           {
             sourceElementId: sourceNode.elementId,
             targetElementId: targetNode.elementId,
-            properties
+            properties,
+            updateProperties
           }
         );
         const record = result.records[0];

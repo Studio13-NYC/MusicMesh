@@ -20,6 +20,8 @@ The user sees only music-domain graph objects:
 - node labels such as `Artist`, `Band`, `Album`, `Track`, `Person`, `RecordLabel`, `Scene`, `Venue`, `Genre`, and `Place`
 - relationship types such as `MEMBER_OF`, `IS_A_TRACK_ON`, `RELEASED_ALBUM`, `PRODUCED_BY`, `ASSOCIATED_WITH_SCENE`, `LOCATED_IN`, and `INFLUENCED`
 
+The relationship examples are not an allow-list. The graph planner may use a new uppercase snake_case relationship type when it describes a real music-domain relationship and the existing examples do not fit.
+
 ## Hidden Maintenance Metadata
 
 ![Data model before and after](../assets/pipeline-refactor/data-model-before-after.png)
@@ -40,6 +42,8 @@ New chat-persisted facts can carry housekeeping properties:
 
 These properties are for offline maintenance. They must not appear as node kinds, relationship types, filters, workflow tabs, or review/apply UI.
 
+When chat updates an existing node or relationship, the writer must not overwrite an existing `canonicalStatus` or `isProposed` flag. Those status fields are set only when the chat pipeline creates a new graph object. Existing canon can receive non-status update metadata such as `lastChatThreadId`, `lastChatTurnId`, and `lastChatSource`.
+
 ## Removed User-Facing Concepts
 
 The operator app no longer exposes:
@@ -55,3 +59,27 @@ If graph staging is unsafe, the LLM asks the human for the smallest useful next 
 ## LLM Prompt Map
 
 ![LLM prompt map](../assets/pipeline-refactor/llm-prompt-map.png)
+
+## Fresh Headed Verification
+
+Most recent validation was run against current code from a freshly cleared Neo4j database:
+
+- reset result: previous `57` nodes and `76` relationships deleted
+- clean-start verification: `0` nodes and `0` relationships
+- headed browser target: `http://127.0.0.1:3000/`
+- prompt: `show me what is connected to REM`
+- result: graph anchored on real domain node `R.E.M.`
+- persisted result: `57` nodes and `82` relationships
+- housekeeping nodes: `0`
+- `PROPOSED_RELATIONSHIP` edges: `0`
+- duplicate name groups: `0`
+- runtime sequence: `chat_request_received` -> `chat_graph_pipeline_started` -> `chat_graph_pipeline_completed` -> `chat_request_completed`
+
+The run also confirmed the relationship examples are not an allow-list. The LLM produced real domain types beyond the examples, including `RELEASED_ON_LABEL`, `HAS_GENRE`, and `ASSOCIATED_WITH_STYLE`.
+
+Screenshots from that run are in `output/playwright/`:
+
+- `fresh-headed-initial.png`
+- `fresh-headed-before-send.png`
+- `fresh-headed-after-rem.png`
+- `fresh-headed-workflow.png`

@@ -211,7 +211,8 @@ async function planGraphFromAnswer({ prompt, messages, assistantText }) {
     "Use music-domain reasoning to identify real entities and real relationships.",
     "Do not create task phrases, section headings, proposal objects, review objects, or relationship-as-entity nodes.",
     `Use node labels only from this catalog when possible: ${[...ALLOWED_NODE_LABELS].join(", ")}.`,
-    `Relationship names must be real relationship types such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`,
+    `Relationship names must be real, domain-meaningful relationship types such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`,
+    "Those examples are not an allow-list. You may emit a new uppercase snake_case relationship type when the music-domain relationship is real and none of the examples fit.",
     "Never emit GraphProposal, ProposalItem, ProposedEntity, ProposedRelationship, or PROPOSED_RELATIONSHIP.",
     "Return JSON only: { mode, anchor, entities, relationships, humanInputNeeded, reason }.",
     "Each entity must include id, name, labels, optional aliases, confidenceScore, and evidenceBasis.",
@@ -342,7 +343,8 @@ async function groundGraphPlan(plan) {
     "Do not emit GraphProposal, ProposalItem, ProposedEntity, ProposedRelationship, or PROPOSED_RELATIONSHIP.",
     "The proposed/candidate status is metadata only and must not change labels or relationship types.",
     "Use matchedCanonId only when it exactly matches one of the provided candidate ids.",
-    `Relationship types must be real domain names such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`
+    `Relationship types must be real domain names such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`,
+    "The examples are not an allow-list; preserve a new uppercase snake_case relationship type when it is domain-meaningful and not housekeeping."
   ].join("\n");
   const input = JSON.stringify(
     {
