@@ -65,7 +65,9 @@ Configure required keys on the Static Web App (or linked Function settings) the 
 
 Optional keys are listed in `src/env.js`. **Note:** the hosted Function does not use Neo4j for chat today, but validation still expects those variables until that requirement is split for “chat-only” deployments.
 
-For the current OpenAI chat path, `OPENAI_MODEL` can override the default model. Reasoning effort is stage-specific and can be configured with the same environment variable names locally or in Azure app settings:
+For the current OpenAI chat path, `OPENAI_MODEL` can override the default model. Model IDs are normalized to lowercase so `GPT-5.5` is treated as `gpt-5.5`.
+
+Reasoning effort is stage-specific and can be configured with the same environment variable names locally or in Azure app settings:
 
 | Variable | Default | Used for |
 |----------|---------|----------|
@@ -78,6 +80,11 @@ For the current OpenAI chat path, `OPENAI_MODEL` can override the default model.
 | `OPENAI_REASONING_EFFORT_MAINTENANCE` | `high` | offline maintenance/eval-style work |
 
 Legacy `OPENAI_REASONING_EFFORT` remains supported as a compatibility fallback.
+`OPENAI_REASONING_LEVEL` is also accepted as a compatibility alias, but the preferred names are the `OPENAI_REASONING_EFFORT_*` keys above.
+
+`OPENAI_VERBOSITY` can be `low`, `medium`, or `high` and defaults to `medium`.
+
+`MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS` controls how long `/api/chat` waits for graph persistence before returning the answer with `graphPending: true`. The default is `25000`, which keeps Azure Static Web Apps from returning a plain-text backend timeout while longer graph work continues as a deferred graph update.
 
 ### SPA routing
 

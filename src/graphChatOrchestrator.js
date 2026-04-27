@@ -1,10 +1,15 @@
 const { validateEnv } = require("./env");
 const { inspectSchema, lookupCanonEntities } = require("./graphCanonRepository");
 const { ALLOWED_NODE_LABELS, persistChatGraph, sanitizeIdentifier, stableString } = require("./graphDomainWriter");
-const { REASONING_STAGES, resolveReasoningEffort } = require("./reasoningConfig");
+const {
+  REASONING_STAGES,
+  resolveOpenAiModel,
+  resolveReasoningEffort,
+  resolveVerbosity
+} = require("./reasoningConfig");
 const { recordLlmCallCompleted, recordLlmCallFailed } = require("./llmTelemetry");
 
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
+const DEFAULT_MODEL = resolveOpenAiModel();
 const DEFAULT_REASONING_EFFORT = resolveReasoningEffort().effort;
 const RELATIONSHIP_EXAMPLES = [
   "MEMBER_OF",
@@ -68,7 +73,9 @@ async function callStructuredModel({
   telemetryContext = {}
 }) {
   const envResult = validateEnv();
+  const model = resolveOpenAiModel();
   const reasoningConfig = resolveReasoningEffort(reasoningStage);
+  const verbosityConfig = resolveVerbosity();
   const startedAt = Date.now();
 
   if (!envResult.isValid) {
@@ -76,8 +83,9 @@ async function callStructuredModel({
     await recordLlmCallFailed({
       telemetryContext,
       stage: reasoningStage,
-      model: DEFAULT_MODEL,
+      model,
       reasoningConfig,
+      verbosityConfig,
       startedAt,
       errorCode: "missing_environment",
       errorMessage
@@ -92,7 +100,7 @@ async function callStructuredModel({
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: DEFAULT_MODEL,
+      model,
       instructions,
       input: [
         {
@@ -102,6 +110,9 @@ async function callStructuredModel({
       ],
       reasoning: {
         effort: reasoningConfig.effort
+      },
+      text: {
+        verbosity: verbosityConfig.verbosity
       }
     })
   });
@@ -113,8 +124,9 @@ async function callStructuredModel({
     await recordLlmCallFailed({
       telemetryContext,
       stage: reasoningStage,
-      model: DEFAULT_MODEL,
+      model,
       reasoningConfig,
+      verbosityConfig,
       startedAt,
       status: String(response.status),
       errorCode: "openai_http_error",
@@ -131,8 +143,9 @@ async function callStructuredModel({
     await recordLlmCallFailed({
       telemetryContext,
       stage: reasoningStage,
-      model: DEFAULT_MODEL,
+      model,
       reasoningConfig,
+      verbosityConfig,
       startedAt,
       responseId: payload.id || null,
       status: payload.status || "completed",
@@ -146,8 +159,9 @@ async function callStructuredModel({
   await recordLlmCallCompleted({
     telemetryContext,
     stage: reasoningStage,
-    model: DEFAULT_MODEL,
+    model,
     reasoningConfig,
+    verbosityConfig,
     startedAt,
     payload
   });

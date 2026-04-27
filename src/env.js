@@ -15,6 +15,7 @@ const requiredEnvKeys = [
 const optionalEnvKeys = [
   "BRAVE_API_KEY",
   "DISCOGS_TOKEN",
+  "OPENAI_MODEL",
   ...getReasoningEnvKeys(),
   "MUSICMESH_HTTP_USER_AGENT",
   "MUSICMESH_BLOB_CONNECTION_STRING",

@@ -27,7 +27,7 @@ function findLatestThreadGraphAnchorId(entries, threadId) {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index];
 
-    if (entry?.threadId !== threadId || entry?.type !== "assistant_message") {
+    if (entry?.threadId !== threadId) {
       continue;
     }
 
@@ -147,7 +147,14 @@ export function OperatorGraphDemo() {
         })
       });
 
-      const payload = await response.json();
+      const responseText = await response.text();
+      let payload = {};
+
+      try {
+        payload = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        throw new Error(responseText || `Chat request failed: ${response.status}`);
+      }
 
       if (!response.ok) {
         throw new Error(payload.error || `Chat request failed: ${response.status}`);
@@ -162,7 +169,9 @@ export function OperatorGraphDemo() {
         {
           id: payload.responseId || `assistant-${Date.now()}`,
           role: "assistant",
-          content: payload.message
+          content: payload.graphPending
+            ? `${payload.message}\n\nI'm still building the graph for this answer; it will appear in the workbench when it finishes.`
+            : payload.message
         }
       ]);
       await loadTape();

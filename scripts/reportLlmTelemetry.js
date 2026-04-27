@@ -120,7 +120,8 @@ async function main() {
     const skippedRelationships = pipelines.map((event) => event.skippedRelationshipCount || 0);
 
     console.log("");
-    console.log(`${group.stage} / ${group.effort}`);
+    const verbosity = payloads.find((payload) => payload.verbosityRequested)?.verbosityRequested || "-";
+    console.log(`${group.stage} / ${group.effort} / verbosity ${verbosity}`);
     console.log(`  calls: ${group.events.length}`);
     console.log(`  completed: ${group.completed}`);
     console.log(`  failed: ${group.failed} (${percent(group.failed, group.events.length)})`);

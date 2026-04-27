@@ -72,6 +72,8 @@ Reasoning effort is configured by pipeline stage through environment variables, 
 
 The runtime emits one durable telemetry event for each OpenAI Responses API call: `llm_call_completed` or `llm_call_failed`. These events include the stage, model, selected reasoning effort, env source, response id, duration, status, token usage, and reasoning-token usage when the API returns it.
 
+In deployed Static Web Apps, chat answers return before the graph pipeline can hit the platform backend timeout. If graph persistence takes longer than `MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS`, the response carries `graphPending: true`; the graph pipeline continues as a deferred update and writes a `graph_update` tape entry when it finishes.
+
 Use this report to inspect long-term behavior by stage and reasoning setting:
 
 ```powershell

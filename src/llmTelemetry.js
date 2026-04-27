@@ -30,6 +30,7 @@ function basePayload({
   stage,
   model,
   reasoningConfig,
+  verbosityConfig,
   durationMs
 }) {
   return {
@@ -41,6 +42,8 @@ function basePayload({
     model,
     reasoningEffortRequested: reasoningConfig?.effort || null,
     reasoningEffortSource: reasoningConfig?.source || null,
+    verbosityRequested: verbosityConfig?.verbosity || null,
+    verbositySource: verbosityConfig?.source || null,
     durationMs,
     graphMode: telemetryContext.graphMode || null,
     graphNodeCount: telemetryContext.graphNodeCount ?? null,
@@ -54,6 +57,7 @@ async function recordLlmCallCompleted({
   stage,
   model,
   reasoningConfig,
+  verbosityConfig,
   startedAt,
   payload
 }) {
@@ -67,6 +71,7 @@ async function recordLlmCallCompleted({
           stage,
           model,
           reasoningConfig,
+          verbosityConfig,
           durationMs: Date.now() - startedAt
         }),
         responseId: payload?.id || null,
@@ -84,6 +89,7 @@ async function recordLlmCallFailed({
   stage,
   model,
   reasoningConfig,
+  verbosityConfig,
   startedAt,
   responseId = null,
   status = "failed",
@@ -101,6 +107,7 @@ async function recordLlmCallFailed({
           stage,
           model,
           reasoningConfig,
+          verbosityConfig,
           durationMs: Date.now() - startedAt
         }),
         responseId,

@@ -6,6 +6,7 @@ const VALID_REASONING_EFFORTS = new Set([
   "high",
   "xhigh"
 ]);
+const VALID_VERBOSITY_LEVELS = new Set(["low", "medium", "high"]);
 
 const REASONING_STAGES = {
   DEFAULT: "default",
@@ -71,7 +72,8 @@ function resolveReasoningEffort(stage = REASONING_STAGES.DEFAULT) {
   const candidates = [
     configuredEffortFromEnv(stageConfig.envKey),
     configuredEffortFromEnv(STAGE_CONFIG[REASONING_STAGES.DEFAULT].envKey),
-    configuredEffortFromEnv("OPENAI_REASONING_EFFORT")
+    configuredEffortFromEnv("OPENAI_REASONING_EFFORT"),
+    configuredEffortFromEnv("OPENAI_REASONING_LEVEL")
   ].filter(Boolean);
 
   if (candidates.length > 0) {
@@ -89,6 +91,44 @@ function resolveReasoningEffort(stage = REASONING_STAGES.DEFAULT) {
   };
 }
 
+function normalizeOpenAiModel(model) {
+  const normalized = typeof model === "string" ? model.trim() : "";
+
+  if (!normalized) {
+    return "gpt-5.5";
+  }
+
+  return normalized.toLowerCase();
+}
+
+function resolveOpenAiModel() {
+  return normalizeOpenAiModel(process.env.OPENAI_MODEL);
+}
+
+function normalizeVerbosity(value) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return VALID_VERBOSITY_LEVELS.has(normalized) ? normalized : "";
+}
+
+function resolveVerbosity() {
+  const verbosity = normalizeVerbosity(process.env.OPENAI_VERBOSITY);
+
+  return {
+    verbosity: verbosity || "medium",
+    source: verbosity ? "OPENAI_VERBOSITY" : "OPENAI_VERBOSITY:default"
+  };
+}
+
+function resolveChatGraphSyncTimeoutMs() {
+  const configured = Number(process.env.MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS);
+
+  if (Number.isFinite(configured) && configured >= 1000) {
+    return configured;
+  }
+
+  return 25000;
+}
+
 function resolveChatAnswerReasoningStage({ prompt, messages }) {
   const promptLength = typeof prompt === "string" ? prompt.trim().length : 0;
   const messageCount = Array.isArray(messages) ? messages.length : 0;
@@ -103,6 +143,9 @@ function resolveChatAnswerReasoningStage({ prompt, messages }) {
 function getReasoningEnvKeys() {
   return [
     "OPENAI_REASONING_EFFORT",
+    "OPENAI_REASONING_LEVEL",
+    "OPENAI_VERBOSITY",
+    "MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS",
     ...Object.values(STAGE_CONFIG).map((config) => config.envKey)
   ];
 }
@@ -110,7 +153,12 @@ function getReasoningEnvKeys() {
 module.exports = {
   REASONING_STAGES,
   VALID_REASONING_EFFORTS,
+  VALID_VERBOSITY_LEVELS,
   getReasoningEnvKeys,
+  normalizeOpenAiModel,
   resolveChatAnswerReasoningStage,
-  resolveReasoningEffort
+  resolveChatGraphSyncTimeoutMs,
+  resolveOpenAiModel,
+  resolveReasoningEffort,
+  resolveVerbosity
 };

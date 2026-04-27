@@ -18,6 +18,7 @@ const {
 } = require("./graphDemoRepository");
 const { runChatTurnPipeline } = require("./graphChatOrchestrator");
 const { createAssistantReply, DEFAULT_MODEL } = require("./chatService");
+const { resolveChatGraphSyncTimeoutMs } = require("./reasoningConfig");
 
 const DEFAULT_PORT = Number(process.env.MUSICMESH_API_PORT || 43101);
 const SYSTEM_PROMPT_PATH = path.join(
@@ -64,6 +65,95 @@ function parseJsonBody(request) {
     });
 
     request.on("error", reject);
+  });
+}
+
+function pendingGraphPipelineResult() {
+  return {
+    mode: "pending",
+    graphAnchorId: null,
+    graphAnchorName: "",
+    graphNodeCount: 0,
+    graphRelationshipCount: 0,
+    humanInputNeeded: false,
+    humanMessage: "",
+    persistence: null
+  };
+}
+
+function graphPipelineTimeout(timeoutMs) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        timedOut: true,
+        graphPipeline: pendingGraphPipelineResult()
+      });
+    }, timeoutMs);
+  });
+}
+
+function waitForGraphPipeline(graphPipelinePromise, timeoutMs) {
+  return Promise.race([
+    graphPipelinePromise.then((graphPipeline) => ({
+      timedOut: false,
+      graphPipeline
+    })),
+    graphPipelineTimeout(timeoutMs)
+  ]);
+}
+
+async function appendGraphPipelineCompleted({
+  requestId,
+  threadId,
+  graphPipeline,
+  deferred
+}) {
+  await appendRuntimeEvent({
+    id: createId("log"),
+    type: deferred ? "chat_graph_pipeline_deferred_completed" : "chat_graph_pipeline_completed",
+    payload: {
+      requestId,
+      threadId,
+      mode: graphPipeline.mode,
+      graphAnchorId: graphPipeline.graphAnchorId,
+      graphAnchorName: graphPipeline.graphAnchorName,
+      graphNodeCount: graphPipeline.graphNodeCount,
+      graphRelationshipCount: graphPipeline.graphRelationshipCount,
+      humanInputNeeded: graphPipeline.humanInputNeeded,
+      skippedRelationshipCount: graphPipeline.persistence?.skippedRelationshipCount || 0
+    }
+  });
+}
+
+async function appendGraphPipelineFailed({ requestId, threadId, error, deferred }) {
+  await appendRuntimeEvent({
+    id: createId("log"),
+    type: deferred ? "chat_graph_pipeline_deferred_failed" : "chat_graph_pipeline_failed",
+    payload: {
+      requestId,
+      threadId,
+      message: error.message || "Graph pipeline failed."
+    }
+  });
+}
+
+async function appendGraphUpdate({ threadId, graphPipeline }) {
+  if (!graphPipeline?.graphAnchorId) {
+    return null;
+  }
+
+  return appendTapeEntry({
+    id: createId("evt"),
+    type: "graph_update",
+    threadId,
+    payload: {
+      graphAnchorId: graphPipeline.graphAnchorId,
+      graphAnchorName: graphPipeline.graphAnchorName,
+      graphNodeCount: graphPipeline.graphNodeCount,
+      graphRelationshipCount: graphPipeline.graphRelationshipCount,
+      graphMode: graphPipeline.mode,
+      humanInputNeeded: graphPipeline.humanInputNeeded
+    }
   });
 }
 
@@ -134,7 +224,7 @@ async function handleChat(request, response) {
       }
     });
 
-    const graphPipeline = await runChatTurnPipeline({
+    const graphPipelinePromise = runChatTurnPipeline({
       prompt,
       messages,
       assistantText: assistantReply.text,
@@ -146,6 +236,9 @@ async function handleChat(request, response) {
         turnId: requestId
       }
     });
+    const graphSyncTimeoutMs = resolveChatGraphSyncTimeoutMs();
+    const graphWaitResult = await waitForGraphPipeline(graphPipelinePromise, graphSyncTimeoutMs);
+    const graphPipeline = graphWaitResult.graphPipeline;
     const assistantText = graphPipeline.humanInputNeeded && graphPipeline.humanMessage
       ? `${assistantReply.text}\n\n${graphPipeline.humanMessage}`
       : assistantReply.text;
@@ -162,7 +255,8 @@ async function handleChat(request, response) {
         graphNodeCount: graphPipeline.graphNodeCount,
         graphRelationshipCount: graphPipeline.graphRelationshipCount,
         graphMode: graphPipeline.mode,
-        humanInputNeeded: graphPipeline.humanInputNeeded
+        humanInputNeeded: graphPipeline.humanInputNeeded,
+        graphPending: graphWaitResult.timedOut
       }
     });
 
@@ -176,24 +270,32 @@ async function handleChat(request, response) {
       graphRelationshipCount: graphPipeline.graphRelationshipCount,
       graphMode: graphPipeline.mode,
       humanInputNeeded: graphPipeline.humanInputNeeded,
+      graphPending: graphWaitResult.timedOut,
       tapeEventIds: [userEntry.id, assistantEntry.id]
     });
 
-    await appendRuntimeEvent({
-      id: createId("log"),
-      type: "chat_graph_pipeline_completed",
-      payload: {
+    if (graphWaitResult.timedOut) {
+      graphPipelinePromise
+        .then(async (deferredGraphPipeline) => {
+          await appendGraphUpdate({ threadId, graphPipeline: deferredGraphPipeline });
+          await appendGraphPipelineCompleted({
+            requestId,
+            threadId,
+            graphPipeline: deferredGraphPipeline,
+            deferred: true
+          });
+        })
+        .catch(async (error) => {
+          await appendGraphPipelineFailed({ requestId, threadId, error, deferred: true });
+        });
+    } else {
+      await appendGraphPipelineCompleted({
         requestId,
         threadId,
-        mode: graphPipeline.mode,
-        graphAnchorId: graphPipeline.graphAnchorId,
-        graphAnchorName: graphPipeline.graphAnchorName,
-        graphNodeCount: graphPipeline.graphNodeCount,
-        graphRelationshipCount: graphPipeline.graphRelationshipCount,
-        humanInputNeeded: graphPipeline.humanInputNeeded,
-        skippedRelationshipCount: graphPipeline.persistence?.skippedRelationshipCount || 0
-      }
-    });
+        graphPipeline,
+        deferred: false
+      });
+    }
 
     await appendRuntimeEvent({
       id: createId("log"),
@@ -204,6 +306,7 @@ async function handleChat(request, response) {
         responseId: assistantReply.responseId,
         graphAnchorId: graphPipeline.graphAnchorId,
         graphMode: graphPipeline.mode,
+        graphPending: graphWaitResult.timedOut,
         tapeEventIds: [userEntry.id, assistantEntry.id]
       }
     });
@@ -282,7 +385,7 @@ function findLatestThreadGraphAnchor(entries, threadId) {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index];
 
-    if (entry?.threadId !== threadId || entry?.type !== "assistant_message") {
+    if (entry?.threadId !== threadId) {
       continue;
     }
 
