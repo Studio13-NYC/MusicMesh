@@ -3,7 +3,6 @@ const { readTapeEntries } = require("../../shared/activityStore");
 const {
   expandGraphNode,
   fetchSeededGraph,
-  findGraphProposalSeed,
   getNodeDetail,
   searchGraphSeeds
 } = require("../../shared/graphDemoRepository");
@@ -80,36 +79,18 @@ app.http("graphDemoThreadFocus", {
       const threadId = stableThreadId(requestUrl.searchParams.get("threadId"));
       const tapeWindowSize = Number(requestUrl.searchParams.get("window") || 200);
       const entries = await readTapeEntries(tapeWindowSize);
-      const latestProposalId = findLatestThreadProposalId(entries, threadId);
+      const latestAnchor = findLatestThreadGraphAnchor(entries, threadId);
 
-      if (!latestProposalId) {
+      if (!latestAnchor?.id) {
         return jsonResponse(200, {
           threadId,
           hasFocus: false,
-          graphProposalId: null,
-          reason: "No graph proposal found for this thread yet."
+          graphAnchorId: null,
+          reason: "No graph anchor found for this thread yet."
         });
       }
 
-      const directProposalSeed = await findGraphProposalSeed(latestProposalId);
-      const candidates = await searchGraphSeeds(latestProposalId, 25);
-      const fallbackProposalSeed =
-        candidates.find((candidate) => candidate.kind === "GraphProposal") ||
-        candidates.find((candidate) => candidate.label === latestProposalId) ||
-        candidates[0] ||
-        null;
-      const focusSeed = directProposalSeed || fallbackProposalSeed;
-
-      if (!focusSeed) {
-        return jsonResponse(200, {
-          threadId,
-          hasFocus: false,
-          graphProposalId: latestProposalId,
-          reason: "Proposal exists but no focusable graph node was found."
-        });
-      }
-
-      const graph = await fetchSeededGraph(focusSeed.id, {
+      const graph = await fetchSeededGraph(latestAnchor.id, {
         depth: 2,
         maxNodes: 90,
         maxEdges: 140,
@@ -119,8 +100,11 @@ app.http("graphDemoThreadFocus", {
       return jsonResponse(200, {
         threadId,
         hasFocus: true,
-        graphProposalId: latestProposalId,
-        focusSeed,
+        graphAnchorId: latestAnchor.id,
+        focusSeed: {
+          id: latestAnchor.id,
+          label: latestAnchor.name || graph.seedNode?.label || latestAnchor.id
+        },
         graph
       });
     } catch (error) {
@@ -197,7 +181,7 @@ function stableThreadId(value) {
   return typeof value === "string" && value.trim() ? value.trim() : "default-thread";
 }
 
-function findLatestThreadProposalId(entries, threadId) {
+function findLatestThreadGraphAnchor(entries, threadId) {
   if (!Array.isArray(entries)) {
     return null;
   }
@@ -209,10 +193,16 @@ function findLatestThreadProposalId(entries, threadId) {
       continue;
     }
 
-    const proposalId = entry?.payload?.graphProposalId;
+    const anchorId = entry?.payload?.graphAnchorId;
 
-    if (typeof proposalId === "string" && proposalId.trim()) {
-      return proposalId.trim();
+    if (typeof anchorId === "string" && anchorId.trim()) {
+      return {
+        id: anchorId.trim(),
+        name:
+          typeof entry?.payload?.graphAnchorName === "string"
+            ? entry.payload.graphAnchorName.trim()
+            : ""
+      };
     }
   }
 

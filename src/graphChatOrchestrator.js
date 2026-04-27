@@ -1,26 +1,23 @@
 const { validateEnv } = require("./env");
-const { createGraphProposalFromEntities } = require("./graphProposalService");
+const { inspectSchema, lookupCanonEntities } = require("./graphCanonRepository");
+const { ALLOWED_NODE_LABELS, persistChatGraph, sanitizeIdentifier, stableString } = require("./graphDomainWriter");
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
-
-function stableString(value) {
-  if (typeof value === "string" && value.trim()) {
-    return value.trim();
-  }
-
-  return "";
-}
-
-function buildExtractionInput(prompt, messages) {
-  const recentUserMessages = (Array.isArray(messages) ? messages : [])
-    .filter((message) => message.role === "user" && typeof message.content === "string")
-    .slice(-4)
-    .map((message) => message.content.trim())
-    .filter(Boolean);
-  const combinedMessages = [...recentUserMessages, prompt].filter(Boolean);
-
-  return combinedMessages.join("\n\n");
-}
+const DEFAULT_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || "medium";
+const RELATIONSHIP_EXAMPLES = [
+  "MEMBER_OF",
+  "IS_A_TRACK_ON",
+  "RELEASED_ALBUM",
+  "SIGNED_TO",
+  "RECORDED_FOR",
+  "PRODUCED_BY",
+  "COLLABORATED_WITH",
+  "ASSOCIATED_WITH_SCENE",
+  "LOCATED_IN",
+  "FORMED_IN",
+  "INFLUENCED",
+  "RELATED_TO"
+];
 
 function parseJsonObject(text) {
   if (!text) {
@@ -61,19 +58,13 @@ function getOutputText(payload) {
     .join("");
 }
 
-async function extractGraphRequest(prompt, messages) {
+async function callStructuredModel({ instructions, input, purpose, reasoningEffort = "low" }) {
   const envResult = validateEnv();
 
   if (!envResult.isValid) {
-    return {
-      intent: "other",
-      entities: [],
-      contextNote: prompt,
-      extractionWarning: "Environment validation failed before LLM extraction; graph entities were not inferred deterministically."
-    };
+    throw new Error(`Cannot run ${purpose}: missing MusicMesh environment variables.`);
   }
 
-  const inputText = buildExtractionInput(prompt, messages);
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -82,182 +73,443 @@ async function extractGraphRequest(prompt, messages) {
     },
     body: JSON.stringify({
       model: DEFAULT_MODEL,
-      instructions: [
-        "Extract graph operation intent and entity names from this MusicMesh chat.",
-        "Return only JSON with keys: intent, entities, contextNote.",
-        "intent must be one of: graph_proposal, graph_lookup, other.",
-        "entities must be an array of objects with name and optional type.",
-        "Use reasoning to separate operator intent from graph entities; do not turn task phrases, questions, or search phrases into entities.",
-        "Resolve aliases and informal names to the best music-domain entity names.",
-        "Preserve canonical punctuation when obvious: I.R.S. Records, The Record Plant, Los Angeles, The Record Plant, New York.",
-        "If a user says CBGBs, normalize the name to CBGB and put CBGBs in aliases.",
-        "Do not include instructions or prose."
-      ].join("\n"),
+      instructions,
       input: [
         {
           role: "user",
-          content: inputText
+          content: input
         }
       ],
       reasoning: {
-        effort: "low"
+        effort: reasoningEffort
       }
     })
   });
 
   if (!response.ok) {
-    return {
-      intent: "other",
-      entities: [],
-      contextNote: prompt,
-      extractionWarning: `Entity extraction failed: ${response.status} ${response.statusText}; graph entities were not inferred deterministically.`
-    };
+    const detail = await response.text();
+    throw new Error(
+      `OpenAI ${purpose} request failed: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`
+    );
   }
 
   const payload = await response.json();
   const parsed = parseJsonObject(getOutputText(payload));
 
-  if (!parsed || !Array.isArray(parsed.entities)) {
-    return {
-      intent: "other",
-      entities: [],
-      contextNote: prompt,
-      extractionWarning: "Entity extraction returned invalid JSON; graph entities were not inferred deterministically."
-    };
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`OpenAI ${purpose} returned invalid JSON.`);
   }
 
+  return parsed;
+}
+
+function buildRecentMessageText(messages) {
+  return (Array.isArray(messages) ? messages : [])
+    .slice(-8)
+    .map((message) => `${message.role || "unknown"}: ${message.content || ""}`.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function normalizePlanEntity(entity, index) {
+  const name = stableString(entity?.name || entity?.label);
+
+  if (!name) {
+    return null;
+  }
+
+  const tempId = stableString(entity.id || entity.tempId) || `node-${index + 1}`;
+  const labels = [
+    ...(Array.isArray(entity.labels) ? entity.labels : []),
+    entity.type
+  ]
+    .map((label) => sanitizeIdentifier(label, "Entity"))
+    .filter((label) => ALLOWED_NODE_LABELS.has(label));
+
   return {
-    intent: parsed.intent || "graph_proposal",
-    entities: parsed.entities
-      .map((entity) => ({
-        name: stableString(entity.name),
-        type: stableString(entity.type),
-        aliases: Array.isArray(entity.aliases) ? entity.aliases.map(stableString).filter(Boolean) : []
-      }))
-      .filter((entity) => entity.name),
-    contextNote: stableString(parsed.contextNote) || prompt,
-    extractionWarning: null
+    tempId,
+    name,
+    type: labels[0] || stableString(entity.type) || "Entity",
+    labels: labels.length > 0 ? [...new Set(labels)] : ["Entity"],
+    aliases: Array.isArray(entity.aliases) ? entity.aliases.map(stableString).filter(Boolean) : [],
+    properties: entity.properties && typeof entity.properties === "object" ? entity.properties : {},
+    confidenceScore: Number.isFinite(Number(entity.confidenceScore))
+      ? Number(entity.confidenceScore)
+      : null,
+    evidenceBasis: stableString(entity.evidenceBasis) || "assistant_answer"
   };
 }
 
-function formatMatchSummary(proposal) {
-  return proposal.candidateNodes
-    .map((node) => {
-      const matchText = node.matchedCanonId
-        ? `matched existing canon (${node.matchedCanonId})`
-        : "no exact canon match";
-      const duplicateCount = Array.isArray(node.duplicateCandidates)
-        ? node.duplicateCandidates.length
-        : 0;
+function normalizePlanRelationship(relationship, entityByName, index) {
+  const sourceRef = stableString(
+    relationship?.sourceRef ||
+      relationship?.sourceId ||
+      relationship?.source ||
+      entityByName.get(stableString(relationship?.sourceName).toLowerCase())?.tempId
+  );
+  const targetRef = stableString(
+    relationship?.targetRef ||
+      relationship?.targetId ||
+      relationship?.target ||
+      entityByName.get(stableString(relationship?.targetName).toLowerCase())?.tempId
+  );
+  const type = sanitizeIdentifier(relationship?.type, "RELATED_TO").toUpperCase();
 
-      return `- ${node.name}: ${matchText}; ${duplicateCount} lookup candidate(s).`;
-    })
-    .join("\n");
-}
-
-function formatRelationshipSummary(proposal) {
-  if (!proposal.candidateRelationships.length) {
-    return "- No relationship candidates were generated.";
-  }
-
-  return proposal.candidateRelationships
-    .slice(0, 8)
-    .map(
-      (relationship) =>
-        `- ${relationship.sourceName} -> ${relationship.type} -> ${relationship.targetName} (${Math.round(
-          relationship.confidenceScore * 100
-        )}% confidence)`
-    )
-    .join("\n");
-}
-
-function formatGraphProposalSummary(proposal, extraction) {
-  const traversal = proposal.canon.traversal;
-  const exactMatches = proposal.candidateNodes.filter((node) => node.matchedCanonId).length;
-  const missingMatches = proposal.candidateNodes.length - exactMatches;
-  const workspacePersistence = proposal.workspacePersistence || {};
-  const warningText = extraction.extractionWarning
-    ? `\n\nExtraction note: ${extraction.extractionWarning}`
-    : "";
-
-  return [
-    "I checked canon and created a reviewable graph proposal.",
-    "",
-    `Proposal: ${proposal.title}`,
-    `Proposal ID: ${proposal.id}`,
-    `Status: ${proposal.status}`,
-    `Graph workspace persistence: ${workspacePersistence.persistedNodeCount || 0} proposed node(s), ${workspacePersistence.persistedRelationshipCount || 0} proposed relationship(s)`,
-    "",
-    "Canon lookup:",
-    `- ${proposal.candidateNodes.length} candidate node(s)`,
-    `- ${exactMatches} exact existing canon match(es)`,
-    `- ${missingMatches} candidate(s) without exact matches`,
-    "",
-    formatMatchSummary(proposal),
-    "",
-    "Multi-hop traversal:",
-    `- depth: ${traversal.depth}`,
-    `- nodes inspected: ${traversal.nodes.length}`,
-    `- relationships inspected: ${traversal.relationships.length}`,
-    `- bridge nodes found: ${traversal.bridgeNodes.length}`,
-    `- top nearby relationship types: ${traversal.relationshipTypeCounts
-      .slice(0, 5)
-      .map((entry) => `${entry.type} (${entry.count})`)
-      .join(", ") || "none"}`,
-    "",
-    "Relationship candidates:",
-    formatRelationshipSummary(proposal),
-    "",
-    "I persisted these as proposed graph workspace items so they can be inspected visually. I did not canonize them. The next step is human review/approval, then the approved apply path can promote reviewed items to canon.",
-    warningText
-  ]
-    .filter((part) => part !== "")
-    .join("\n");
-}
-
-async function maybeHandleGraphChat({ prompt, messages }) {
-  const extraction = await extractGraphRequest(prompt, messages);
-
-  if (!extraction.entities.length || extraction.intent === "other") {
-    return {
-      proposal: null,
-      extraction,
-      summary: extraction.extractionWarning
-        ? `Graph proposal work needs human input before continuing: ${extraction.extractionWarning}`
-        : ""
-    };
-  }
-
-  let proposal;
-
-  try {
-    proposal = await createGraphProposalFromEntities({
-      entities: extraction.entities,
-      context: {
-        title: `Chat graph proposal for ${extraction.entities
-          .slice(0, 3)
-          .map((entity) => entity.name)
-          .join(", ")}`,
-        note: extraction.contextNote
-      },
-      evidenceMode: "model_knowledge",
-      traversalDepth: 2
-    });
-  } catch (error) {
-    return {
-      proposal: null,
-      extraction,
-      summary: `Graph proposal work needs human input before continuing: ${error.message}`
-    };
+  if (!sourceRef || !targetRef || sourceRef === targetRef) {
+    return null;
   }
 
   return {
-    proposal,
-    extraction,
-    summary: formatGraphProposalSummary(proposal, extraction)
+    tempId: stableString(relationship.tempId || relationship.id) || `rel-${index + 1}`,
+    sourceRef,
+    targetRef,
+    type: type === "PROPOSED_RELATIONSHIP" ? "RELATED_TO" : type,
+    properties: relationship.properties && typeof relationship.properties === "object"
+      ? relationship.properties
+      : {},
+    confidenceScore: Number.isFinite(Number(relationship.confidenceScore))
+      ? Number(relationship.confidenceScore)
+      : null,
+    evidenceBasis: stableString(relationship.evidenceBasis) || "assistant_answer"
+  };
+}
+
+function normalizeGraphPlan(rawPlan) {
+  const mode = ["answer_only", "persist_graph", "needs_human_input"].includes(rawPlan.mode)
+    ? rawPlan.mode
+    : "answer_only";
+  const entities = (Array.isArray(rawPlan.entities) ? rawPlan.entities : [])
+    .map(normalizePlanEntity)
+    .filter(Boolean);
+  const entityByName = new Map(
+    entities.map((entity) => [entity.name.toLowerCase(), entity])
+  );
+  const relationships = (Array.isArray(rawPlan.relationships) ? rawPlan.relationships : [])
+    .map((relationship, index) => normalizePlanRelationship(relationship, entityByName, index))
+    .filter(Boolean);
+  const anchorName = stableString(rawPlan.anchor?.name || rawPlan.anchor);
+  const anchorByName = anchorName ? entityByName.get(anchorName.toLowerCase()) : null;
+
+  return {
+    mode,
+    anchor: anchorByName
+      ? { tempId: anchorByName.tempId, name: anchorByName.name }
+      : entities[0]
+        ? { tempId: entities[0].tempId, name: entities[0].name }
+        : null,
+    entities,
+    relationships,
+    humanInputNeeded: Boolean(rawPlan.humanInputNeeded),
+    reason: stableString(rawPlan.reason)
+  };
+}
+
+async function planGraphFromAnswer({ prompt, messages, assistantText }) {
+  const instructions = [
+    "Read the user request, recent messages, and assistant answer.",
+    "Decide whether this turn should produce graph data.",
+    "Use music-domain reasoning to identify real entities and real relationships.",
+    "Do not create task phrases, section headings, proposal objects, review objects, or relationship-as-entity nodes.",
+    `Use node labels only from this catalog when possible: ${[...ALLOWED_NODE_LABELS].join(", ")}.`,
+    `Relationship names must be real relationship types such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`,
+    "Never emit GraphProposal, ProposalItem, ProposedEntity, ProposedRelationship, or PROPOSED_RELATIONSHIP.",
+    "Return JSON only: { mode, anchor, entities, relationships, humanInputNeeded, reason }.",
+    "Each entity must include id, name, labels, optional aliases, confidenceScore, and evidenceBasis.",
+    "Each relationship must include sourceRef, targetRef, type, optional properties, confidenceScore, and evidenceBasis.",
+    "Modes are answer_only, persist_graph, or needs_human_input.",
+    "Use needs_human_input only when the graph cannot be staged safely without a human decision."
+  ].join("\n");
+  const input = [
+    "Latest user prompt:",
+    prompt,
+    "",
+    "Recent messages:",
+    buildRecentMessageText(messages),
+    "",
+    "Assistant answer:",
+    assistantText
+  ].join("\n");
+  const rawPlan = await callStructuredModel({
+    instructions,
+    input,
+    purpose: "graph_plan",
+    reasoningEffort: DEFAULT_REASONING_EFFORT
+  });
+
+  return normalizeGraphPlan(rawPlan);
+}
+
+function summarizeCandidates(canonLookups) {
+  return canonLookups.map((lookup) => ({
+    input: lookup.input,
+    matches: (lookup.matches || []).map((match) => ({
+      id: match.id,
+      label: match.label,
+      labels: match.labels,
+      kind: match.kind,
+      degree: match.degree,
+      matchRank: match.matchRank
+    }))
+  }));
+}
+
+function validateGroundedGraph(rawGrounded, plan, canonLookups) {
+  const validMatchIds = new Set(
+    canonLookups.flatMap((lookup) => (lookup.matches || []).map((match) => match.id))
+  );
+  const planEntityById = new Map(plan.entities.map((entity) => [entity.tempId, entity]));
+  const nodes = (Array.isArray(rawGrounded.nodes) ? rawGrounded.nodes : [])
+    .map((node, index) => {
+      const tempId = stableString(node.tempId || node.id) || `node-${index + 1}`;
+      const planEntity = planEntityById.get(tempId);
+      const base = planEntity || normalizePlanEntity(node, index);
+
+      if (!base) {
+        return null;
+      }
+
+      const matchedCanonId = stableString(node.matchedCanonId);
+
+      return {
+        ...base,
+        name: stableString(node.name) || base.name,
+        labels: normalizePlanEntity({
+          ...base,
+          labels: Array.isArray(node.labels) ? node.labels : base.labels
+        }, index).labels,
+        matchedCanonId: validMatchIds.has(matchedCanonId) ? matchedCanonId : "",
+        properties: node.properties && typeof node.properties === "object"
+          ? node.properties
+          : base.properties,
+        confidenceScore: Number.isFinite(Number(node.confidenceScore))
+          ? Number(node.confidenceScore)
+          : base.confidenceScore,
+        evidenceBasis: stableString(node.evidenceBasis) || base.evidenceBasis
+      };
+    })
+    .filter(Boolean);
+  const nodeIds = new Set(nodes.map((node) => node.tempId));
+  const relationships = (Array.isArray(rawGrounded.relationships)
+    ? rawGrounded.relationships
+    : plan.relationships
+  )
+    .map((relationship, index) => {
+      const sourceRef = stableString(relationship.sourceRef || relationship.sourceId);
+      const targetRef = stableString(relationship.targetRef || relationship.targetId);
+      const type = sanitizeIdentifier(relationship.type, "RELATED_TO").toUpperCase();
+
+      if (!nodeIds.has(sourceRef) || !nodeIds.has(targetRef) || type === "PROPOSED_RELATIONSHIP") {
+        return null;
+      }
+
+      return {
+        tempId: stableString(relationship.tempId || relationship.id) || `rel-${index + 1}`,
+        sourceRef,
+        targetRef,
+        type,
+        properties: relationship.properties && typeof relationship.properties === "object"
+          ? relationship.properties
+          : {},
+        confidenceScore: Number.isFinite(Number(relationship.confidenceScore))
+          ? Number(relationship.confidenceScore)
+          : null,
+        evidenceBasis: stableString(relationship.evidenceBasis) || "assistant_answer"
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    anchor: rawGrounded.anchor?.tempId || rawGrounded.anchor?.id
+      ? rawGrounded.anchor
+      : plan.anchor,
+    nodes,
+    relationships,
+    humanInputNeeded: Boolean(rawGrounded.humanInputNeeded),
+    reason: stableString(rawGrounded.reason)
+  };
+}
+
+async function groundGraphPlan(plan) {
+  const [schema, canonLookups] = await Promise.all([
+    inspectSchema(),
+    lookupCanonEntities(plan.entities, { limit: 5 })
+  ]);
+  const instructions = [
+    "Resolve planned entities against provided Neo4j candidate matches.",
+    "Prefer existing canon when the intended entity is the same.",
+    "Create a new domain entity only when no candidate is a reasonable match.",
+    "Return JSON only with keys: anchor, nodes, relationships, humanInputNeeded, reason.",
+    "Do not emit GraphProposal, ProposalItem, ProposedEntity, ProposedRelationship, or PROPOSED_RELATIONSHIP.",
+    "The proposed/candidate status is metadata only and must not change labels or relationship types.",
+    "Use matchedCanonId only when it exactly matches one of the provided candidate ids.",
+    `Relationship types must be real domain names such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`
+  ].join("\n");
+  const input = JSON.stringify(
+    {
+      schema,
+      plan,
+      candidateMatches: summarizeCandidates(canonLookups)
+    },
+    null,
+    2
+  );
+  const rawGrounded = await callStructuredModel({
+    instructions,
+    input,
+    purpose: "graph_grounding",
+    reasoningEffort: DEFAULT_REASONING_EFFORT
+  });
+
+  return validateGroundedGraph(rawGrounded, plan, canonLookups);
+}
+
+async function createHumanLoopMessage({ prompt, plan, groundedGraph, errorMessage }) {
+  const instructions = [
+    "If the graph cannot be persisted safely, ask the human for the smallest useful next decision.",
+    "Offer concrete options: narrow scope, provide entities, inspect canon first, or answer without graph persistence.",
+    "Do not invent graph structure to avoid asking.",
+    "Do not mention internal proposal machinery."
+  ].join("\n");
+  const input = JSON.stringify(
+    {
+      userPrompt: prompt,
+      planReason: plan?.reason || "",
+      groundedReason: groundedGraph?.reason || "",
+      errorMessage: errorMessage || ""
+    },
+    null,
+    2
+  );
+
+  try {
+    const payload = await callStructuredModel({
+      instructions: `${instructions}\nReturn JSON only: { message }.`,
+      input,
+      purpose: "graph_human_loop",
+      reasoningEffort: "low"
+    });
+
+    return stableString(payload.message) ||
+      "I can answer this, but I need one more decision before changing the graph: narrow the scope, provide the exact entities, inspect canon first, or continue without graph persistence.";
+  } catch {
+    return "I can answer this, but I need one more decision before changing the graph: narrow the scope, provide the exact entities, inspect canon first, or continue without graph persistence.";
+  }
+}
+
+async function runChatTurnPipeline({ prompt, messages, assistantText, threadId, turnId }) {
+  const resultBase = {
+    mode: "answer_only",
+    graphAnchorId: null,
+    graphAnchorName: "",
+    graphNodeCount: 0,
+    graphRelationshipCount: 0,
+    humanInputNeeded: false,
+    humanMessage: "",
+    plan: null,
+    groundedGraph: null,
+    persistence: null
+  };
+
+  let plan;
+
+  try {
+    plan = await planGraphFromAnswer({ prompt, messages, assistantText });
+  } catch (error) {
+    const humanMessage = await createHumanLoopMessage({ prompt, errorMessage: error.message });
+
+    return {
+      ...resultBase,
+      mode: "needs_human_input",
+      humanInputNeeded: true,
+      humanMessage,
+      errorMessage: error.message
+    };
+  }
+
+  if (
+    plan.mode === "answer_only" ||
+    plan.entities.length === 0 ||
+    (plan.relationships.length === 0 && !plan.anchor)
+  ) {
+    return {
+      ...resultBase,
+      mode: "answer_only",
+      plan
+    };
+  }
+
+  if (plan.mode === "needs_human_input" || plan.humanInputNeeded) {
+    const humanMessage = await createHumanLoopMessage({ prompt, plan });
+
+    return {
+      ...resultBase,
+      mode: "needs_human_input",
+      humanInputNeeded: true,
+      humanMessage,
+      plan
+    };
+  }
+
+  let groundedGraph;
+
+  try {
+    groundedGraph = await groundGraphPlan(plan);
+  } catch (error) {
+    const humanMessage = await createHumanLoopMessage({
+      prompt,
+      plan,
+      errorMessage: error.message
+    });
+
+    return {
+      ...resultBase,
+      mode: "needs_human_input",
+      humanInputNeeded: true,
+      humanMessage,
+      plan,
+      errorMessage: error.message
+    };
+  }
+
+  if (
+    groundedGraph.humanInputNeeded ||
+    groundedGraph.nodes.length === 0 ||
+    (groundedGraph.relationships.length === 0 && plan.relationships.length > 0)
+  ) {
+    const humanMessage = await createHumanLoopMessage({ prompt, plan, groundedGraph });
+
+    return {
+      ...resultBase,
+      mode: "needs_human_input",
+      humanInputNeeded: true,
+      humanMessage,
+      plan,
+      groundedGraph
+    };
+  }
+
+  const persistence = await persistChatGraph({
+    groundedGraph,
+    threadId,
+    turnId
+  });
+
+  return {
+    ...resultBase,
+    mode: "persist_graph",
+    graphAnchorId: persistence.anchor?.elementId || null,
+    graphAnchorName: persistence.anchor?.label || "",
+    graphNodeCount: persistence.persistedNodeCount,
+    graphRelationshipCount: persistence.persistedRelationshipCount,
+    plan,
+    groundedGraph,
+    persistence
   };
 }
 
 module.exports = {
-  maybeHandleGraphChat
+  createHumanLoopMessage,
+  groundGraphPlan,
+  planGraphFromAnswer,
+  runChatTurnPipeline
 };

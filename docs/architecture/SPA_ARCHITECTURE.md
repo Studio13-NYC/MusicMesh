@@ -16,7 +16,7 @@ The current SPA uses:
 The current UI is a single-page operator graph workbench served from `/` with:
 
 - a primary chat surface
-- a neighboring graph/proposal/workflow workbench panel
+- a neighboring graph/workflow workbench panel
 - a horizontal resizable split
 
 There is no client router or separate standalone graph page in the active UI.
@@ -28,9 +28,9 @@ The current shell supports:
 - rendering user and assistant messages
 - markdown rendering for assistant replies
 - a textarea composer with send action
-- a right-side workbench with graph, proposal, and workflow tabs
+- a right-side workbench with graph and workflow tabs
 - graph seed search and Cytoscape graph inspection
-- entity-list proposal creation, review, and apply actions
+- chat-driven graph persistence and graph-anchor loading
 - reading recent conversation tape entries from the local API
 - reading recent runtime events from the local API
 

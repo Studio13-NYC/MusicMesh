@@ -3,7 +3,6 @@ const { validateEnv } = require("./env");
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
 const DEFAULT_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || "medium";
-const MAX_TOOL_ROUNDS = 6;
 
 function buildInputFromMessages(messages, prompt) {
   const input = Array.isArray(messages)
@@ -57,9 +56,7 @@ async function callResponsesApi({
   input,
   instructions,
   threadId,
-  purpose,
-  tools = [],
-  previousResponseId = null
+  purpose
 }) {
   const envResult = validateEnv();
 
@@ -79,9 +76,6 @@ async function callResponsesApi({
       model: DEFAULT_MODEL,
       input,
       instructions,
-      tools: Array.isArray(tools) && tools.length > 0 ? tools : undefined,
-      tool_choice: Array.isArray(tools) && tools.length > 0 ? "auto" : undefined,
-      previous_response_id: previousResponseId || undefined,
       reasoning: {
         effort: DEFAULT_REASONING_EFFORT
       }
@@ -98,89 +92,21 @@ async function callResponsesApi({
   return response.json();
 }
 
-function extractFunctionCalls(payload) {
-  if (!Array.isArray(payload?.output)) {
-    return [];
-  }
-
-  return payload.output.filter(
-    (item) =>
-      item &&
-      item.type === "function_call" &&
-      typeof item.name === "string" &&
-      typeof item.call_id === "string"
-  );
-}
-
-function serializeToolOutput(output) {
-  if (typeof output === "string") {
-    return output;
-  }
-
-  return JSON.stringify(output ?? {});
-}
-
 async function createAssistantReply({
   prompt,
   messages,
   threadId,
-  systemPromptPath,
-  tools = [],
-  executeToolCall
+  systemPromptPath
 }) {
   const input = buildInputFromMessages(messages, prompt);
   const instructions = loadSystemPrompt(systemPromptPath);
 
-  let payload = await callResponsesApi({
+  const payload = await callResponsesApi({
     threadId,
     purpose: "chat",
     input: input,
-    instructions,
-    tools
+    instructions
   });
-
-  const toolResults = [];
-
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-    const functionCalls = extractFunctionCalls(payload);
-
-    if (functionCalls.length === 0) {
-      break;
-    }
-
-    if (typeof executeToolCall !== "function") {
-      throw new Error("Model requested a tool call but no tool execution handler was provided.");
-    }
-
-    const toolOutputs = [];
-
-    for (const call of functionCalls) {
-      const result = await executeToolCall(call);
-      toolResults.push({
-        callId: call.call_id,
-        name: call.name,
-        result
-      });
-      toolOutputs.push({
-        type: "function_call_output",
-        call_id: call.call_id,
-        output: serializeToolOutput(result)
-      });
-    }
-
-    payload = await callResponsesApi({
-      threadId,
-      purpose: "chat_tool_followup",
-      input: toolOutputs,
-      instructions,
-      tools,
-      previousResponseId: payload.id || null
-    });
-  }
-
-  if (extractFunctionCalls(payload).length > 0) {
-    throw new Error("Tool-calling did not converge to a final assistant response.");
-  }
 
   const text = getOutputText(payload);
 
@@ -190,8 +116,7 @@ async function createAssistantReply({
 
   return {
     responseId: payload.id || null,
-    text,
-    toolResults
+    text
   };
 }
 

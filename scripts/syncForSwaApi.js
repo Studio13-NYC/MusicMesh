@@ -13,6 +13,8 @@ const apiRoot = path.join(root, "api");
 const sharedDir = path.join(apiRoot, "shared");
 const contentDir = path.join(apiRoot, "content");
 
+fs.rmSync(sharedDir, { recursive: true, force: true });
+fs.rmSync(contentDir, { recursive: true, force: true });
 fs.mkdirSync(sharedDir, { recursive: true });
 fs.mkdirSync(contentDir, { recursive: true });
 
@@ -21,11 +23,9 @@ const copies = [
   ["src/activityStore.js", "shared/activityStore.js"],
   ["src/chatService.js", "shared/chatService.js"],
   ["src/graphChatOrchestrator.js", "shared/graphChatOrchestrator.js"],
+  ["src/graphDomainWriter.js", "shared/graphDomainWriter.js"],
   ["src/graphDemoRepository.js", "shared/graphDemoRepository.js"],
   ["src/graphCanonRepository.js", "shared/graphCanonRepository.js"],
-  ["src/graphProposalService.js", "shared/graphProposalService.js"],
-  ["src/graphProposalStore.js", "shared/graphProposalStore.js"],
-  ["src/graphProposalWriter.js", "shared/graphProposalWriter.js"],
   ["docs/product/MUSICMESH_CHAT_SYSTEM_PROMPT.md", "content/MUSICMESH_CHAT_SYSTEM_PROMPT.md"]
 ];
 

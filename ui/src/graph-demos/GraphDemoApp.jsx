@@ -9,6 +9,8 @@ import {
 import {
   applyNodePositions,
   applyFilters,
+  buildNodeFilterCatalog,
+  buildRelationshipFilterCatalog,
   createEmptyGraph,
   mergeGraphPayload,
   syncFilterState
@@ -51,6 +53,11 @@ export function GraphDemoApp({
   const autoLoadedRef = useRef(false);
   const suppressInspectOpenRef = useRef(false);
   const filteredGraph = useMemo(() => applyFilters(graph, filters), [graph, filters]);
+  const nodeFilterCatalog = useMemo(() => buildNodeFilterCatalog(graph), [graph]);
+  const relationshipFilterCatalog = useMemo(
+    () => buildRelationshipFilterCatalog(graph),
+    [graph]
+  );
   const libraryCopy = LIBRARY_COPY[library] || LIBRARY_COPY.cytoscape;
 
   useEffect(() => {
@@ -62,6 +69,20 @@ export function GraphDemoApp({
 
       try {
         if (threadId) {
+          if (!focusKey) {
+            autoLoadedRef.current = false;
+            setSearchQuery("");
+            setSearchStatus("No seed loaded.");
+            setGraph(createEmptyGraph());
+            setFilters({
+              nodeKinds: {},
+              relationshipTypes: {}
+            });
+            setSelectedElement(null);
+            setHoveredElement(null);
+            return;
+          }
+
           let focusPayload = null;
 
           try {
@@ -74,10 +95,8 @@ export function GraphDemoApp({
 
           if (!ignore && focusPayload?.hasFocus && focusPayload.graph) {
             autoLoadedRef.current = true;
-            setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphProposalId || "");
-            setSearchStatus(
-              `Loaded active proposal ${focusPayload.graphProposalId || ""}`.trim()
-            );
+            setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphAnchorId || "");
+            setSearchStatus(`Loaded ${focusPayload.focusSeed?.label || "active graph anchor"}`);
             setGraph(focusPayload.graph);
             setFilters((currentFilters) => syncFilterState(currentFilters, focusPayload.graph));
             suppressInspectOpenRef.current = true;
@@ -367,27 +386,31 @@ export function GraphDemoApp({
               <p className="demo-panel-label">Filters</p>
               <div className="demo-filter-group">
                 <p className="demo-filter-title">Node kinds</p>
-                {(graph.meta.availableNodeKinds || []).map((kind) => (
-                  <label className="demo-checkbox" key={kind}>
+                {nodeFilterCatalog.map((group) => (
+                  <label className="demo-checkbox" key={group.id}>
                     <input
-                      checked={filters.nodeKinds[kind] !== false}
-                      onChange={() => handleFilterToggle("nodeKinds", kind)}
+                      checked={filters.nodeKinds[group.id] !== false}
+                      disabled={group.count === 0}
+                      onChange={() => handleFilterToggle("nodeKinds", group.id)}
                       type="checkbox"
                     />
-                    <span>{kind}</span>
+                    <span>{group.label}</span>
+                    <strong>{group.count}</strong>
                   </label>
                 ))}
               </div>
               <div className="demo-filter-group">
                 <p className="demo-filter-title">Relationship types</p>
-                {(graph.meta.availableRelationshipTypes || []).map((type) => (
-                  <label className="demo-checkbox" key={type}>
+                {relationshipFilterCatalog.map((group) => (
+                  <label className="demo-checkbox" key={group.id}>
                     <input
-                      checked={filters.relationshipTypes[type] !== false}
-                      onChange={() => handleFilterToggle("relationshipTypes", type)}
+                      checked={filters.relationshipTypes[group.id] !== false}
+                      disabled={group.count === 0}
+                      onChange={() => handleFilterToggle("relationshipTypes", group.id)}
                       type="checkbox"
                     />
-                    <span>{type}</span>
+                    <span>{group.label}</span>
+                    <strong>{group.count}</strong>
                   </label>
                 ))}
               </div>
@@ -404,7 +427,6 @@ export function GraphDemoApp({
                 <LegendRow colorClass="scene" label="Scene" />
                 <LegendRow colorClass="venue" label="Venue" />
                 <LegendRow colorClass="genre" label="Genre / Other typed node" />
-                <LegendRow colorClass="proposal" label="Proposal workspace" />
               </div>
               <div className="demo-legend demo-legend-edges">
                 <LegendEdgeRow styleKey="solid" label="Strong structural relationship" />

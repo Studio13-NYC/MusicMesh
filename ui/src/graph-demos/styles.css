@@ -16,7 +16,6 @@
   --person: #ffd166;
   --genre: #c49bff;
   --label: #ff6fae;
-  --proposal: #f15bb5;
   --scene: #a3e635;
   --venue: #f97316;
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
@@ -375,10 +374,6 @@ input {
 
 .demo-node-chip.label {
   background: var(--label);
-}
-
-.demo-node-chip.proposal {
-  background: var(--proposal);
 }
 
 .demo-node-chip.scene {

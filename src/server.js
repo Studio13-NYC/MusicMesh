@@ -13,17 +13,10 @@ const { validateEnv } = require("./env");
 const {
   expandGraphNode,
   fetchSeededGraph,
-  findGraphProposalSeed,
   getNodeDetail,
   searchGraphSeeds
 } = require("./graphDemoRepository");
-const {
-  applyGraphProposal,
-  createGraphProposalFromEntities,
-  getProposal,
-  listProposals,
-  reviewGraphProposal
-} = require("./graphProposalService");
+const { runChatTurnPipeline } = require("./graphChatOrchestrator");
 const { createAssistantReply, DEFAULT_MODEL } = require("./chatService");
 
 const DEFAULT_PORT = Number(process.env.MUSICMESH_API_PORT || 43101);
@@ -33,42 +26,6 @@ const SYSTEM_PROMPT_PATH = path.join(
   "product",
   "MUSICMESH_CHAT_SYSTEM_PROMPT.md"
 );
-const GRAPH_ENRICHMENT_TOOL = {
-  type: "function",
-  name: "create_graph_enrichment",
-  description:
-    "Create a proposed graph enrichment from the current conversation turn. Use for durable entities/relationships worth staging in graph workspace. Use reasoning to supply resolved music entities, not task phrases or raw search questions.",
-  parameters: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      entities: {
-        type: "array",
-        minItems: 1,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            name: { type: "string" },
-            type: { type: "string" },
-            aliases: {
-              type: "array",
-              items: { type: "string" }
-            }
-          },
-          required: ["name"]
-        }
-      },
-      contextNote: { type: "string" },
-      traversalDepth: { type: "integer", minimum: 1, maximum: 3 },
-      evidenceMode: {
-        type: "string",
-        enum: ["model_knowledge", "web_search"]
-      }
-    },
-    required: ["entities"]
-  }
-};
 
 function createId(prefix) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -155,80 +112,32 @@ async function handleChat(request, response) {
       }
     });
 
-    let graphProposalId = null;
     const assistantReply = await createAssistantReply({
       prompt,
       messages,
       threadId,
-      systemPromptPath: SYSTEM_PROMPT_PATH,
-      tools: [GRAPH_ENRICHMENT_TOOL],
-      executeToolCall: async (call) => {
-        if (!call || call.name !== "create_graph_enrichment") {
-          return {
-            status: "ignored",
-            reason: "Unsupported tool call."
-          };
-        }
+      systemPromptPath: SYSTEM_PROMPT_PATH
+    });
 
-        const args = parseToolArguments(call.arguments);
-        const entities = normalizeToolEntities(args.entities);
-
-        if (entities.length === 0) {
-          return {
-            status: "needs_human_input",
-            reason: "No graph entities were identified from the model tool arguments.",
-            promptForHuman:
-              "I could not identify concrete graph entities to stage. Ask the user whether to retry with a narrower list, provide explicit entities, or continue without graph persistence."
-          };
-        }
-
-        const traversalDepth = clampTraversalDepth(args.traversalDepth);
-        const evidenceMode = args.evidenceMode === "web_search" ? "web_search" : "model_knowledge";
-        const contextNote =
-          typeof args.contextNote === "string" && args.contextNote.trim()
-            ? args.contextNote.trim()
-            : prompt;
-
-        let proposal;
-
-        try {
-          proposal = await createGraphProposalFromEntities({
-            entities,
-            context: {
-              title: `Chat graph proposal for ${entities
-                .slice(0, 3)
-                .map((entity) => entity.name)
-                .join(", ")}`,
-              note: contextNote
-            },
-            evidenceMode,
-            traversalDepth
-          });
-        } catch (error) {
-          return {
-            status: "needs_human_input",
-            reason: error.message || "Graph proposal generation failed.",
-            entities,
-            promptForHuman:
-              "Graph proposal generation hit a blocker. Ask the user whether to retry, narrow the entity list, inspect canon first, or proceed without creating a proposal."
-          };
-        }
-
-        graphProposalId = proposal.id;
-
-        return {
-          status: "created",
-          graphProposalId: proposal.id,
-          proposalTitle: proposal.title,
-          candidateNodeCount: proposal.candidateNodes?.length || 0,
-          candidateRelationshipCount: proposal.candidateRelationships?.length || 0,
-          workspacePersistence: proposal.workspacePersistence || null,
-          review: proposal.review || null
-        };
+    await appendRuntimeEvent({
+      id: createId("log"),
+      type: "chat_graph_pipeline_started",
+      payload: {
+        requestId,
+        threadId,
+        responseId: assistantReply.responseId
       }
     });
-    const assistantText = graphProposalId
-      ? `${assistantReply.text}\n\n---\nGraph enrichment: created proposal ${graphProposalId} (review/apply required before canon).`
+
+    const graphPipeline = await runChatTurnPipeline({
+      prompt,
+      messages,
+      assistantText: assistantReply.text,
+      threadId,
+      turnId: requestId
+    });
+    const assistantText = graphPipeline.humanInputNeeded && graphPipeline.humanMessage
+      ? `${assistantReply.text}\n\n${graphPipeline.humanMessage}`
       : assistantReply.text;
 
     const assistantEntry = await appendTapeEntry({
@@ -238,7 +147,12 @@ async function handleChat(request, response) {
       payload: {
         responseId: assistantReply.responseId,
         text: assistantText,
-        graphProposalId
+        graphAnchorId: graphPipeline.graphAnchorId,
+        graphAnchorName: graphPipeline.graphAnchorName,
+        graphNodeCount: graphPipeline.graphNodeCount,
+        graphRelationshipCount: graphPipeline.graphRelationshipCount,
+        graphMode: graphPipeline.mode,
+        humanInputNeeded: graphPipeline.humanInputNeeded
       }
     });
 
@@ -246,8 +160,29 @@ async function handleChat(request, response) {
       threadId,
       message: assistantText,
       responseId: assistantReply.responseId,
-      graphProposalId,
+      graphAnchorId: graphPipeline.graphAnchorId,
+      graphAnchorName: graphPipeline.graphAnchorName,
+      graphNodeCount: graphPipeline.graphNodeCount,
+      graphRelationshipCount: graphPipeline.graphRelationshipCount,
+      graphMode: graphPipeline.mode,
+      humanInputNeeded: graphPipeline.humanInputNeeded,
       tapeEventIds: [userEntry.id, assistantEntry.id]
+    });
+
+    await appendRuntimeEvent({
+      id: createId("log"),
+      type: "chat_graph_pipeline_completed",
+      payload: {
+        requestId,
+        threadId,
+        mode: graphPipeline.mode,
+        graphAnchorId: graphPipeline.graphAnchorId,
+        graphAnchorName: graphPipeline.graphAnchorName,
+        graphNodeCount: graphPipeline.graphNodeCount,
+        graphRelationshipCount: graphPipeline.graphRelationshipCount,
+        humanInputNeeded: graphPipeline.humanInputNeeded,
+        skippedRelationshipCount: graphPipeline.persistence?.skippedRelationshipCount || 0
+      }
     });
 
     await appendRuntimeEvent({
@@ -257,7 +192,8 @@ async function handleChat(request, response) {
         requestId,
         threadId,
         responseId: assistantReply.responseId,
-        graphProposalId,
+        graphAnchorId: graphPipeline.graphAnchorId,
+        graphMode: graphPipeline.mode,
         tapeEventIds: [userEntry.id, assistantEntry.id]
       }
     });
@@ -284,83 +220,25 @@ async function handleChat(request, response) {
   }
 }
 
-function parseToolArguments(rawArguments) {
-  if (!rawArguments || typeof rawArguments !== "string") {
-    return {};
-  }
-
-  try {
-    return JSON.parse(rawArguments);
-  } catch {
-    return {};
-  }
-}
-
-function normalizeToolEntities(entities) {
-  if (!Array.isArray(entities)) {
-    return [];
-  }
-
-  return entities
-    .map((entity) => ({
-      name: typeof entity?.name === "string" ? entity.name.trim() : "",
-      type: typeof entity?.type === "string" ? entity.type.trim() : "",
-      aliases: Array.isArray(entity?.aliases)
-        ? entity.aliases.filter((alias) => typeof alias === "string" && alias.trim())
-        : []
-    }))
-    .filter((entity) => entity.name);
-}
-
-function clampTraversalDepth(value) {
-  const numeric = Number(value);
-
-  if (!Number.isFinite(numeric)) {
-    return 2;
-  }
-
-  const rounded = Math.trunc(numeric);
-  return Math.max(1, Math.min(3, rounded));
-}
-
 async function handleGraphDemoThreadFocus(request, response) {
   try {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
     const threadId = stableThreadId(requestUrl.searchParams.get("threadId"));
     const tapeWindowSize = Number(requestUrl.searchParams.get("window") || 200);
     const entries = await readTapeEntries(tapeWindowSize);
-    const latestProposalId = findLatestThreadProposalId(entries, threadId);
+    const latestAnchor = findLatestThreadGraphAnchor(entries, threadId);
 
-    if (!latestProposalId) {
+    if (!latestAnchor?.id) {
       sendJson(response, 200, {
         threadId,
         hasFocus: false,
-        graphProposalId: null,
-        reason: "No graph proposal found for this thread yet."
+        graphAnchorId: null,
+        reason: "No graph anchor found for this thread yet."
       });
       return;
     }
 
-    const directProposalSeed = await findGraphProposalSeed(latestProposalId);
-    const candidates = await searchGraphSeeds(latestProposalId, 25);
-    const fallbackProposalSeed =
-      candidates.find((candidate) => candidate.kind === "GraphProposal") ||
-      candidates.find((candidate) => candidate.label === latestProposalId) ||
-      candidates[0] ||
-      null;
-    const focusSeed = directProposalSeed || fallbackProposalSeed;
-
-    if (!focusSeed) {
-      sendJson(response, 200, {
-        threadId,
-        hasFocus: false,
-        graphProposalId: latestProposalId,
-        reason: "Proposal exists but no focusable graph node was found."
-      });
-      return;
-    }
-
-    const graph = await fetchSeededGraph(focusSeed.id, {
+    const graph = await fetchSeededGraph(latestAnchor.id, {
       depth: 2,
       maxNodes: 90,
       maxEdges: 140,
@@ -370,8 +248,11 @@ async function handleGraphDemoThreadFocus(request, response) {
     sendJson(response, 200, {
       threadId,
       hasFocus: true,
-      graphProposalId: latestProposalId,
-      focusSeed,
+      graphAnchorId: latestAnchor.id,
+      focusSeed: {
+        id: latestAnchor.id,
+        label: latestAnchor.name || graph.seedNode?.label || latestAnchor.id
+      },
       graph
     });
   } catch (error) {
@@ -383,7 +264,7 @@ function stableThreadId(value) {
   return typeof value === "string" && value.trim() ? value.trim() : "default-thread";
 }
 
-function findLatestThreadProposalId(entries, threadId) {
+function findLatestThreadGraphAnchor(entries, threadId) {
   if (!Array.isArray(entries)) {
     return null;
   }
@@ -395,10 +276,16 @@ function findLatestThreadProposalId(entries, threadId) {
       continue;
     }
 
-    const proposalId = entry?.payload?.graphProposalId;
+    const anchorId = entry?.payload?.graphAnchorId;
 
-    if (typeof proposalId === "string" && proposalId.trim()) {
-      return proposalId.trim();
+    if (typeof anchorId === "string" && anchorId.trim()) {
+      return {
+        id: anchorId.trim(),
+        name:
+          typeof entry?.payload?.graphAnchorName === "string"
+            ? entry.payload.graphAnchorName.trim()
+            : ""
+      };
     }
   }
 
@@ -496,61 +383,6 @@ function handleGraphDemoNodeDetail(request, response, nodeId) {
     });
 }
 
-function handleGraphProposalList(request, response) {
-  const requestUrl = new URL(request.url, `http://${request.headers.host}`);
-  const limit = Number(requestUrl.searchParams.get("limit") || 50);
-
-  listProposals(limit)
-    .then((payload) => {
-      sendJson(response, 200, payload);
-    })
-    .catch((error) => {
-      sendJson(response, 500, { error: error.message });
-    });
-}
-
-async function handleGraphProposalCreate(request, response) {
-  try {
-    const body = await parseJsonBody(request);
-    const proposal = await createGraphProposalFromEntities(body);
-
-    sendJson(response, 200, proposal);
-  } catch (error) {
-    sendJson(response, 500, { error: error.message });
-  }
-}
-
-function handleGraphProposalDetail(response, proposalId) {
-  getProposal(proposalId)
-    .then((proposal) => {
-      sendJson(response, 200, proposal);
-    })
-    .catch((error) => {
-      sendJson(response, 404, { error: error.message });
-    });
-}
-
-async function handleGraphProposalReview(request, response, proposalId) {
-  try {
-    const body = await parseJsonBody(request);
-    const proposal = await reviewGraphProposal(proposalId, body);
-
-    sendJson(response, 200, proposal);
-  } catch (error) {
-    sendJson(response, 500, { error: error.message });
-  }
-}
-
-async function handleGraphProposalApply(response, proposalId) {
-  try {
-    const proposal = await applyGraphProposal(proposalId);
-
-    sendJson(response, 200, proposal);
-  } catch (error) {
-    sendJson(response, 500, { error: error.message });
-  }
-}
-
 function startServer(port = DEFAULT_PORT) {
   const server = http.createServer((request, response) => {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
@@ -619,37 +451,6 @@ function startServer(port = DEFAULT_PORT) {
       );
       handleGraphDemoNodeDetail(request, response, nodeId);
       return;
-    }
-
-    if (request.method === "GET" && requestUrl.pathname === "/api/graph/proposals") {
-      handleGraphProposalList(request, response);
-      return;
-    }
-
-    if (request.method === "POST" && requestUrl.pathname === "/api/graph/proposals/from-entities") {
-      handleGraphProposalCreate(request, response);
-      return;
-    }
-
-    if (requestUrl.pathname.startsWith("/api/graph/proposals/")) {
-      const proposalPath = requestUrl.pathname.slice("/api/graph/proposals/".length);
-      const [proposalId, action] = proposalPath.split("/");
-      const decodedProposalId = decodeURIComponent(proposalId || "");
-
-      if (request.method === "GET" && decodedProposalId && !action) {
-        handleGraphProposalDetail(response, decodedProposalId);
-        return;
-      }
-
-      if (request.method === "POST" && decodedProposalId && action === "review") {
-        handleGraphProposalReview(request, response, decodedProposalId);
-        return;
-      }
-
-      if (request.method === "POST" && decodedProposalId && action === "apply") {
-        handleGraphProposalApply(response, decodedProposalId);
-        return;
-      }
     }
 
     if (request.method === "POST" && requestUrl.pathname === "/api/chat") {

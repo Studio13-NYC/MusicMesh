@@ -22,8 +22,8 @@ The live direction is:
 
 - LLM-native operator product
 - chat-first
-- answer-first with explicit persistence
-- propose-first review boundary for graph changes
+- one chat pipeline for answer and graph persistence
+- `proposed` exists only as hidden graph maintenance metadata
 - supporting worksurface next to the chat
 - product testing should increasingly happen inside the product UI
 
@@ -68,11 +68,11 @@ Current stack:
 Current workbench shape:
 
 - chat-first main surface
-- neighboring graph/proposal/workflow panel
+- neighboring graph/workflow panel
 - resizable layout
 - simple local API path for chat requests
 - graph seed search and Cytoscape graph inspection
-- entity-list graph proposal creation, review, and apply actions
+- chat-derived domain graph persistence
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
 
@@ -80,7 +80,7 @@ Important limitation:
 
 - the UI is now wired to a thin GPT-5.5-backed API path
 - the workbench can now read recent conversation tape entries and runtime events from disk
-- graph proposal and graph demo routes can read and write Neo4j through the local API
+- chat and graph demo routes can read and write Neo4j through the local API
 
 Build/deploy note:
 
@@ -88,7 +88,7 @@ Build/deploy note:
 - `npm run build:api` installs and verifies the SWA Functions package
 - GitHub Actions runs the same API sync/check path during deployment
 
-So the operator surface is now minimally live, with graph proposal wiring present but still intentionally conservative.
+So the operator surface is now minimally live, with one chat-driven graph path and no separate graph creation workspace.
 
 Graph visualization decision:
 

@@ -22,7 +22,7 @@ export const initialThreads = [
         type: "status",
         author: "MusicMesh",
         timestamp: "2:11 PM",
-        content: "Inspecting canon first, then assembling a direct answer with proposal-ready notes."
+        content: "Inspecting canon first, then assembling a direct answer with graph-ready notes."
       },
       {
         id: "rem-tool-1",
@@ -45,7 +45,7 @@ export const initialThreads = [
         type: "artifact",
         author: "MusicMesh",
         timestamp: "2:13 PM",
-        content: "Prepared a reviewable album-normalization artifact with candidate merges and evidence links.",
+        content: "Prepared an album-normalization artifact with candidate merges and evidence links.",
         artifactId: "artifact-rem-review"
       }
     ],
@@ -75,9 +75,9 @@ export const initialThreads = [
         {
           id: "artifact-rem-review",
           name: "REM album normalization draft",
-          kind: "Proposal payload",
+          kind: "Graph payload",
           preview:
-            "{\n  \"proposal\": \"reuse existing Album canon\",\n  \"duplicateCandidates\": [\"Life's Rich Pageant\", \"Lifes Rich Pageant\"],\n  \"reviewMode\": \"propose-first\"\n}"
+            "{\n  \"graphPatch\": \"reuse existing Album canon\",\n  \"duplicateCandidates\": [\"Life's Rich Pageant\", \"Lifes Rich Pageant\"],\n  \"status\": \"chat-persisted\"\n}"
         }
       ]
     }
@@ -186,8 +186,8 @@ export const initialThreads = [
         {
           id: "artifact-belew-1",
           name: "Connection typing draft",
-          kind: "Schema-safe proposal",
-          preview: "All proposed edges reuse existing relationship vocabulary and attach role nuance at the relationship level."
+          kind: "Schema-safe graph patch",
+          preview: "All graph edges reuse existing relationship vocabulary and attach role nuance at the relationship level."
         }
       ]
     }

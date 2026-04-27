@@ -8,6 +8,38 @@ const DEFAULT_MAX_NODES = 60;
 const DEFAULT_MAX_EDGES = 90;
 const DEFAULT_PATH_LIMIT = 120;
 const DEFAULT_DETAIL_RELATIONSHIP_TYPE_LIMIT = 8;
+const HIDDEN_GRAPH_NODE_LABELS = [
+  "GraphProposal",
+  "ProposalItem",
+  "ProposedEntity",
+  "ProposedRelationship"
+];
+const HIDDEN_GRAPH_RELATIONSHIP_TYPES = [
+  "HAS_ITEM",
+  "PROPOSED_SOURCE",
+  "PROPOSED_TARGET",
+  "PROPOSED_RELATIONSHIP",
+  "PROPOSES_CANON_MATCH"
+];
+const HIDDEN_GRAPH_PROPERTY_KEYS = new Set([
+  "canonicalStatus",
+  "isProposed",
+  "source",
+  "threadId",
+  "turnId",
+  "lastChatThreadId",
+  "lastChatTurnId",
+  "proposalId",
+  "candidateTempId",
+  "reviewStatus",
+  "matchedCanonId",
+  "proposedLabelsJson",
+  "propertiesJson",
+  "relationshipType",
+  "updatedAt",
+  "confidenceScore",
+  "evidenceBasis"
+]);
 
 let driver = null;
 
@@ -157,29 +189,21 @@ function hasLabel(labels, expectedLabel) {
   );
 }
 
+function hasHiddenLabel(labels) {
+  return HIDDEN_GRAPH_NODE_LABELS.some((label) => hasLabel(labels, label));
+}
+
+function visibleProperties(properties) {
+  return Object.fromEntries(
+    Object.entries(toNativeValue(properties || {})).filter(
+      ([key]) => !HIDDEN_GRAPH_PROPERTY_KEYS.has(key)
+    )
+  );
+}
+
 function pickNodeKind(labels, properties = {}) {
   if (!Array.isArray(labels) || labels.length === 0) {
     return "Node";
-  }
-
-  if (hasLabel(labels, "GraphProposal")) {
-    return "GraphProposal";
-  }
-
-  if (hasLabel(labels, "ProposedRelationship")) {
-    return "ProposedRelationship";
-  }
-
-  if (hasLabel(labels, "ProposedEntity")) {
-    const proposedLabels = parseJsonProperty(properties.proposedLabelsJson, []);
-    const displayLabels = Array.isArray(proposedLabels)
-      ? proposedLabels.map((label) => stableString(label)).filter(Boolean)
-      : [];
-    const preferredProposedLabel = displayLabels.find(
-      (label) => !["Entity", "Node", "ProposalItem", "ProposedEntity"].includes(label)
-    );
-
-    return preferredProposedLabel || displayLabels[0] || "ProposedEntity";
   }
 
   const priority = [
@@ -210,18 +234,6 @@ function pickNodeKind(labels, properties = {}) {
 
 function pickColorKey(kind) {
   const normalized = String(kind || "node").toLowerCase();
-
-  if (normalized.includes("graphproposal")) {
-    return "proposal";
-  }
-
-  if (
-    normalized.includes("proposalitem") ||
-    normalized.includes("proposedentity") ||
-    normalized.includes("proposedrelationship")
-  ) {
-    return "genre";
-  }
 
   if (normalized.includes("artist") || normalized.includes("band")) {
     return "artist";
@@ -308,14 +320,6 @@ function pickRelationshipStyle(type) {
 }
 
 function pickNodeSubtitle(kind, labels, properties) {
-  if (hasLabel(labels, "ProposedEntity")) {
-    const reviewStatus = stableString(properties.reviewStatus);
-    const canonicalStatus = stableString(properties.canonicalStatus);
-    const status = reviewStatus || canonicalStatus;
-
-    return status ? `Proposed ${kind} · ${status}` : `Proposed ${kind}`;
-  }
-
   const candidates = [
     properties.role,
     properties.type,
@@ -373,19 +377,19 @@ function normalizeRelationshipRecord(record) {
     type,
     styleKey: pickRelationshipStyle(type),
     summary: {
-      propertyCount: Object.keys(toNativeValue(record.properties || {})).length
+      propertyCount: Object.keys(visibleProperties(record.properties || {})).length
     }
   };
 }
 
-function isProposalRelationshipItem(record) {
-  return hasLabel(record?.labels, "ProposedRelationship");
+function isHiddenHousekeepingNode(record) {
+  return hasHiddenLabel(record?.labels);
 }
 
 function shouldHideRelationshipRecord(record) {
   const type = stableString(record?.type).toUpperCase();
 
-  return type === "PROPOSED_SOURCE" || type === "PROPOSED_TARGET";
+  return HIDDEN_GRAPH_RELATIONSHIP_TYPES.includes(type);
 }
 
 function countMeaningfulProperties(properties) {
@@ -657,7 +661,7 @@ function summarizeGraph(nodes, relationships, diagnostics = {}) {
 }
 
 function transformGraphRecords(seedRecord, rawNodes, rawRelationships, diagnostics = {}) {
-  const visibleRawNodes = (rawNodes || []).filter((node) => !isProposalRelationshipItem(node));
+  const visibleRawNodes = (rawNodes || []).filter((node) => !isHiddenHousekeepingNode(node));
   const visibleNodeIds = new Set(visibleRawNodes.map((node) => stableString(node.id)));
   const visibleRawRelationships = (rawRelationships || []).filter(
     (relationship) =>
@@ -705,8 +709,8 @@ function transformGraphRecords(seedRecord, rawNodes, rawRelationships, diagnosti
       seedNodeId: seedId,
       ...summarizeGraph(nodes, normalizedRelationships, {
         ...diagnostics,
-        hiddenProposalRelationshipItemCount: (rawNodes || []).filter(isProposalRelationshipItem).length,
-        hiddenProposalScaffoldEdgeCount: (rawRelationships || []).filter(shouldHideRelationshipRecord).length,
+        hiddenHousekeepingNodeCount: (rawNodes || []).filter(isHiddenHousekeepingNode).length,
+        hiddenHousekeepingEdgeCount: (rawRelationships || []).filter(shouldHideRelationshipRecord).length,
         ...collapsedGraph.diagnostics
       })
     }
@@ -746,13 +750,16 @@ async function searchGraphSeeds(query, limit = DEFAULT_SEARCH_LIMIT) {
         toString(n.id),
         elementId(n)
       ) AS searchText
-    WHERE $query = "" OR toLower(searchText) CONTAINS toLower($query)
+    WHERE
+      none(label IN labels WHERE label IN $hiddenNodeLabels) AND
+      ($query = "" OR toLower(searchText) CONTAINS toLower($query))
     RETURN id, labels, properties, degree, searchText
     ORDER BY degree DESC, toLower(searchText) ASC, id ASC
     LIMIT $limit
   `;
   const records = await runRead(cypher, {
     query: normalizedQuery,
+    hiddenNodeLabels: HIDDEN_GRAPH_NODE_LABELS,
     limit: toCypherInteger(boundedLimit)
   });
 
@@ -815,44 +822,6 @@ async function searchGraphSeeds(query, limit = DEFAULT_SEARCH_LIMIT) {
     .slice(0, boundedLimit);
 }
 
-async function findGraphProposalSeed(proposalId) {
-  const normalizedProposalId = stableString(proposalId);
-
-  if (!normalizedProposalId) {
-    return null;
-  }
-
-  const cypher = `
-    MATCH (proposal:GraphProposal {id: $proposalId})
-    RETURN
-      elementId(proposal) AS id,
-      labels(proposal) AS labels,
-      properties(proposal) AS properties,
-      count { (proposal)--() } AS degree
-    LIMIT 1
-  `;
-  const records = await runRead(cypher, { proposalId: normalizedProposalId });
-  const record = records[0];
-
-  if (!record) {
-    return null;
-  }
-
-  const properties = toNativeValue(record.properties || {});
-  const labels = Array.isArray(record.labels) ? record.labels.map((label) => stableString(label)) : [];
-  const kind = pickNodeKind(labels, properties);
-  const label = pickNodeLabel(properties, stableString(record.id));
-
-  return {
-    id: stableString(record.id),
-    label,
-    kind,
-    colorKey: pickColorKey(kind),
-    subtitle: pickNodeSubtitle(kind, labels, properties),
-    degree: Number(toNativeValue(record.degree) || 0)
-  };
-}
-
 async function fetchSeededGraph(seedId, options = {}) {
   const normalizedSeedId = stableString(seedId);
 
@@ -871,7 +840,7 @@ async function fetchSeededGraph(seedId, options = {}) {
   const pathLimit = clampInteger(options.pathLimit, 1, 400, DEFAULT_PATH_LIMIT);
   const cypher = `
     MATCH (seed)
-    WHERE elementId(seed) = $seedId
+    WHERE elementId(seed) = $seedId AND none(label IN labels(seed) WHERE label IN $hiddenNodeLabels)
     CALL {
       WITH seed
       OPTIONAL MATCH p = (seed)-[*1..${depth}]-(neighbor)
@@ -914,6 +883,7 @@ async function fetchSeededGraph(seedId, options = {}) {
   `;
   const records = await runRead(cypher, {
     seedId: normalizedSeedId,
+    hiddenNodeLabels: HIDDEN_GRAPH_NODE_LABELS,
     maxNodes: toCypherInteger(maxNodes),
     maxEdges: toCypherInteger(maxEdges),
     pathLimit: toCypherInteger(pathLimit)
@@ -973,17 +943,20 @@ async function getNodeDetail(nodeId) {
 
   const cypher = `
     MATCH (n)
-    WHERE elementId(n) = $nodeId
+    WHERE elementId(n) = $nodeId AND none(label IN labels(n) WHERE label IN $hiddenNodeLabels)
     CALL {
       WITH n
       OPTIONAL MATCH (n)-[r]-()
+      WHERE NOT type(r) IN $hiddenRelationshipTypes
       RETURN count(r) AS relationshipCount
     }
     CALL {
       WITH n
       OPTIONAL MATCH (n)-[r]-()
       WITH type(r) AS relationshipType, count(*) AS count
-      WHERE relationshipType IS NOT NULL
+      WHERE
+        relationshipType IS NOT NULL AND
+        NOT relationshipType IN $hiddenRelationshipTypes
       ORDER BY count DESC, relationshipType ASC
       RETURN collect({ type: relationshipType, count: count })[..$relationshipTypeLimit] AS relationshipTypes
     }
@@ -998,6 +971,8 @@ async function getNodeDetail(nodeId) {
   `;
   const records = await runRead(cypher, {
     nodeId: normalizedNodeId,
+    hiddenNodeLabels: HIDDEN_GRAPH_NODE_LABELS,
+    hiddenRelationshipTypes: HIDDEN_GRAPH_RELATIONSHIP_TYPES,
     relationshipTypeLimit: toCypherInteger(DEFAULT_DETAIL_RELATIONSHIP_TYPE_LIMIT)
   });
   const payload = records[0];
@@ -1017,7 +992,7 @@ async function getNodeDetail(nodeId) {
     label: pickNodeLabel(properties, normalizedNodeId),
     kind,
     labels,
-    properties,
+    properties: visibleProperties(properties),
     relationshipCount: Number(toNativeValue(payload.relationshipCount) || 0),
     relationshipTypes: toNativeValue(payload.relationshipTypes || [])
   };
@@ -1026,7 +1001,6 @@ async function getNodeDetail(nodeId) {
 module.exports = {
   expandGraphNode,
   fetchSeededGraph,
-  findGraphProposalSeed,
   getNodeDetail,
   searchGraphSeeds
 };
