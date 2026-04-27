@@ -75,6 +75,7 @@ Current workbench shape:
 - chat-derived domain graph persistence
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
+- post-run quality assessment writes `run_quality_assessment` tape entries after completed chat/graph runs
 - graph writes persist real domain relationships; relationship examples are guidance, not an allow-list
 - `canonicalStatus` / `isProposed` are hidden maintenance metadata and must not be overwritten on existing canonized graph objects
 

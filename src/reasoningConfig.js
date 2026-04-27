@@ -15,6 +15,7 @@ const REASONING_STAGES = {
   GRAPH_PLAN: "graph_plan",
   GRAPH_GROUNDING: "graph_grounding",
   HUMAN_LOOP: "human_loop",
+  RUN_REVIEW: "run_review",
   MAINTENANCE: "maintenance"
 };
 
@@ -41,6 +42,10 @@ const STAGE_CONFIG = {
   },
   [REASONING_STAGES.HUMAN_LOOP]: {
     envKey: "OPENAI_REASONING_EFFORT_HUMAN_LOOP",
+    defaultEffort: "low"
+  },
+  [REASONING_STAGES.RUN_REVIEW]: {
+    envKey: "OPENAI_REASONING_EFFORT_RUN_REVIEW",
     defaultEffort: "low"
   },
   [REASONING_STAGES.MAINTENANCE]: {

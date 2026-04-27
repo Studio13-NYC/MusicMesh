@@ -12,6 +12,7 @@ const {
 const { createAssistantReply } = require("../../shared/chatService");
 const { runChatTurnPipeline } = require("../../shared/graphChatOrchestrator");
 const { resolveChatGraphSyncTimeoutMs } = require("../../shared/reasoningConfig");
+const { queueRunQualityAssessment } = require("../../shared/runQualityAssessment");
 
 const SYSTEM_PROMPT_PATH = path.join(__dirname, "..", "..", "content", "MUSICMESH_CHAT_SYSTEM_PROMPT.md");
 
@@ -244,9 +245,30 @@ app.http("chat", {
               graphPipeline: deferredGraphPipeline,
               deferred: true
             });
+            queueRunQualityAssessment({
+              requestId,
+              threadId,
+              prompt,
+              assistantText,
+              responseId: assistantReply.responseId,
+              graphPipeline: deferredGraphPipeline,
+              graphPending: false,
+              tapeEventIds: [userEntry.id, assistantEntry.id]
+            });
           })
           .catch(async (error) => {
             await appendGraphPipelineFailed({ requestId, threadId, error, deferred: true });
+            queueRunQualityAssessment({
+              requestId,
+              threadId,
+              prompt,
+              assistantText,
+              responseId: assistantReply.responseId,
+              graphPipeline,
+              graphPending: false,
+              graphErrorMessage: error.message || "Graph pipeline failed.",
+              tapeEventIds: [userEntry.id, assistantEntry.id]
+            });
           });
       } else {
         await appendGraphPipelineCompleted({
@@ -270,6 +292,19 @@ app.http("chat", {
           tapeEventIds: [userEntry.id, assistantEntry.id]
         }
       });
+
+      if (!graphWaitResult.timedOut) {
+        queueRunQualityAssessment({
+          requestId,
+          threadId,
+          prompt,
+          assistantText,
+          responseId: assistantReply.responseId,
+          graphPipeline,
+          graphPending: false,
+          tapeEventIds: [userEntry.id, assistantEntry.id]
+        });
+      }
 
       return jsonResponse(200, {
         threadId,

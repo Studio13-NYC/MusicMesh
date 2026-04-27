@@ -12,6 +12,7 @@ MusicMesh has one user-facing graph creation path: chat.
 4. `graphChatOrchestrator.groundGraphPlan` asks the LLM to resolve planned entities against Neo4j candidates.
 5. `graphDomainWriter.persistChatGraph` MERGEs domain nodes and real relationship types directly.
 6. The graph workbench loads from `graphAnchorId`, which is a real music-domain node.
+7. `runQualityAssessment` reviews the completed run from the prompt, assistant output, conversation tape, and runtime events, then writes a `run_quality_assessment` tape entry.
 
 ## Visible Model
 
@@ -69,8 +70,11 @@ Reasoning effort is configured by pipeline stage through environment variables, 
 - graph planning defaults to `medium`
 - canon grounding defaults to `high`
 - human-in-the-loop clarification defaults to `low`
+- post-run quality review defaults to `low`
 
 The runtime emits one durable telemetry event for each OpenAI Responses API call: `llm_call_completed` or `llm_call_failed`. These events include the stage, model, selected reasoning effort, env source, response id, duration, status, token usage, and reasoning-token usage when the API returns it.
+
+After a run completes, the post-run reviewer emits `run_quality_assessment_started`, `run_quality_assessment_completed`, or `run_quality_assessment_failed`. Completed reviews assess answering the prompt, speed, process efficiency, bugs or anomalies, and suggested system enhancements.
 
 In deployed Static Web Apps, chat answers return before the graph pipeline can hit the platform backend timeout. If graph persistence takes longer than `MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS`, the response carries `graphPending: true`; the graph pipeline continues as a deferred update and writes a `graph_update` tape entry when it finishes.
 

@@ -77,6 +77,7 @@ Reasoning effort is stage-specific and can be configured with the same environme
 | `OPENAI_REASONING_EFFORT_GRAPH_PLAN` | `medium` | deriving graph structure from the answer |
 | `OPENAI_REASONING_EFFORT_GRAPH_GROUNDING` | `high` | canon matching and duplicate avoidance |
 | `OPENAI_REASONING_EFFORT_HUMAN_LOOP` | `low` | short human-in-the-loop clarification |
+| `OPENAI_REASONING_EFFORT_RUN_REVIEW` | `low` | post-run assessment of answer quality, speed, efficiency, anomalies, and enhancements |
 | `OPENAI_REASONING_EFFORT_MAINTENANCE` | `high` | offline maintenance/eval-style work |
 
 Legacy `OPENAI_REASONING_EFFORT` remains supported as a compatibility fallback.
@@ -107,6 +108,8 @@ Tape and runtime NDJSON logs under `output/chat/` are written by the local Node 
 | **This repo** | No Application Insights SDK in the React app or the local Node server. |
 
 Every OpenAI Responses API call emits an `llm_call_completed` or `llm_call_failed` runtime event with stage, model, requested reasoning effort, env source, duration, response id, status, token usage, and reasoning token usage when returned by the API. To summarize long-term local or blob-backed logs:
+
+After each completed chat run, the post-run reviewer writes a `run_quality_assessment` tape entry and emits `run_quality_assessment_started`, `run_quality_assessment_completed`, or `run_quality_assessment_failed` runtime events. The review is append-only and uses the existing tape/runtime logs plus the assistant output; it does not change graph state.
 
 ```powershell
 npm run llm:report

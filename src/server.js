@@ -19,6 +19,7 @@ const {
 const { runChatTurnPipeline } = require("./graphChatOrchestrator");
 const { createAssistantReply, DEFAULT_MODEL } = require("./chatService");
 const { resolveChatGraphSyncTimeoutMs } = require("./reasoningConfig");
+const { queueRunQualityAssessment } = require("./runQualityAssessment");
 
 const DEFAULT_PORT = Number(process.env.MUSICMESH_API_PORT || 43101);
 const SYSTEM_PROMPT_PATH = path.join(
@@ -284,9 +285,30 @@ async function handleChat(request, response) {
             graphPipeline: deferredGraphPipeline,
             deferred: true
           });
+          queueRunQualityAssessment({
+            requestId,
+            threadId,
+            prompt,
+            assistantText,
+            responseId: assistantReply.responseId,
+            graphPipeline: deferredGraphPipeline,
+            graphPending: false,
+            tapeEventIds: [userEntry.id, assistantEntry.id]
+          });
         })
         .catch(async (error) => {
           await appendGraphPipelineFailed({ requestId, threadId, error, deferred: true });
+          queueRunQualityAssessment({
+            requestId,
+            threadId,
+            prompt,
+            assistantText,
+            responseId: assistantReply.responseId,
+            graphPipeline,
+            graphPending: false,
+            graphErrorMessage: error.message || "Graph pipeline failed.",
+            tapeEventIds: [userEntry.id, assistantEntry.id]
+          });
         });
     } else {
       await appendGraphPipelineCompleted({
@@ -310,6 +332,19 @@ async function handleChat(request, response) {
         tapeEventIds: [userEntry.id, assistantEntry.id]
       }
     });
+
+    if (!graphWaitResult.timedOut) {
+      queueRunQualityAssessment({
+        requestId,
+        threadId,
+        prompt,
+        assistantText,
+        responseId: assistantReply.responseId,
+        graphPipeline,
+        graphPending: false,
+        tapeEventIds: [userEntry.id, assistantEntry.id]
+      });
+    }
   } catch (error) {
     await appendTapeEntry({
       id: createId("evt"),
