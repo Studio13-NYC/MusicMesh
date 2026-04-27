@@ -119,7 +119,6 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
 
     const cy = cytoscape({
       container: containerRef.current,
-      wheelSensitivity: 0.16,
       elements: [],
       style: [
         {
@@ -167,9 +166,9 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
           style: {
             "border-width": 3,
             "border-color": "#ffffff",
-            "shadow-blur": 26,
-            "shadow-color": "#7ec8ff",
-            "shadow-opacity": 0.6
+            "underlay-color": "#7ec8ff",
+            "underlay-opacity": 0.26,
+            "underlay-padding": 8
           }
         },
         {
@@ -183,9 +182,9 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
         {
           selector: ".is-hovered",
           style: {
-            "shadow-blur": 18,
-            "shadow-color": "#ffffff",
-            "shadow-opacity": 0.44
+            "underlay-color": "#ffffff",
+            "underlay-opacity": 0.18,
+            "underlay-padding": 5
           }
         }
       ]
