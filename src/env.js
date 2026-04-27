@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { getReasoningEnvKeys } = require("./reasoningConfig");
 
 const ENV_PATH = path.join(process.cwd(), ".env");
 
@@ -14,7 +15,7 @@ const requiredEnvKeys = [
 const optionalEnvKeys = [
   "BRAVE_API_KEY",
   "DISCOGS_TOKEN",
-  "OPENAI_REASONING_EFFORT",
+  ...getReasoningEnvKeys(),
   "MUSICMESH_HTTP_USER_AGENT",
   "MUSICMESH_BLOB_CONNECTION_STRING",
   "MUSICMESH_BLOB_CONTAINER",

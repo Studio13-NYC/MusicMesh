@@ -65,7 +65,19 @@ Configure required keys on the Static Web App (or linked Function settings) the 
 
 Optional keys are listed in `src/env.js`. **Note:** the hosted Function does not use Neo4j for chat today, but validation still expects those variables until that requirement is split for “chat-only” deployments.
 
-For the current OpenAI chat path, `OPENAI_MODEL` can override the default model and `OPENAI_REASONING_EFFORT` can override the default reasoning effort.
+For the current OpenAI chat path, `OPENAI_MODEL` can override the default model. Reasoning effort is stage-specific and can be configured with the same environment variable names locally or in Azure app settings:
+
+| Variable | Default | Used for |
+|----------|---------|----------|
+| `OPENAI_REASONING_EFFORT_DEFAULT` | `medium` | fallback for any stage without a more specific setting |
+| `OPENAI_REASONING_EFFORT_KNOWLEDGE` | `low` | direct answer from model knowledge |
+| `OPENAI_REASONING_EFFORT_CHAT_COMPLEX` | `medium` | longer or multi-turn answer synthesis |
+| `OPENAI_REASONING_EFFORT_GRAPH_PLAN` | `medium` | deriving graph structure from the answer |
+| `OPENAI_REASONING_EFFORT_GRAPH_GROUNDING` | `high` | canon matching and duplicate avoidance |
+| `OPENAI_REASONING_EFFORT_HUMAN_LOOP` | `low` | short human-in-the-loop clarification |
+| `OPENAI_REASONING_EFFORT_MAINTENANCE` | `high` | offline maintenance/eval-style work |
+
+Legacy `OPENAI_REASONING_EFFORT` remains supported as a compatibility fallback.
 
 ### SPA routing
 
@@ -86,6 +98,18 @@ Tape and runtime NDJSON logs under `output/chat/` are written by the local Node 
 | **Local API** | `console.log` on the Node process; structured events in `output/chat/runtime-events.ndjson` by default, or Azure Blob when blob persistence is configured. |
 | **Azure Functions** | Platform logging via Application Insights plus append-only tape/runtime blobs when `MUSICMESH_BLOB_CONNECTION_STRING` is configured. |
 | **This repo** | No Application Insights SDK in the React app or the local Node server. |
+
+Every OpenAI Responses API call emits an `llm_call_completed` or `llm_call_failed` runtime event with stage, model, requested reasoning effort, env source, duration, response id, status, token usage, and reasoning token usage when returned by the API. To summarize long-term local or blob-backed logs:
+
+```powershell
+npm run llm:report
+```
+
+Pass a numeric limit to summarize only the most recent runtime events:
+
+```powershell
+npm run llm:report -- 500
+```
 
 **Azure (MusicMesh):** resource group `rg-musicmesh` includes an Application Insights component **`appi-musicmesh`**. The Static Web App **`swa-musicmesh`** app settings include `APPLICATIONINSIGHTS_CONNECTION_STRING` and `ApplicationInsightsAgent_EXTENSION_VERSION=~3` so the integrated Functions host can emit telemetry. Use **Azure portal → Application Insights → Logs / Live metrics** (or SWA **Monitoring**) after deployments.
 

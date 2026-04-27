@@ -1,8 +1,17 @@
 const fs = require("fs");
 const { validateEnv } = require("./env");
+const {
+  REASONING_STAGES,
+  resolveChatAnswerReasoningStage,
+  resolveReasoningEffort
+} = require("./reasoningConfig");
+const {
+  recordLlmCallCompleted,
+  recordLlmCallFailed
+} = require("./llmTelemetry");
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
-const DEFAULT_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || "medium";
+const DEFAULT_REASONING_EFFORT = resolveReasoningEffort().effort;
 
 function buildInputFromMessages(messages, prompt) {
   const input = Array.isArray(messages)
@@ -56,14 +65,27 @@ async function callResponsesApi({
   input,
   instructions,
   threadId,
-  purpose
+  purpose,
+  reasoningStage = REASONING_STAGES.KNOWLEDGE,
+  telemetryContext = {}
 }) {
   const envResult = validateEnv();
+  const reasoningConfig = resolveReasoningEffort(reasoningStage);
+  const startedAt = Date.now();
 
   if (!envResult.isValid) {
-    throw new Error(
-      "MusicMesh chat is missing required environment variables (see validateEnv / SWA app settings)."
-    );
+    const errorMessage =
+      "MusicMesh chat is missing required environment variables (see validateEnv / SWA app settings).";
+    await recordLlmCallFailed({
+      telemetryContext,
+      stage: reasoningStage,
+      model: DEFAULT_MODEL,
+      reasoningConfig,
+      startedAt,
+      errorCode: "missing_environment",
+      errorMessage
+    });
+    throw new Error(errorMessage);
   }
 
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -77,35 +99,64 @@ async function callResponsesApi({
       input,
       instructions,
       reasoning: {
-        effort: DEFAULT_REASONING_EFFORT
+        effort: reasoningConfig.effort
       }
     })
   });
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(
-      `OpenAI ${purpose} request failed for thread ${threadId}: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`
-    );
+    const errorMessage =
+      `OpenAI ${purpose} request failed for thread ${threadId}: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`;
+    await recordLlmCallFailed({
+      telemetryContext,
+      stage: reasoningStage,
+      model: DEFAULT_MODEL,
+      reasoningConfig,
+      startedAt,
+      status: String(response.status),
+      errorCode: "openai_http_error",
+      errorMessage: errorMessage.slice(0, 1000)
+    });
+    throw new Error(errorMessage);
   }
 
-  return response.json();
+  const payload = await response.json();
+  await recordLlmCallCompleted({
+    telemetryContext,
+    stage: reasoningStage,
+    model: DEFAULT_MODEL,
+    reasoningConfig,
+    startedAt,
+    payload
+  });
+
+  return payload;
 }
 
 async function createAssistantReply({
   prompt,
   messages,
   threadId,
-  systemPromptPath
+  systemPromptPath,
+  reasoningStage,
+  telemetryContext = {}
 }) {
   const input = buildInputFromMessages(messages, prompt);
   const instructions = loadSystemPrompt(systemPromptPath);
+  const selectedReasoningStage = reasoningStage ||
+    resolveChatAnswerReasoningStage({ prompt, messages });
 
   const payload = await callResponsesApi({
     threadId,
     purpose: "chat",
     input: input,
-    instructions
+    instructions,
+    reasoningStage: selectedReasoningStage,
+    telemetryContext: {
+      ...telemetryContext,
+      purpose: "chat"
+    }
   });
 
   const text = getOutputText(payload);
@@ -116,7 +167,8 @@ async function createAssistantReply({
 
   return {
     responseId: payload.id || null,
-    text
+    text,
+    reasoningStage: selectedReasoningStage
   };
 }
 

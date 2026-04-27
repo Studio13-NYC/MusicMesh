@@ -1,9 +1,11 @@
 const { validateEnv } = require("./env");
 const { inspectSchema, lookupCanonEntities } = require("./graphCanonRepository");
 const { ALLOWED_NODE_LABELS, persistChatGraph, sanitizeIdentifier, stableString } = require("./graphDomainWriter");
+const { REASONING_STAGES, resolveReasoningEffort } = require("./reasoningConfig");
+const { recordLlmCallCompleted, recordLlmCallFailed } = require("./llmTelemetry");
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
-const DEFAULT_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || "medium";
+const DEFAULT_REASONING_EFFORT = resolveReasoningEffort().effort;
 const RELATIONSHIP_EXAMPLES = [
   "MEMBER_OF",
   "IS_A_TRACK_ON",
@@ -58,11 +60,29 @@ function getOutputText(payload) {
     .join("");
 }
 
-async function callStructuredModel({ instructions, input, purpose, reasoningEffort = "low" }) {
+async function callStructuredModel({
+  instructions,
+  input,
+  purpose,
+  reasoningStage = REASONING_STAGES.DEFAULT,
+  telemetryContext = {}
+}) {
   const envResult = validateEnv();
+  const reasoningConfig = resolveReasoningEffort(reasoningStage);
+  const startedAt = Date.now();
 
   if (!envResult.isValid) {
-    throw new Error(`Cannot run ${purpose}: missing MusicMesh environment variables.`);
+    const errorMessage = `Cannot run ${purpose}: missing MusicMesh environment variables.`;
+    await recordLlmCallFailed({
+      telemetryContext,
+      stage: reasoningStage,
+      model: DEFAULT_MODEL,
+      reasoningConfig,
+      startedAt,
+      errorCode: "missing_environment",
+      errorMessage
+    });
+    throw new Error(errorMessage);
   }
 
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -81,24 +101,56 @@ async function callStructuredModel({ instructions, input, purpose, reasoningEffo
         }
       ],
       reasoning: {
-        effort: reasoningEffort
+        effort: reasoningConfig.effort
       }
     })
   });
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(
-      `OpenAI ${purpose} request failed: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`
-    );
+    const errorMessage =
+      `OpenAI ${purpose} request failed: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`;
+    await recordLlmCallFailed({
+      telemetryContext,
+      stage: reasoningStage,
+      model: DEFAULT_MODEL,
+      reasoningConfig,
+      startedAt,
+      status: String(response.status),
+      errorCode: "openai_http_error",
+      errorMessage: errorMessage.slice(0, 1000)
+    });
+    throw new Error(errorMessage);
   }
 
   const payload = await response.json();
   const parsed = parseJsonObject(getOutputText(payload));
 
   if (!parsed || typeof parsed !== "object") {
-    throw new Error(`OpenAI ${purpose} returned invalid JSON.`);
+    const errorMessage = `OpenAI ${purpose} returned invalid JSON.`;
+    await recordLlmCallFailed({
+      telemetryContext,
+      stage: reasoningStage,
+      model: DEFAULT_MODEL,
+      reasoningConfig,
+      startedAt,
+      responseId: payload.id || null,
+      status: payload.status || "completed",
+      errorCode: "invalid_json",
+      errorMessage,
+      payload
+    });
+    throw new Error(errorMessage);
   }
+
+  await recordLlmCallCompleted({
+    telemetryContext,
+    stage: reasoningStage,
+    model: DEFAULT_MODEL,
+    reasoningConfig,
+    startedAt,
+    payload
+  });
 
   return parsed;
 }
@@ -204,7 +256,7 @@ function normalizeGraphPlan(rawPlan) {
   };
 }
 
-async function planGraphFromAnswer({ prompt, messages, assistantText }) {
+async function planGraphFromAnswer({ prompt, messages, assistantText, telemetryContext = {} }) {
   const instructions = [
     "Read the user request, recent messages, and assistant answer.",
     "Decide whether this turn should produce graph data.",
@@ -234,7 +286,11 @@ async function planGraphFromAnswer({ prompt, messages, assistantText }) {
     instructions,
     input,
     purpose: "graph_plan",
-    reasoningEffort: DEFAULT_REASONING_EFFORT
+    reasoningStage: REASONING_STAGES.GRAPH_PLAN,
+    telemetryContext: {
+      ...telemetryContext,
+      purpose: "graph_plan"
+    }
   });
 
   return normalizeGraphPlan(rawPlan);
@@ -330,7 +386,7 @@ function validateGroundedGraph(rawGrounded, plan, canonLookups) {
   };
 }
 
-async function groundGraphPlan(plan) {
+async function groundGraphPlan(plan, { telemetryContext = {} } = {}) {
   const [schema, canonLookups] = await Promise.all([
     inspectSchema(),
     lookupCanonEntities(plan.entities, { limit: 5 })
@@ -359,13 +415,23 @@ async function groundGraphPlan(plan) {
     instructions,
     input,
     purpose: "graph_grounding",
-    reasoningEffort: DEFAULT_REASONING_EFFORT
+    reasoningStage: REASONING_STAGES.GRAPH_GROUNDING,
+    telemetryContext: {
+      ...telemetryContext,
+      purpose: "graph_grounding"
+    }
   });
 
   return validateGroundedGraph(rawGrounded, plan, canonLookups);
 }
 
-async function createHumanLoopMessage({ prompt, plan, groundedGraph, errorMessage }) {
+async function createHumanLoopMessage({
+  prompt,
+  plan,
+  groundedGraph,
+  errorMessage,
+  telemetryContext = {}
+}) {
   const instructions = [
     "If the graph cannot be persisted safely, ask the human for the smallest useful next decision.",
     "Offer concrete options: narrow scope, provide entities, inspect canon first, or answer without graph persistence.",
@@ -388,7 +454,11 @@ async function createHumanLoopMessage({ prompt, plan, groundedGraph, errorMessag
       instructions: `${instructions}\nReturn JSON only: { message }.`,
       input,
       purpose: "graph_human_loop",
-      reasoningEffort: "low"
+      reasoningStage: REASONING_STAGES.HUMAN_LOOP,
+      telemetryContext: {
+        ...telemetryContext,
+        purpose: "graph_human_loop"
+      }
     });
 
     return stableString(payload.message) ||
@@ -398,7 +468,14 @@ async function createHumanLoopMessage({ prompt, plan, groundedGraph, errorMessag
   }
 }
 
-async function runChatTurnPipeline({ prompt, messages, assistantText, threadId, turnId }) {
+async function runChatTurnPipeline({
+  prompt,
+  messages,
+  assistantText,
+  threadId,
+  turnId,
+  telemetryContext = {}
+}) {
   const resultBase = {
     mode: "answer_only",
     graphAnchorId: null,
@@ -415,9 +492,13 @@ async function runChatTurnPipeline({ prompt, messages, assistantText, threadId, 
   let plan;
 
   try {
-    plan = await planGraphFromAnswer({ prompt, messages, assistantText });
+    plan = await planGraphFromAnswer({ prompt, messages, assistantText, telemetryContext });
   } catch (error) {
-    const humanMessage = await createHumanLoopMessage({ prompt, errorMessage: error.message });
+    const humanMessage = await createHumanLoopMessage({
+      prompt,
+      errorMessage: error.message,
+      telemetryContext
+    });
 
     return {
       ...resultBase,
@@ -441,7 +522,7 @@ async function runChatTurnPipeline({ prompt, messages, assistantText, threadId, 
   }
 
   if (plan.mode === "needs_human_input" || plan.humanInputNeeded) {
-    const humanMessage = await createHumanLoopMessage({ prompt, plan });
+    const humanMessage = await createHumanLoopMessage({ prompt, plan, telemetryContext });
 
     return {
       ...resultBase,
@@ -455,12 +536,13 @@ async function runChatTurnPipeline({ prompt, messages, assistantText, threadId, 
   let groundedGraph;
 
   try {
-    groundedGraph = await groundGraphPlan(plan);
+    groundedGraph = await groundGraphPlan(plan, { telemetryContext });
   } catch (error) {
     const humanMessage = await createHumanLoopMessage({
       prompt,
       plan,
-      errorMessage: error.message
+      errorMessage: error.message,
+      telemetryContext
     });
 
     return {
@@ -478,7 +560,12 @@ async function runChatTurnPipeline({ prompt, messages, assistantText, threadId, 
     groundedGraph.nodes.length === 0 ||
     (groundedGraph.relationships.length === 0 && plan.relationships.length > 0)
   ) {
-    const humanMessage = await createHumanLoopMessage({ prompt, plan, groundedGraph });
+    const humanMessage = await createHumanLoopMessage({
+      prompt,
+      plan,
+      groundedGraph,
+      telemetryContext
+    });
 
     return {
       ...resultBase,

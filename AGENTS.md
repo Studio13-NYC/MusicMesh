@@ -177,6 +177,7 @@ npm run check
 npm run smoke
 npm run smoke:playwright
 npm run tape -- 50
+npm run llm:report
 ```
 
 What they currently prove:
@@ -205,6 +206,8 @@ What they currently prove:
   - proves browser automation works and writes a screenshot artifact
 - `npm run tape -- 50`
   - inspects recent conversation tape entries from the terminal
+- `npm run llm:report`
+  - summarizes LLM reasoning effort, latency, token usage, and graph outcome telemetry from runtime events
 
 Current screenshot artifact:
 
@@ -227,7 +230,16 @@ Current optional env keys:
 - `BRAVE_API_KEY`
 - `DISCOGS_TOKEN`
 - `OPENAI_REASONING_EFFORT`
+- `OPENAI_REASONING_EFFORT_DEFAULT`
+- `OPENAI_REASONING_EFFORT_KNOWLEDGE`
+- `OPENAI_REASONING_EFFORT_CHAT_COMPLEX`
+- `OPENAI_REASONING_EFFORT_GRAPH_PLAN`
+- `OPENAI_REASONING_EFFORT_GRAPH_GROUNDING`
+- `OPENAI_REASONING_EFFORT_HUMAN_LOOP`
+- `OPENAI_REASONING_EFFORT_MAINTENANCE`
 - `MUSICMESH_HTTP_USER_AGENT`
+- `MUSICMESH_BLOB_CONNECTION_STRING`
+- `MUSICMESH_BLOB_CONTAINER`
 - `AURA_INSTANCEID`
 - `AURA_INSTANCENAME`
 
@@ -283,6 +295,7 @@ Before claiming work is done, run the smallest useful proof.
 - Do not treat browser completion as proof that persistence worked.
 - Pair live UI runs with saved-log inspection when persistence, graph writes, or runtime orchestration matters.
 - Use `npm run tape -- 50` to inspect recent conversation tape entries.
+- Use `npm run llm:report` to inspect long-term LLM stage and reasoning-effort telemetry.
 - Inspect `output/chat/runtime-events.ndjson` when diagnosing runtime behavior.
 - If a check cannot run, say exactly why and what remains unverified.
 

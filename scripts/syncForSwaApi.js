@@ -21,6 +21,8 @@ fs.mkdirSync(contentDir, { recursive: true });
 const copies = [
   ["src/env.js", "shared/env.js"],
   ["src/activityStore.js", "shared/activityStore.js"],
+  ["src/reasoningConfig.js", "shared/reasoningConfig.js"],
+  ["src/llmTelemetry.js", "shared/llmTelemetry.js"],
   ["src/chatService.js", "shared/chatService.js"],
   ["src/graphChatOrchestrator.js", "shared/graphChatOrchestrator.js"],
   ["src/graphDomainWriter.js", "shared/graphDomainWriter.js"],

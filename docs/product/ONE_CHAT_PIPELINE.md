@@ -60,6 +60,24 @@ If graph staging is unsafe, the LLM asks the human for the smallest useful next 
 
 ![LLM prompt map](../assets/pipeline-refactor/llm-prompt-map.png)
 
+## Reasoning Effort And Telemetry
+
+Reasoning effort is configured by pipeline stage through environment variables, with `OPENAI_REASONING_EFFORT` kept only as a compatibility fallback.
+
+- simple knowledge answers default to `low`
+- longer or multi-turn answer synthesis defaults to `medium`
+- graph planning defaults to `medium`
+- canon grounding defaults to `high`
+- human-in-the-loop clarification defaults to `low`
+
+The runtime emits one durable telemetry event for each OpenAI Responses API call: `llm_call_completed` or `llm_call_failed`. These events include the stage, model, selected reasoning effort, env source, response id, duration, status, token usage, and reasoning-token usage when the API returns it.
+
+Use this report to inspect long-term behavior by stage and reasoning setting:
+
+```powershell
+npm run llm:report
+```
+
 ## Fresh Headed Verification
 
 Most recent validation was run against current code from a freshly cleared Neo4j database:

@@ -27,6 +27,7 @@
     "test:e2e:local": "npm run build && npm run check:api && cross-env MUSICMESH_E2E=local playwright test",
     "test:e2e:deployed": "cross-env MUSICMESH_E2E=deployed playwright test",
     "tape": "node scripts/readConversationTape.js",
+    "llm:report": "node scripts/reportLlmTelemetry.js",
     "test": "node src/index.js --test"
   },
   "keywords": [],

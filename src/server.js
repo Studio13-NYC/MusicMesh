@@ -116,7 +116,12 @@ async function handleChat(request, response) {
       prompt,
       messages,
       threadId,
-      systemPromptPath: SYSTEM_PROMPT_PATH
+      systemPromptPath: SYSTEM_PROMPT_PATH,
+      telemetryContext: {
+        requestId,
+        threadId,
+        turnId: requestId
+      }
     });
 
     await appendRuntimeEvent({
@@ -134,7 +139,12 @@ async function handleChat(request, response) {
       messages,
       assistantText: assistantReply.text,
       threadId,
-      turnId: requestId
+      turnId: requestId,
+      telemetryContext: {
+        requestId,
+        threadId,
+        turnId: requestId
+      }
     });
     const assistantText = graphPipeline.humanInputNeeded && graphPipeline.humanMessage
       ? `${assistantReply.text}\n\n${graphPipeline.humanMessage}`

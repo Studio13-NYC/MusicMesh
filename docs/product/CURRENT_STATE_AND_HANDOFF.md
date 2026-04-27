@@ -117,6 +117,7 @@ Decision note:
 - run `npm start` to start the local API server
 - run `npm run dev` to work in the SPA
 - run `npm run tape -- 50` to inspect recent tape entries from the terminal
+- run `npm run llm:report` to summarize LLM stage, reasoning effort, latency, token, and graph outcome telemetry
 - treat the SPA as the main place to test the product experience
 - keep terminal scripts for startup and infrastructure validation
 - avoid rebuilding old architecture from the archive
