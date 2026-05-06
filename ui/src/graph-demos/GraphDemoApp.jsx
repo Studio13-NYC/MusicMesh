@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  expandGraphNode,
   fetchGraphSubgraph,
   fetchThreadFocusedGraph,
   fetchNodeDetail,
@@ -435,22 +434,31 @@ export function GraphDemoApp({
       return;
     }
 
+    const focusNode = graph.nodes.find((node) => node.id === nodeId) || selectedNode;
+
     setIsExpandLoading(true);
     setErrorMessage("");
 
     try {
-      const payload = await expandGraphNode(
-        nodeId,
-        graph.nodes.map((node) => node.id),
-        graph.edges.map((edge) => edge.id)
-      );
-      const nextGraph = mergeGraphPayload(graph, payload);
+      const payload = await fetchGraphSubgraph(nodeId);
 
-      rememberGraph(nextGraph, {
-        label: selectedNode?.label ? `Expanded ${selectedNode.label}` : "Expanded graph",
-        source: "expand"
+      rememberGraph(payload, {
+        label: payload.seedNode?.label || focusNode?.label || "Focused graph",
+        source: "focus"
       });
-      setFilters((currentFilters) => syncFilterState(currentFilters, nextGraph));
+      setFilters((currentFilters) => syncFilterState(currentFilters, payload));
+      suppressInspectOpenRef.current = true;
+      setSelectedElement(
+        payload.seedNode
+          ? {
+              type: "node",
+              id: payload.seedNode.id
+            }
+          : null
+      );
+      setHoveredElement(null);
+      setSearchQuery(payload.seedNode?.label || focusNode?.label || "");
+      setSearchStatus(`Centered ${payload.seedNode?.label || focusNode?.label || "selected node"}`);
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
