@@ -13,7 +13,7 @@ The worksurface exists to support the current chat session.
 The current shell has two persistent zones:
 
 1. primary chat pane
-2. worksurface pane
+2. graph/workflow workbench pane
 
 There is no implemented global rail or context navigation column in the current product.
 
@@ -31,20 +31,24 @@ Rules:
 - the composer stays visible
 - assistant output should be easy to scan
 
-## Worksurface Pane
+## Workbench Pane
 
-The worksurface contains:
+The workbench contains:
 
-- tape file path
-- runtime log path
-- recent tape entries
-- recent runtime events
+- a Graph tab for Cytoscape graph inspection
+- a Workflow tab for recent tape, runtime, and run-quality inspection
 
 Rules:
 
 - it stays subordinate to the chat
-- it is useful for inspection, not as a separate application
+- it is useful for inspection and comparison, not as a separate creation workflow
 - it should not visually dominate the chat
+
+Graph interaction rules:
+
+- `Back` and `Forward` redisplay graph views already seen without new research
+- double-clicking a node or pressing `Expand` centers that node and loads its connected graph
+- dragging a node changes layout only; it should not remove graph data or create a new history item
 
 ## Resizable Layout
 
@@ -53,7 +57,7 @@ The outer shell uses `react-resizable-panels`.
 Current behavior:
 
 - chat gets the larger default share
-- worksurface sits on the right
+- workbench sits on the right
 - the split is horizontally resizable
 
 ## Visual Direction

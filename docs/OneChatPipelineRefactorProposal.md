@@ -1,5 +1,13 @@
 # One Chat Pipeline Refactor Proposal
 
+Historical note: this file memorializes the implementation plan that drove the one-chat-pipeline refactor. It is not the current-state source of truth.
+
+For current behavior, use:
+
+- [Current State And Handoff](product/CURRENT_STATE_AND_HANDOFF.md)
+- [One Chat Pipeline](product/ONE_CHAT_PIPELINE.md)
+- [Execution Lessons](product/EXECUTION_LESSONS.md)
+
 ## Summary
 
 MusicMesh will have one user-facing path: chat. A chat turn answers the user, asks the LLM to derive graph-worthy domain structure from that same answer, grounds it against Neo4j canon, persists real music-domain nodes and relationships directly, and updates the graph workbench from those persisted entities.

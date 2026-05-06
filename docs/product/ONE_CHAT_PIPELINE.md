@@ -14,6 +14,17 @@ MusicMesh has one user-facing graph creation path: chat.
 6. The graph workbench loads from `graphAnchorId`, which is a real music-domain node.
 7. `runQualityAssessment` builds a compact operational packet from the prompt, assistant output, conversation tape, and runtime events, then asks the LLM to assess the completed run and writes a `run_quality_assessment` tape entry.
 
+## Graph Workbench Behavior
+
+The Graph tab is an inspection and comparison surface for graph results created through chat or loaded by seed search.
+
+- Search loads a seed-centered graph.
+- Chat focus loads the current answer's graph anchor when available.
+- Double-clicking a node centers that node and loads its connected subgraph.
+- `Expand` has the same centered-node behavior as double-click.
+- `Back` and `Forward` redisplay graph payloads that have already been shown; they do not call the LLM or run new graph research.
+- Dragging a node updates the current view layout only.
+
 ## Visible Model
 
 The user sees only music-domain graph objects:
@@ -114,9 +125,17 @@ Most recent validation was run against current code from a freshly cleared Neo4j
 
 The run also confirmed the relationship examples are not an allow-list. The LLM produced real domain types beyond the examples, including `RELEASED_ON_LABEL`, `HAS_GENRE`, and `ASSOCIATED_WITH_STYLE`.
 
+Recent graph-interaction verification confirmed:
+
+- `Back` / `Forward` restored already-seen `CBGB` and `Brian Eno` graph views with no graph API calls during history replay.
+- Dragging on the canvas did not change graph counts.
+- Double-clicking the centered `CBGB` node called `/api/graph-demo/subgraph` and did not call `/api/graph-demo/expand`.
+
 Screenshots from that run are in `output/playwright/`:
 
 - `fresh-headed-initial.png`
 - `fresh-headed-before-send.png`
 - `fresh-headed-after-rem.png`
 - `fresh-headed-workflow.png`
+- `graph-history-workbench.png`
+- `double-click-focus-workbench.png`

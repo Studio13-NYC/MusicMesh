@@ -16,7 +16,7 @@ The current SPA uses:
 The current UI is a single-page operator graph workbench served from `/` with:
 
 - a primary chat surface
-- a neighboring graph/workflow workbench panel
+- a neighboring Graph / Workflow workbench panel
 - a horizontal resizable split
 
 There is no client router or separate standalone graph page in the active UI.
@@ -30,15 +30,20 @@ The current shell supports:
 - a textarea composer with send action
 - a right-side workbench with graph and workflow tabs
 - graph seed search and Cytoscape graph inspection
+- graph browse filters, legend, selection, inspect, fit, and reset
+- graph view history with `Back` / `Forward` replay of already-seen graph payloads
+- double-click or `Expand` to center the selected node and load its connected subgraph
 - chat-driven graph persistence and graph-anchor loading
 - reading recent conversation tape entries from the local API
 - reading recent runtime events from the local API
+- surfacing recent run-quality assessment data in the Workflow tab
 
 ## What The UI Does Not Yet Do
 
 - token streaming
 - trace/database/artifact inspectors
 - deep routed workspace state
+- persistent cross-session graph view history
 
 ## Code Layout
 
@@ -52,6 +57,8 @@ Current important files:
 - `ui/src/operator-graph-demo/styles.css`
 - `ui/src/graph-demos/GraphDemoApp.jsx`
 - `ui/src/graph-demos/CytoscapeCanvas.jsx`
+- `ui/src/graph-demos/graphState.js`
+- `ui/src/graph-demos/api.js`
 - `ui/src/styles/app.css`
 
 Bootstrap and API code live separately in `src/`.

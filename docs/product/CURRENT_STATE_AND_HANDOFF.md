@@ -30,12 +30,14 @@ The live direction is:
 Primary contract doc:
 
 - [LLM_OPERATOR_CONTRACT_V1.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/LLM_OPERATOR_CONTRACT_V1.md)
+- [ONE_CHAT_PIPELINE.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/ONE_CHAT_PIPELINE.md)
+- [EXECUTION_LESSONS.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/EXECUTION_LESSONS.md)
 
 ## Infrastructure Reality
 
 The startup path is real and working.
 
-Verified commands:
+Core commands:
 
 - `npm run check`
 - `npm run startup`
@@ -51,6 +53,11 @@ What `npm run check` currently verifies:
 - Neo4j connectivity through MCP
 - OpenAI connectivity
 - Playwright availability
+
+Current local caveat:
+
+- if Docker Desktop is not running, `npm run check` fails at the Docker MCP gateway probe; that is blocked infrastructure, not an app bug
+- recent app-level checks passed with `npm run build` and `npm run check:api`
 
 ## Current UI Reality
 
@@ -72,6 +79,10 @@ Current workbench shape:
 - resizable layout
 - simple local API path for chat requests
 - graph seed search and Cytoscape graph inspection
+- graph browse filters and legend
+- node/relationship inspect drawer
+- `Back` / `Forward` graph history for views already shown, with no new graph research/API call
+- double-click or `Expand` centers the selected node and loads that node's connected subgraph
 - chat-derived domain graph persistence
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
@@ -88,6 +99,7 @@ Important limitation:
 - the Workflow rail surfaces the latest run-quality assessment before the raw tape/runtime event streams
 - chat and graph demo routes can read and write Neo4j through the local API
 - the graph rail prefers completed `graph_update` entries and falls back to the latest `graph_preview` while persistence is still running
+- the graph rail keeps richer local views from being collapsed by narrower focused-graph refreshes
 
 Build/deploy note:
 
@@ -106,6 +118,15 @@ Latest headed-browser proof from a cleared Neo4j database:
 - `PROPOSED_RELATIONSHIP` edges: `0`
 - runtime path: one chat pipeline sequence, not tool-call plus fallback plus proposal flow
 
+Latest graph-interaction proofs:
+
+- `Back` / `Forward` restored already-seen `CBGB` and `Brian Eno` graph views with `0` graph API requests during history navigation
+- dragging on the canvas did not change graph counts
+- double-clicking the centered `CBGB` node called `/api/graph-demo/subgraph` and did not call `/api/graph-demo/expand`
+- screenshots:
+  - [graph-history-workbench.png](/D:/Studio13/Lab/Code/MusicMesh/output/playwright/graph-history-workbench.png)
+  - [double-click-focus-workbench.png](/D:/Studio13/Lab/Code/MusicMesh/output/playwright/double-click-focus-workbench.png)
+
 Graph visualization decision:
 
 - Cytoscape is the chosen graph visualization path
@@ -115,6 +136,7 @@ Graph visualization decision:
 Decision note:
 
 - [GRAPH_VISUALIZATION_DECISION.md](/D:/Studio13/Lab/Code/MusicMesh/docs/ui/GRAPH_VISUALIZATION_DECISION.md)
+- [EXECUTION_LESSONS.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/EXECUTION_LESSONS.md)
 
 ## How The Next Agent Should Work
 
@@ -127,6 +149,7 @@ Decision note:
 - keep terminal scripts for startup and infrastructure validation
 - avoid rebuilding old architecture from the archive
 - prefer simple direct wiring over abstraction sprawl
+- verify product behavior in a headed browser when UI, graph, or persistence behavior changes
 
 ## Immediate Priority
 
@@ -135,3 +158,5 @@ The current repo is best used to test:
 - answer quality in the product shell
 - message rendering and interaction feel
 - tape and runtime-log visibility from the worksurface
+- graph focus/history/compare interactions
+- graph persistence and visualization staying aligned with the answer-owned chat workflow

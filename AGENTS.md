@@ -40,8 +40,10 @@ The active repo is intentionally narrow. Keep it small, legible, and oriented ar
 Product and process docs:
 
 - [LLM_OPERATOR_CONTRACT_V1.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/LLM_OPERATOR_CONTRACT_V1.md)
-- [roleplay-spec.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/roleplay-spec.md)
+- [ONE_CHAT_PIPELINE.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/ONE_CHAT_PIPELINE.md)
 - [CURRENT_STATE_AND_HANDOFF.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/CURRENT_STATE_AND_HANDOFF.md)
+- [EXECUTION_LESSONS.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/EXECUTION_LESSONS.md)
+- [roleplay-spec.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/roleplay-spec.md)
 - [project_startup_guide.md](/D:/Studio13/Lab/Code/MusicMesh/docs/project_startup_guide.md)
 
 Current runtime and bootstrap code:
@@ -59,8 +61,12 @@ Current SPA UI code:
 - [ui/index.html](/D:/Studio13/Lab/Code/MusicMesh/ui/index.html)
 - [ui/vite.config.mjs](/D:/Studio13/Lab/Code/MusicMesh/ui/vite.config.mjs)
 - [ui/src/main.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/main.jsx)
-- [ui/src/router.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/router.jsx)
-- [ui/src/app/AppShell.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/app/AppShell.jsx)
+- [ui/src/operator-graph-demo/OperatorGraphDemo.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/operator-graph-demo/OperatorGraphDemo.jsx)
+- [ui/src/operator-graph-demo/styles.css](/D:/Studio13/Lab/Code/MusicMesh/ui/src/operator-graph-demo/styles.css)
+- [ui/src/graph-demos/GraphDemoApp.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/GraphDemoApp.jsx)
+- [ui/src/graph-demos/CytoscapeCanvas.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/CytoscapeCanvas.jsx)
+- [ui/src/graph-demos/graphState.js](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/graphState.js)
+- [ui/src/graph-demos/api.js](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/api.js)
 - [ui/src/styles/app.css](/D:/Studio13/Lab/Code/MusicMesh/ui/src/styles/app.css)
 
 Protected local folder:
@@ -79,8 +85,9 @@ The clean-sheet direction is:
 - the product is chat-first
 - direct answers and graph work should feel like one system
 - the user should get a direct answer first when that is what they need
-- graph persistence is explicit and must be verifiable
-- default graph rule is `propose first, review before canon`
+- graph persistence is chat-driven and must be verifiable
+- `canonicalStatus` / `isProposed` are hidden offline-maintenance metadata only
+- the app must not expose proposal, review, or apply workflow as a user-facing path
 - reuse existing canon and schema before inventing new structure
 - avoid overengineering and drift from the core operator product
 
@@ -114,8 +121,12 @@ Current workbench shape:
 - simple local API path for chat requests
 - graph seed search and Cytoscape graph inspection
 - chat-derived domain graph persistence
+- graph preview while persistence continues in the background
+- graph view history with `Back` / `Forward` replay of already-seen graph payloads
+- double-click or `Expand` centers the selected node and loads its connected subgraph
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
+- post-run quality assessment written to the conversation tape
 
 Important limitations:
 
@@ -142,11 +153,11 @@ Key UI docs:
 
 Treat LLM behavior as core product behavior, not glue code.
 
-- Start with the actual runtime path: prompt assembly, model selection, tool calls, graph retrieval, proposal generation, persistence, tape writes, runtime events, and UI rendering.
+- Start with the actual runtime path: prompt assembly, model selection, graph preview, graph planning, grounding, persistence, tape writes, runtime events, and UI rendering.
 - Inspect the real instructions sent to the model before editing prompts or surrounding orchestration.
 - Keep prompts outcome-first: define the role, success criteria, grounding rules, output shape, and failure behavior.
-- Give the LLM enough structured context to reason over the data directly: existing canon, candidate entities, schemas, retrieved evidence, proposal state, tool results, and relevant constraints.
-- Avoid brittle parsing such as regex or fragile string splitting for entity interpretation, intent detection, graph modeling, proposal construction, or citation/evidence recovery.
+- Give the LLM enough structured context to reason over the data directly: existing canon, candidate entities, schemas, retrieved evidence, tool results, and relevant constraints.
+- Avoid brittle parsing such as regex or fragile string splitting for entity interpretation, intent detection, graph modeling, or citation/evidence recovery.
 - Use regex only for stable lexical tasks such as simple validation, known filename patterns, or mechanical cleanup where the pattern is stable and testable.
 - Do not patch bad behavior by stacking more prompt text on top of unclear product logic.
 - Keep one primary answer path unless there is a clear product reason for multiple modes.
@@ -230,6 +241,8 @@ Current optional env keys:
 - `BRAVE_API_KEY`
 - `DISCOGS_TOKEN`
 - `OPENAI_REASONING_EFFORT`
+- `OPENAI_MODEL`
+- `OPENAI_REASONING_LEVEL`
 - `OPENAI_REASONING_EFFORT_DEFAULT`
 - `OPENAI_REASONING_EFFORT_KNOWLEDGE`
 - `OPENAI_REASONING_EFFORT_CHAT_COMPLEX`
@@ -239,6 +252,8 @@ Current optional env keys:
 - `OPENAI_REASONING_EFFORT_HUMAN_LOOP`
 - `OPENAI_REASONING_EFFORT_RUN_REVIEW`
 - `OPENAI_REASONING_EFFORT_MAINTENANCE`
+- `OPENAI_VERBOSITY`
+- `MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS`
 - `MUSICMESH_HTTP_USER_AGENT`
 - `MUSICMESH_BLOB_CONNECTION_STRING`
 - `MUSICMESH_BLOB_CONTAINER`
@@ -292,7 +307,7 @@ Before claiming work is done, run the smallest useful proof.
 
 - For infrastructure readiness, use `npm run check` or `npm run startup`.
 - For UI behavior, test through the SPA/workbench, not only through terminal scripts.
-- For graph or persistence behavior, verify logs, tape entries, proposal output, and Neo4j state separately from the chat answer.
+- For graph or persistence behavior, verify logs, tape entries, runtime events, graph API responses, and Neo4j state separately from the chat answer.
 - Do not treat a good answer as proof that the graph updated.
 - Do not treat browser completion as proof that persistence worked.
 - Pair live UI runs with saved-log inspection when persistence, graph writes, or runtime orchestration matters.
@@ -384,3 +399,4 @@ The current repo is best used for:
 - improving tape and runtime-log visibility from the worksurface
 - verifying that chat-derived graph persistence behaves correctly
 - keeping graph visualization aligned with the answer-owned operator workflow
+- tightening graph interaction behavior around focus, history, compare, and inspect

@@ -8,7 +8,7 @@ The shell should let the user:
 
 - ask MusicMesh a question in chat
 - receive an assistant answer
-- inspect recent system-side activity next to the chat
+- inspect graph context and workflow activity next to the chat
 
 ## Chat Surface
 
@@ -20,27 +20,40 @@ The current chat surface supports:
 - a multiline composer
 - submit through the UI button
 
-The current chat path is a single local API call.
+The current chat path is an answer-first API call. Graph preview, graph persistence, and run-quality review can continue after the answer returns.
 
 It is not token-streamed.
 
 ## Worksurface
 
-The current worksurface shows:
+The current workbench has two modes.
+
+Graph mode shows:
+
+- a Cytoscape graph canvas
+- graph seed search
+- browse filters and legend
+- fit/reset controls
+- node/relationship inspection
+- `Back` / `Forward` graph view history
+- double-click or `Expand` to center a selected node and load its connected subgraph
+
+Workflow mode shows:
 
 - the tape file path
 - the runtime log file path
 - recent tape entries
 - recent runtime events
+- the latest run-quality assessment when available
 
-It is a readable inspection panel, not a full trace/database/artifact workspace yet.
+The workbench is a live sidecar for the chat. It is not a separate graph creation workspace.
 
 ## Layout
 
 The current layout is:
 
 - left: chat
-- right: worksurface
+- right: Graph / Workflow workbench
 - resizable horizontal split
 
 ## What Is Not Implemented
@@ -51,11 +64,11 @@ The current shell does not yet provide:
 - database readback views
 - artifact previews
 - deep message-to-panel coordination
-- multiple workspace tabs or modes
+- persistent graph history across browser refreshes
 
 ## Working Rules
 
 - chat stays primary
-- the worksurface supports the chat rather than competing with it
+- the workbench supports the chat rather than competing with it
 - keep the shell simple
 - do not document UI modes that are not in the code

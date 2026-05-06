@@ -21,10 +21,18 @@ This decision is based on the current side-by-side implementation work in the re
 
 ## What Deprecation Means
 
-- the main shell should link only to the Cytoscape demo and the operator plus graph demo
-- the integrated operator workbench should link only to Cytoscape as the standalone graph path
-- the old NVL URL may remain reachable as a deprecated reference page, but it should not be treated as an active option
+- the operator workbench uses Cytoscape in the Graph tab
+- standalone graph demo pages are not part of the active build
+- NVL should not be treated as an active product option
 - future graph UX work should assume Cytoscape unless the user explicitly changes direction
+
+## Current Interaction Contract
+
+- drag moves nodes only and must not change graph membership
+- `Back` and `Forward` redisplay graph payloads already seen without new graph research
+- double-clicking a node centers that node and loads its connected graph
+- `Expand` uses the same centered-node behavior as double-click
+- browse filters, legend, and inspect should show music-domain nodes and relationships only
 
 ## Guardrails
 
