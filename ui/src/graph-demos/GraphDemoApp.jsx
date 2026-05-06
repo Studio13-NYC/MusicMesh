@@ -25,6 +25,113 @@ const LIBRARY_COPY = {
   }
 };
 
+const GRAPH_HISTORY_LIMIT = 24;
+
+function cloneGraphPayload(graph) {
+  return JSON.parse(JSON.stringify(graph || createEmptyGraph()));
+}
+
+function graphTopologyKey(graph) {
+  const nodeIds = (graph?.nodes || []).map((node) => node.id).sort();
+  const edgeIds = (graph?.edges || []).map((edge) => edge.id).sort();
+
+  return JSON.stringify({
+    seed: graph?.seedNode?.id || "",
+    preview: Boolean(graph?.meta?.preview),
+    nodes: nodeIds,
+    edges: edgeIds
+  });
+}
+
+function makeGraphHistoryEntry(graph, label, source) {
+  const clonedGraph = cloneGraphPayload(graph);
+
+  return {
+    graph: clonedGraph,
+    key: graphTopologyKey(clonedGraph),
+    label: label || clonedGraph.seedNode?.label || "Graph view",
+    source,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function addGraphHistoryEntry(currentHistory, entry) {
+  if ((entry.graph.nodes || []).length === 0) {
+    return currentHistory;
+  }
+
+  const activeEntry = currentHistory.entries[currentHistory.index];
+
+  if (activeEntry?.key === entry.key) {
+    const nextEntries = currentHistory.entries.map((currentEntry, index) =>
+      index === currentHistory.index ? entry : currentEntry
+    );
+
+    return {
+      entries: nextEntries,
+      index: currentHistory.index
+    };
+  }
+
+  const retainedEntries =
+    currentHistory.index >= 0
+      ? currentHistory.entries.slice(0, currentHistory.index + 1)
+      : currentHistory.entries;
+  const nextEntries = [...retainedEntries, entry].slice(-GRAPH_HISTORY_LIMIT);
+
+  return {
+    entries: nextEntries,
+    index: nextEntries.length - 1
+  };
+}
+
+function replaceActiveGraphHistoryEntry(currentHistory, graph) {
+  if (currentHistory.index < 0) {
+    return currentHistory;
+  }
+
+  const activeEntry = currentHistory.entries[currentHistory.index];
+
+  if (!activeEntry) {
+    return currentHistory;
+  }
+
+  const nextEntry = {
+    ...activeEntry,
+    graph: cloneGraphPayload(graph),
+    key: graphTopologyKey(graph)
+  };
+
+  return {
+    entries: currentHistory.entries.map((entry, index) =>
+      index === currentHistory.index ? nextEntry : entry
+    ),
+    index: currentHistory.index
+  };
+}
+
+function shouldPreserveGraphView(currentGraph, nextGraph) {
+  const currentNodes = currentGraph?.nodes || [];
+  const nextNodes = nextGraph?.nodes || [];
+
+  if (currentNodes.length === 0 || nextNodes.length === 0) {
+    return false;
+  }
+
+  const currentSeedId = currentGraph?.seedNode?.id || "";
+  const nextSeedId = nextGraph?.seedNode?.id || "";
+
+  if (currentSeedId && nextSeedId && currentSeedId === nextSeedId) {
+    return true;
+  }
+
+  const currentNodeIds = new Set(currentNodes.map((node) => node.id));
+  const overlapCount = nextNodes.filter((node) => currentNodeIds.has(node.id)).length;
+  const overlapFloor = Math.min(3, nextNodes.length);
+
+  return overlapCount >= overlapFloor && currentNodes.length >= nextNodes.length;
+}
+
 export function GraphDemoApp({
   GraphCanvas,
   library,
@@ -49,7 +156,12 @@ export function GraphDemoApp({
   const [nodeDetails, setNodeDetails] = useState({});
   const [detailError, setDetailError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [graphHistory, setGraphHistory] = useState({
+    entries: [],
+    index: -1
+  });
   const canvasRef = useRef(null);
+  const graphRef = useRef(graph);
   const autoLoadedRef = useRef(false);
   const suppressInspectOpenRef = useRef(false);
   const filteredGraph = useMemo(() => applyFilters(graph, filters), [graph, filters]);
@@ -59,6 +171,10 @@ export function GraphDemoApp({
     [graph]
   );
   const libraryCopy = LIBRARY_COPY[library] || LIBRARY_COPY.cytoscape;
+
+  useEffect(() => {
+    graphRef.current = graph;
+  }, [graph]);
 
   useEffect(() => {
     let ignore = false;
@@ -74,6 +190,10 @@ export function GraphDemoApp({
             setSearchQuery("");
             setSearchStatus("No seed loaded.");
             setGraph(createEmptyGraph());
+            setGraphHistory({
+              entries: [],
+              index: -1
+            });
             setFilters({
               nodeKinds: {},
               relationshipTypes: {}
@@ -95,6 +215,11 @@ export function GraphDemoApp({
 
           if (!ignore && focusPayload?.hasFocus && focusPayload.graph) {
             const isPreview = Boolean(focusPayload.graph.meta?.preview);
+            const currentGraph = graphRef.current;
+            const nextGraph = shouldPreserveGraphView(currentGraph, focusPayload.graph)
+              ? mergeGraphPayload(currentGraph, focusPayload.graph)
+              : focusPayload.graph;
+
             autoLoadedRef.current = true;
             setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphAnchorId || "");
             setSearchStatus(
@@ -102,14 +227,17 @@ export function GraphDemoApp({
                 ? `Previewing ${focusPayload.focusSeed?.label || "answer graph"}`
                 : `Loaded ${focusPayload.focusSeed?.label || "active graph anchor"}`
             );
-            setGraph(focusPayload.graph);
-            setFilters((currentFilters) => syncFilterState(currentFilters, focusPayload.graph));
+            rememberGraph(nextGraph, {
+              label: focusPayload.focusSeed?.label || nextGraph.seedNode?.label || "Thread graph",
+              source: isPreview ? "thread-preview" : "thread-focus"
+            });
+            setFilters((currentFilters) => syncFilterState(currentFilters, nextGraph));
             suppressInspectOpenRef.current = true;
             setSelectedElement(
-              !isPreview && focusPayload.graph.seedNode
+              !isPreview && nextGraph.seedNode
                 ? {
                     type: "node",
-                    id: focusPayload.graph.seedNode.id
+                    id: nextGraph.seedNode.id
                   }
                 : null
             );
@@ -244,6 +372,34 @@ export function GraphDemoApp({
     };
   }, []);
 
+  function rememberGraph(nextGraph, { label = "", source = "graph" } = {}) {
+    setGraph(nextGraph);
+    setGraphHistory((currentHistory) =>
+      addGraphHistoryEntry(currentHistory, makeGraphHistoryEntry(nextGraph, label, source))
+    );
+  }
+
+  function handleHistoryStep(offset) {
+    const nextIndex = graphHistory.index + offset;
+    const nextEntry = graphHistory.entries[nextIndex];
+
+    if (!nextEntry) {
+      return;
+    }
+
+    const nextGraph = cloneGraphPayload(nextEntry.graph);
+
+    setGraphHistory((currentHistory) => ({
+      ...currentHistory,
+      index: nextIndex
+    }));
+    setGraph(nextGraph);
+    setFilters((currentFilters) => syncFilterState(currentFilters, nextGraph));
+    setSelectedElement(null);
+    setHoveredElement(null);
+    setSearchStatus(`Redisplayed ${nextEntry.label}`);
+  }
+
   async function loadSeed(seedId) {
     setIsGraphLoading(true);
     setErrorMessage("");
@@ -251,7 +407,10 @@ export function GraphDemoApp({
     try {
       const payload = await fetchGraphSubgraph(seedId);
 
-      setGraph(payload);
+      rememberGraph(payload, {
+        label: payload.seedNode?.label || "Loaded graph",
+        source: "seed"
+      });
       setFilters((currentFilters) => syncFilterState(currentFilters, payload));
       suppressInspectOpenRef.current = true;
       setSelectedElement(
@@ -287,7 +446,10 @@ export function GraphDemoApp({
       );
       const nextGraph = mergeGraphPayload(graph, payload);
 
-      setGraph(nextGraph);
+      rememberGraph(nextGraph, {
+        label: selectedNode?.label ? `Expanded ${selectedNode.label}` : "Expanded graph",
+        source: "expand"
+      });
       setFilters((currentFilters) => syncFilterState(currentFilters, nextGraph));
     } catch (error) {
       setErrorMessage(error.message);
@@ -333,7 +495,10 @@ export function GraphDemoApp({
   }
 
   function handleNodePositionChange(nextPositions) {
-    setGraph((currentGraph) => applyNodePositions(currentGraph, nextPositions));
+    const nextGraph = applyNodePositions(graph, nextPositions);
+
+    setGraph(nextGraph);
+    setGraphHistory((currentHistory) => replaceActiveGraphHistoryEntry(currentHistory, nextGraph));
   }
 
   const selectedNode =
@@ -461,6 +626,27 @@ export function GraphDemoApp({
             <div className="demo-toolbar">
               <div className="demo-toolbar-group">
                 <button
+                  className="demo-button demo-button-tight"
+                  disabled={graphHistory.index <= 0}
+                  onClick={() => handleHistoryStep(-1)}
+                  title="Redisplay the previous graph view without research"
+                  type="button"
+                >
+                  Back
+                </button>
+                <button
+                  className="demo-button demo-button-tight"
+                  disabled={
+                    graphHistory.index < 0 ||
+                    graphHistory.index >= graphHistory.entries.length - 1
+                  }
+                  onClick={() => handleHistoryStep(1)}
+                  title="Redisplay the next graph view without research"
+                  type="button"
+                >
+                  Forward
+                </button>
+                <button
                   aria-expanded={isLeftDrawerOpen}
                   className="demo-button demo-button-tight"
                   onClick={() => setIsLeftDrawerOpen((currentValue) => !currentValue)}
@@ -494,6 +680,11 @@ export function GraphDemoApp({
                 <span>
                   {graph.meta.nodeCount || 0}n / {graph.meta.edgeCount || 0}e
                 </span>
+                {graphHistory.entries.length > 0 ? (
+                  <span>
+                    View {graphHistory.index + 1}/{graphHistory.entries.length}
+                  </span>
+                ) : null}
               </div>
               <div className="demo-toolbar-group">
                 <button
