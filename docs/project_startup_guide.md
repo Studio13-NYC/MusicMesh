@@ -106,6 +106,12 @@ Summarize LLM reasoning and run-quality telemetry:
 npm run llm:report
 ```
 
+Review ontology fallback queues:
+
+```powershell
+npm run ontology:review
+```
+
 ## What The Commands Verify
 
 `npm run check` verifies:
@@ -131,3 +137,4 @@ It does not prove:
 - graph persistence behavior inside the product
 - full product wiring in the worksurface
 - deeper operator workflows
+- that every useful domain concept has already been promoted out of `Other` or generic `Entity`

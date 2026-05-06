@@ -1,0 +1,145 @@
+{
+  "nodeGroups": [
+    { "id": "artist-band", "label": "Artist / Band", "kinds": ["Artist", "Band"] },
+    { "id": "album-release", "label": "Album / Release", "kinds": ["Album", "Release"] },
+    { "id": "track-song", "label": "Track / Song", "kinds": ["Track", "Song"] },
+    { "id": "person-member", "label": "Person / Member", "kinds": ["Person", "Member"] },
+    {
+      "id": "contributor-credit",
+      "label": "Contributor / Credit",
+      "kinds": ["Contributor", "Credit", "Contribution", "Producer", "Engineer"]
+    },
+    { "id": "record-label", "label": "Record Label", "kinds": ["RecordLabel", "Label"] },
+    { "id": "scene", "label": "Scene", "kinds": ["Scene", "MusicScene"] },
+    { "id": "venue", "label": "Venue", "kinds": ["Venue"] },
+    { "id": "genre-style", "label": "Genre / Style", "kinds": ["Genre", "Style"] },
+    { "id": "place", "label": "Place", "kinds": ["Place", "City", "State", "Country"] },
+    {
+      "id": "recording-session",
+      "label": "Recording / Session",
+      "kinds": [
+        "Recording",
+        "RecordingSession",
+        "Session",
+        "StudioEvent",
+        "Work",
+        "Composition",
+        "Project",
+        "ArtistProject",
+        "Mix",
+        "Master",
+        "Stem"
+      ]
+    },
+    { "id": "studio-room", "label": "Studio / Room", "kinds": ["Studio", "StudioRoom", "Room"] },
+    {
+      "id": "instrument-gear",
+      "label": "Instrument / Gear",
+      "kinds": [
+        "Instrument",
+        "Equipment",
+        "Amplifier",
+        "Effect",
+        "EffectsPedal",
+        "Guitar",
+        "Synthesizer",
+        "Console",
+        "SignalChain"
+      ]
+    },
+    { "id": "maker-manufacturer", "label": "Maker / Manufacturer", "kinds": ["Manufacturer", "Company"] },
+    {
+      "id": "technique-process",
+      "label": "Technique / Process",
+      "kinds": ["Technique", "Process", "Format", "Medium", "Technology"]
+    },
+    { "id": "source-evidence", "label": "Source / Evidence", "kinds": ["Source", "Evidence", "Reference"] },
+    { "id": "other", "label": "Other", "kinds": [] }
+  ],
+  "relationshipGroups": [
+    { "id": "membership", "label": "Membership", "types": ["MEMBER_OF", "HAS_MEMBER"] },
+    {
+      "id": "releases",
+      "label": "Releases",
+      "types": ["RELEASED_ALBUM", "RELEASED_TRACK", "IS_A_TRACK_ON", "CONTAINS_TRACK"]
+    },
+    {
+      "id": "recording-label",
+      "label": "Recording / Label",
+      "types": [
+        "SIGNED_TO",
+        "RECORDED_FOR",
+        "RECORDED_BY",
+        "RELEASED_ON",
+        "RELEASED_ON_LABEL",
+        "RELEASED_BY",
+        "DISTRIBUTED_BY"
+      ]
+    },
+    {
+      "id": "production-collaboration",
+      "label": "Production / Collaboration",
+      "types": [
+        "PRODUCED_BY",
+        "COLLABORATED_WITH",
+        "PERFORMED_ON",
+        "CREDITED_TO",
+        "CONTRIBUTED_TO",
+        "PLAYED_WITH",
+        "HIRED",
+        "PRODUCED_FOR"
+      ]
+    },
+    {
+      "id": "scene-place",
+      "label": "Scene / Place",
+      "types": [
+        "ASSOCIATED_WITH_SCENE",
+        "ASSOCIATED_WITH_VENUE",
+        "LOCATED_IN",
+        "FORMED_IN",
+        "ORIGINATED_IN",
+        "PLAYED_FIRST_SHOW_AT",
+        "PERFORMED_AT",
+        "WORKED_AT"
+      ]
+    },
+    {
+      "id": "genre-style",
+      "label": "Genre / Style",
+      "types": ["HAS_GENRE", "ASSOCIATED_WITH_GENRE", "ASSOCIATED_WITH_STYLE"]
+    },
+    {
+      "id": "instrument-gear",
+      "label": "Instrument / Gear",
+      "types": [
+        "PLAYED_INSTRUMENT",
+        "USED_INSTRUMENT",
+        "USED_AMPLIFIER",
+        "USED_EQUIPMENT",
+        "USED_EFFECT",
+        "USED_CONSOLE",
+        "MANUFACTURED",
+        "BUILT_BY"
+      ]
+    },
+    {
+      "id": "songs-versions",
+      "label": "Songs / Versions",
+      "types": [
+        "COVERED_SONG",
+        "COVERED_BY",
+        "ORIGINALLY_PERFORMED_BY",
+        "HAS_VERSION",
+        "MIXED_BY",
+        "MASTERED_BY"
+      ]
+    },
+    {
+      "id": "influence-related",
+      "label": "Influence / Related",
+      "types": ["INFLUENCED", "RELATED_TO", "SIMILAR_TO", "PEER_OF", "FOUNDED_BY"]
+    },
+    { "id": "other", "label": "Other", "types": [] }
+  ]
+}

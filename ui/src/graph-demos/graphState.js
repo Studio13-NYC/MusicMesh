@@ -1,49 +1,7 @@
-export const NODE_FILTER_GROUPS = [
-  { id: "artist-band", label: "Artist / Band", kinds: ["Artist", "Band"] },
-  { id: "album-release", label: "Album / Release", kinds: ["Album", "Release"] },
-  { id: "track-song", label: "Track / Song", kinds: ["Track", "Song"] },
-  { id: "person-member", label: "Person / Member", kinds: ["Person", "Member"] },
-  { id: "record-label", label: "Record Label", kinds: ["RecordLabel", "Label"] },
-  { id: "scene", label: "Scene", kinds: ["Scene", "MusicScene"] },
-  { id: "venue", label: "Venue", kinds: ["Venue"] },
-  { id: "genre-style", label: "Genre / Style", kinds: ["Genre", "Style"] },
-  { id: "place", label: "Place", kinds: ["Place", "City", "State", "Country"] },
-  { id: "other", label: "Other", kinds: [] }
-];
+import filterCatalog from "./graphFilterCatalog.json";
 
-export const RELATIONSHIP_FILTER_GROUPS = [
-  {
-    id: "membership",
-    label: "Membership",
-    types: ["MEMBER_OF", "HAS_MEMBER"]
-  },
-  {
-    id: "releases",
-    label: "Releases",
-    types: ["RELEASED_ALBUM", "RELEASED_TRACK", "IS_A_TRACK_ON", "CONTAINS_TRACK"]
-  },
-  {
-    id: "recording-label",
-    label: "Recording / Label",
-    types: ["SIGNED_TO", "RECORDED_FOR", "RELEASED_ON", "DISTRIBUTED_BY"]
-  },
-  {
-    id: "production-collaboration",
-    label: "Production / Collaboration",
-    types: ["PRODUCED_BY", "COLLABORATED_WITH", "PERFORMED_ON", "CREDITED_TO"]
-  },
-  {
-    id: "scene-place",
-    label: "Scene / Place",
-    types: ["ASSOCIATED_WITH_SCENE", "LOCATED_IN", "FORMED_IN", "ORIGINATED_IN"]
-  },
-  {
-    id: "influence-related",
-    label: "Influence / Related",
-    types: ["INFLUENCED", "RELATED_TO", "SIMILAR_TO"]
-  },
-  { id: "other", label: "Other", types: [] }
-];
+export const NODE_FILTER_GROUPS = filterCatalog.nodeGroups;
+export const RELATIONSHIP_FILTER_GROUPS = filterCatalog.relationshipGroups;
 
 export function createEmptyGraph() {
   return {
@@ -95,25 +53,54 @@ export function getRelationshipFilterGroupId(type) {
     normalized.includes("PRODUC") ||
     normalized.includes("COLLAB") ||
     normalized.includes("PERFORM") ||
-    normalized.includes("CREDIT")
+    normalized.includes("CREDIT") ||
+    normalized.includes("CONTRIB") ||
+    normalized.includes("HIRED")
   ) {
     return "production-collaboration";
   }
 
   if (
     normalized.includes("SCENE") ||
+    normalized.includes("VENUE") ||
     normalized.includes("PLACE") ||
     normalized.includes("LOCATED") ||
     normalized.includes("FORMED") ||
-    normalized.includes("ORIGIN")
+    normalized.includes("ORIGIN") ||
+    normalized.includes("WORKED_AT")
   ) {
     return "scene-place";
+  }
+
+  if (normalized.includes("GENRE") || normalized.includes("STYLE")) {
+    return "genre-style";
+  }
+
+  if (
+    normalized.includes("INSTRUMENT") ||
+    normalized.includes("AMPLIFIER") ||
+    normalized.includes("EQUIPMENT") ||
+    normalized.includes("EFFECT") ||
+    normalized.includes("CONSOLE") ||
+    normalized.includes("MANUFACT")
+  ) {
+    return "instrument-gear";
+  }
+
+  if (
+    normalized.includes("COVER") ||
+    normalized.includes("VERSION") ||
+    normalized.includes("MIX") ||
+    normalized.includes("MASTER")
+  ) {
+    return "songs-versions";
   }
 
   if (
     normalized.includes("INFLUENCE") ||
     normalized.includes("RELATED") ||
-    normalized.includes("SIMILAR")
+    normalized.includes("SIMILAR") ||
+    normalized.includes("PEER")
   ) {
     return "influence-related";
   }

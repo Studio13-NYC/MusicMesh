@@ -41,6 +41,7 @@ Product and process docs:
 
 - [LLM_OPERATOR_CONTRACT_V1.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/LLM_OPERATOR_CONTRACT_V1.md)
 - [ONE_CHAT_PIPELINE.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/ONE_CHAT_PIPELINE.md)
+- [ONTOLOGY_REVIEW.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/ONTOLOGY_REVIEW.md)
 - [CURRENT_STATE_AND_HANDOFF.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/CURRENT_STATE_AND_HANDOFF.md)
 - [EXECUTION_LESSONS.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/EXECUTION_LESSONS.md)
 - [roleplay-spec.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/roleplay-spec.md)
@@ -65,6 +66,7 @@ Current SPA UI code:
 - [ui/src/operator-graph-demo/styles.css](/D:/Studio13/Lab/Code/MusicMesh/ui/src/operator-graph-demo/styles.css)
 - [ui/src/graph-demos/GraphDemoApp.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/GraphDemoApp.jsx)
 - [ui/src/graph-demos/CytoscapeCanvas.jsx](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/CytoscapeCanvas.jsx)
+- [ui/src/graph-demos/graphFilterCatalog.json](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/graphFilterCatalog.json)
 - [ui/src/graph-demos/graphState.js](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/graphState.js)
 - [ui/src/graph-demos/api.js](/D:/Studio13/Lab/Code/MusicMesh/ui/src/graph-demos/api.js)
 - [ui/src/styles/app.css](/D:/Studio13/Lab/Code/MusicMesh/ui/src/styles/app.css)
@@ -88,6 +90,7 @@ The clean-sheet direction is:
 - graph persistence is chat-driven and must be verifiable
 - `canonicalStatus` / `isProposed` are hidden offline-maintenance metadata only
 - the app must not expose proposal, review, or apply workflow as a user-facing path
+- `Other` and generic `Entity` are ontology-review signals, not final modeling destinations
 - reuse existing canon and schema before inventing new structure
 - avoid overengineering and drift from the core operator product
 
@@ -189,6 +192,7 @@ npm run smoke
 npm run smoke:playwright
 npm run tape -- 50
 npm run llm:report
+npm run ontology:review
 ```
 
 What they currently prove:
@@ -219,6 +223,8 @@ What they currently prove:
   - inspects recent conversation tape entries from the terminal
 - `npm run llm:report`
   - summarizes LLM reasoning effort, latency, token usage, and graph outcome telemetry from runtime events
+- `npm run ontology:review`
+  - reports visible graph objects that fall into `Other` plus non-housekeeping properties that may hide reusable domain concepts
 
 Current screenshot artifact:
 
@@ -313,6 +319,7 @@ Before claiming work is done, run the smallest useful proof.
 - Pair live UI runs with saved-log inspection when persistence, graph writes, or runtime orchestration matters.
 - Use `npm run tape -- 50` to inspect recent conversation tape entries.
 - Use `npm run llm:report` to inspect long-term LLM stage and reasoning-effort telemetry.
+- Use `npm run ontology:review` to inspect generic `Other` graph objects and domain-heavy properties.
 - Inspect `output/chat/runtime-events.ndjson` when diagnosing runtime behavior.
 - If a check cannot run, say exactly why and what remains unverified.
 

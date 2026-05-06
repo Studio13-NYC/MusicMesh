@@ -29,10 +29,12 @@ The Graph tab is an inspection and comparison surface for graph results created 
 
 The user sees only music-domain graph objects:
 
-- node labels such as `Artist`, `Band`, `Album`, `Track`, `Person`, `RecordLabel`, `Scene`, `Venue`, `Genre`, and `Place`
+- node labels such as `Artist`, `Band`, `Album`, `Track`, `Person`, `RecordLabel`, `Scene`, `Venue`, `Genre`, `Place`, `RecordingSession`, `Studio`, `Instrument`, `Equipment`, `Amplifier`, `Contributor`, `Producer`, `Engineer`, `Technique`, and `Source`
 - relationship types such as `MEMBER_OF`, `IS_A_TRACK_ON`, `RELEASED_ALBUM`, `PRODUCED_BY`, `ASSOCIATED_WITH_SCENE`, `LOCATED_IN`, and `INFLUENCED`
 
 The relationship examples are not an allow-list. The graph planner may use a new uppercase snake_case relationship type when it describes a real music-domain relationship and the existing examples do not fit.
+
+Meaningful domain concepts should not be buried in `Entity`, `Other`, or opaque properties. If a thing should be searchable, inspectable, reusable, or comparable, the graph planner should model it as a first-class node with a real relationship. Relationship properties remain appropriate for nuance such as role, date, confidence, degree, or evidence basis.
 
 ## Hidden Maintenance Metadata
 
@@ -107,6 +109,14 @@ npm run llm:report
 ```
 
 The report also summarizes run-quality scores, follow-up rate, operator-attention rate, outcomes, and slowest average stages.
+
+Use this report to inspect ontology review queues:
+
+```powershell
+npm run ontology:review
+```
+
+The ontology review report flags visible graph objects that still land in `Other` plus non-housekeeping graph properties that may be hiding reusable domain concepts. It does not mutate Neo4j.
 
 ## Fresh Headed Verification
 

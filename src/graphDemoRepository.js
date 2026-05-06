@@ -215,11 +215,55 @@ function pickNodeKind(labels, properties = {}) {
     "Song",
     "Person",
     "Member",
+    "Contributor",
+    "Credit",
+    "Contribution",
+    "Producer",
+    "Engineer",
     "RecordLabel",
     "Label",
     "Genre",
+    "Style",
     "Scene",
+    "MusicScene",
     "Venue",
+    "Place",
+    "City",
+    "State",
+    "Country",
+    "Recording",
+    "RecordingSession",
+    "Session",
+    "StudioEvent",
+    "Work",
+    "Composition",
+    "Project",
+    "ArtistProject",
+    "Mix",
+    "Master",
+    "Stem",
+    "Studio",
+    "StudioRoom",
+    "Room",
+    "Instrument",
+    "Equipment",
+    "Amplifier",
+    "Effect",
+    "EffectsPedal",
+    "Guitar",
+    "Synthesizer",
+    "Console",
+    "SignalChain",
+    "Manufacturer",
+    "Company",
+    "Technique",
+    "Process",
+    "Format",
+    "Medium",
+    "Technology",
+    "Source",
+    "Evidence",
+    "Reference",
     "Entity"
   ];
 
@@ -251,6 +295,15 @@ function pickColorKey(kind) {
     return "person";
   }
 
+  if (
+    normalized.includes("contributor") ||
+    normalized.includes("credit") ||
+    normalized.includes("producer") ||
+    normalized.includes("engineer")
+  ) {
+    return "person";
+  }
+
   if (normalized.includes("recordlabel") || normalized.includes("label")) {
     return "label";
   }
@@ -263,8 +316,43 @@ function pickColorKey(kind) {
     return "scene";
   }
 
-  if (normalized.includes("genre")) {
+  if (normalized.includes("genre") || normalized.includes("style")) {
     return "genre";
+  }
+
+  if (
+    normalized.includes("recording") ||
+    normalized.includes("session") ||
+    normalized.includes("work") ||
+    normalized.includes("composition") ||
+    normalized.includes("project") ||
+    normalized.includes("mix") ||
+    normalized.includes("master") ||
+    normalized.includes("stem")
+  ) {
+    return "album";
+  }
+
+  if (
+    normalized.includes("studio") ||
+    normalized.includes("room") ||
+    normalized.includes("instrument") ||
+    normalized.includes("equipment") ||
+    normalized.includes("amplifier") ||
+    normalized.includes("effect") ||
+    normalized.includes("guitar") ||
+    normalized.includes("synthesizer") ||
+    normalized.includes("console") ||
+    normalized.includes("signalchain") ||
+    normalized.includes("manufacturer") ||
+    normalized.includes("company") ||
+    normalized.includes("technique") ||
+    normalized.includes("process") ||
+    normalized.includes("format") ||
+    normalized.includes("medium") ||
+    normalized.includes("technology")
+  ) {
+    return "node";
   }
 
   return "node";
@@ -287,6 +375,28 @@ function pickShapeKey(kind) {
 
   if (normalized.includes("person") || normalized.includes("member")) {
     return "hexagon";
+  }
+
+  if (
+    normalized.includes("instrument") ||
+    normalized.includes("equipment") ||
+    normalized.includes("amplifier") ||
+    normalized.includes("effect") ||
+    normalized.includes("guitar") ||
+    normalized.includes("synthesizer") ||
+    normalized.includes("console") ||
+    normalized.includes("signalchain")
+  ) {
+    return "star";
+  }
+
+  if (
+    normalized.includes("recording") ||
+    normalized.includes("session") ||
+    normalized.includes("studio") ||
+    normalized.includes("room")
+  ) {
+    return "round-rectangle";
   }
 
   return "ellipse";

@@ -28,6 +28,7 @@
     "test:e2e:deployed": "cross-env MUSICMESH_E2E=deployed playwright test",
     "tape": "node scripts/readConversationTape.js",
     "llm:report": "node scripts/reportLlmTelemetry.js",
+    "ontology:review": "node scripts/reportOntologyReview.js",
     "test": "node src/index.js --test"
   },
   "keywords": [],

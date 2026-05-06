@@ -31,6 +31,7 @@ Primary contract doc:
 
 - [LLM_OPERATOR_CONTRACT_V1.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/LLM_OPERATOR_CONTRACT_V1.md)
 - [ONE_CHAT_PIPELINE.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/ONE_CHAT_PIPELINE.md)
+- [ONTOLOGY_REVIEW.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/ONTOLOGY_REVIEW.md)
 - [EXECUTION_LESSONS.md](/D:/Studio13/Lab/Code/MusicMesh/docs/product/EXECUTION_LESSONS.md)
 
 ## Infrastructure Reality
@@ -91,6 +92,7 @@ Current workbench shape:
 - provisional graph previews are written as `graph_preview` tape entries and are never persisted to Neo4j
 - graph writes persist real domain relationships; relationship examples are guidance, not an allow-list
 - `canonicalStatus` / `isProposed` are hidden maintenance metadata and must not be overwritten on existing canonized graph objects
+- `Other` and generic `Entity` are ontology-review signals, not final modeling destinations
 
 Important limitation:
 
@@ -145,6 +147,7 @@ Decision note:
 - run `npm run dev` to work in the SPA
 - run `npm run tape -- 50` to inspect recent tape entries from the terminal
 - run `npm run llm:report` to summarize LLM stage, reasoning effort, latency, token, graph outcome, and run-quality telemetry
+- run `npm run ontology:review` to inspect generic `Other` graph objects and non-housekeeping properties that may be hiding reusable domain concepts
 - treat the SPA as the main place to test the product experience
 - keep terminal scripts for startup and infrastructure validation
 - avoid rebuilding old architecture from the archive

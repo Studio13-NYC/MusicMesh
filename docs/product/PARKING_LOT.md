@@ -6,6 +6,32 @@ Keep entries concrete: what surfaced, why it matters, and what proof would close
 
 ## Open Items
 
+### Review Existing Generic Gear Nodes
+
+Status: parked
+
+What surfaced:
+
+- `npm run ontology:review` currently finds `9` visible nodes still labeled only as `Entity`.
+- They are all musically useful gear/manufacturer concepts: Fender and Gibson guitars, Fender and Marshall amplifiers, Roland equipment, and Roland Corporation.
+
+Why it matters:
+
+- These are exactly the below-the-surface connections MusicMesh should make navigable.
+- Leaving them as `Entity` makes them look like `Other` instead of first-class instruments, equipment, amplifiers, or manufacturers.
+
+Likely direction:
+
+- Do a deliberate maintenance pass that reviews each generic gear node.
+- Promote durable labels such as `Instrument`, `Guitar`, `Amplifier`, `Equipment`, `Synthesizer`, `Manufacturer`, or `Company` where appropriate.
+- Keep this as maintenance, not as silent mutation during normal chat.
+
+Definition of done:
+
+- `npm run ontology:review` reports no unreviewed generic gear nodes.
+- Browse filters show these concepts under Instrument / Gear or Maker / Manufacturer instead of Other.
+- A headed browser test can load a gear-centered graph and inspect the promoted labels.
+
 ### Add Nearby Graph Context To New Entity Grounding
 
 Status: parked

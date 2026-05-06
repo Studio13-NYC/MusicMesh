@@ -87,6 +87,20 @@ Use deterministic code for stable mechanical work:
 
 Do not patch semantic failures with regex-heavy post-processing.
 
+## Treat Other As A Review Queue
+
+`Other` and generic `Entity` are not quiet storage locations.
+
+When a graph-worthy concept lands there, review the ontology instead of accepting it as done. Instruments, amplifiers, effects, studios, recording sessions, producers, engineers, sources, techniques, mixes, and masters are first-class MusicMesh candidates when they help explain below-the-surface connections.
+
+Relationship properties are still useful for nuance, but they also need review when the value is really a thing the user may want to browse or compare later.
+
+Use:
+
+```powershell
+npm run ontology:review
+```
+
 ## Validate Before Claiming Done
 
 Use the smallest proof that covers the changed behavior.
