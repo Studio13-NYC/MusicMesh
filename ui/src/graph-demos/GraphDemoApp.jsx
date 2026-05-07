@@ -131,6 +131,61 @@ function shouldPreserveGraphView(currentGraph, nextGraph) {
   return overlapCount >= overlapFloor && currentNodes.length >= nextNodes.length;
 }
 
+function stripSurroundingQuotes(value) {
+  let text = String(value || "").trim();
+  const quotePairs = [
+    ['"', '"'],
+    ["'", "'"],
+    ["“", "”"],
+    ["‘", "’"]
+  ];
+
+  let removedQuotes = true;
+
+  while (removedQuotes && text.length >= 2) {
+    removedQuotes = false;
+
+    for (const [leftQuote, rightQuote] of quotePairs) {
+      if (text.startsWith(leftQuote) && text.endsWith(rightQuote)) {
+        text = text.slice(leftQuote.length, text.length - rightQuote.length).trim();
+        removedQuotes = true;
+      }
+    }
+  }
+
+  return text;
+}
+
+function normalizeLookupLabel(value) {
+  return stripSurroundingQuotes(value).toLocaleLowerCase();
+}
+
+function findMatchingNodeByLabel(nodes, focusNode) {
+  const targetLabel = normalizeLookupLabel(focusNode?.label);
+
+  if (!targetLabel) {
+    return null;
+  }
+
+  const exactMatches = (nodes || []).filter(
+    (node) => normalizeLookupLabel(node.label) === targetLabel
+  );
+
+  if (exactMatches.length === 0) {
+    return null;
+  }
+
+  return (
+    exactMatches.find((node) => node.kind === focusNode?.kind) ||
+    exactMatches.find((node) => node.kind === focusNode?.summary?.labels?.[0]) ||
+    exactMatches[0]
+  );
+}
+
+function findMatchingSeedResult(results, focusNode) {
+  return findMatchingNodeByLabel(results, focusNode);
+}
+
 export function GraphDemoApp({
   GraphCanvas,
   library,
@@ -440,10 +495,11 @@ export function GraphDemoApp({
     setErrorMessage("");
 
     try {
-      const payload = await fetchGraphSubgraph(nodeId);
+      const resolvedNode = await resolveExpandableNodeId(nodeId, focusNode);
+      const payload = await fetchGraphSubgraph(resolvedNode.seedId);
 
       rememberGraph(payload, {
-        label: payload.seedNode?.label || focusNode?.label || "Focused graph",
+        label: payload.seedNode?.label || resolvedNode.label || focusNode?.label || "Focused graph",
         source: "focus"
       });
       setFilters((currentFilters) => syncFilterState(currentFilters, payload));
@@ -457,13 +513,75 @@ export function GraphDemoApp({
           : null
       );
       setHoveredElement(null);
-      setSearchQuery(payload.seedNode?.label || focusNode?.label || "");
-      setSearchStatus(`Centered ${payload.seedNode?.label || focusNode?.label || "selected node"}`);
+      setSearchQuery(payload.seedNode?.label || resolvedNode.label || focusNode?.label || "");
+      setSearchStatus(
+        resolvedNode.fromPreview
+          ? `Centered persisted ${payload.seedNode?.label || resolvedNode.label || "selected node"}`
+          : `Centered ${payload.seedNode?.label || resolvedNode.label || focusNode?.label || "selected node"}`
+      );
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
       setIsExpandLoading(false);
     }
+  }
+
+  async function resolveExpandableNodeId(nodeId, focusNode) {
+    const isPreviewNode = Boolean(
+      focusNode?.isPreview ||
+        graph.meta?.preview ||
+        (typeof nodeId === "string" && nodeId.startsWith("preview-node-"))
+    );
+
+    if (!isPreviewNode) {
+      return {
+        seedId: nodeId,
+        label: focusNode?.label || "",
+        fromPreview: false
+      };
+    }
+
+    const previewLabel = focusNode?.label || "";
+
+    if (threadId) {
+      try {
+        const focusPayload = await fetchThreadFocusedGraph(threadId);
+        const focusGraph = focusPayload?.graph;
+
+        if (focusPayload?.hasFocus && focusGraph && !focusGraph.meta?.preview) {
+          const matchedNode = findMatchingNodeByLabel(focusGraph.nodes || [], focusNode);
+
+          if (matchedNode?.id) {
+            return {
+              seedId: matchedNode.id,
+              label: matchedNode.label || previewLabel,
+              fromPreview: true
+            };
+          }
+        }
+      } catch {
+        // Fall through to seed search; preview expansion should fail softly.
+      }
+    }
+
+    if (previewLabel) {
+      const searchPayload = await searchGraphSeeds(previewLabel, 8);
+      const matchedSeed = findMatchingSeedResult(searchPayload.results || [], focusNode);
+
+      if (matchedSeed?.id) {
+        return {
+          seedId: matchedSeed.id,
+          label: matchedSeed.label || previewLabel,
+          fromPreview: true
+        };
+      }
+    }
+
+    throw new Error(
+      previewLabel
+        ? `"${previewLabel}" is still a preview node. Wait for the graph update to finish, then try again.`
+        : "This preview node has not been persisted yet. Wait for the graph update to finish, then try again."
+    );
   }
 
   async function handleSearchSubmit(event) {
