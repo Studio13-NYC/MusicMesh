@@ -423,18 +423,30 @@ function stableString(value) {
   return "";
 }
 
+function timestampValue(entry) {
+  const parsed = Date.parse(entry?.createdAt || "");
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function newestThreadEntries(entries, threadId) {
+  return (Array.isArray(entries) ? entries : [])
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry?.threadId === threadId)
+    .sort((left, right) => {
+      const timeDifference = timestampValue(right.entry) - timestampValue(left.entry);
+
+      if (timeDifference !== 0) {
+        return timeDifference;
+      }
+
+      return right.index - left.index;
+    })
+    .map(({ entry }) => entry);
+}
+
 function findLatestThreadGraphFocus(entries, threadId) {
-  if (!Array.isArray(entries)) {
-    return null;
-  }
-
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const entry = entries[index];
-
-    if (entry?.threadId !== threadId) {
-      continue;
-    }
-
+  for (const entry of newestThreadEntries(entries, threadId)) {
     if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
       const graph = entry.payload.graph;
       const previewId = stableString(entry.payload.previewGraphId || graph.seedNode?.id || entry.id);

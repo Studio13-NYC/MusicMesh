@@ -939,6 +939,12 @@ async function fetchSeededGraph(seedId, options = {}) {
     throw new Error("Graph demo subgraph requests require a seedId.");
   }
 
+  if (normalizedSeedId.startsWith("preview-node-")) {
+    throw new Error(
+      "That graph item is preview-only and has not been saved as a graph node yet."
+    );
+  }
+
   const depth = clampInteger(
     options.depth,
     1,

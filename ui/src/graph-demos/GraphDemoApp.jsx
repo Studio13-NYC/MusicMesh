@@ -186,6 +186,77 @@ function findMatchingSeedResult(results, focusNode) {
   return findMatchingNodeByLabel(results, focusNode);
 }
 
+function isPreviewNodeId(value) {
+  return typeof value === "string" && value.startsWith("preview-node-");
+}
+
+function buildLocalPreviewFocusGraph(sourceGraph, seedId) {
+  const sourceNodes = sourceGraph?.nodes || [];
+  const sourceEdges = sourceGraph?.edges || [];
+  const seedNode = sourceNodes.find((node) => node.id === seedId);
+
+  if (!seedNode) {
+    return null;
+  }
+
+  const connectedNodeIds = new Set([seedId]);
+  const incidentEdges = sourceEdges.filter((edge) => {
+    const isIncident = edge.source === seedId || edge.target === seedId;
+
+    if (isIncident) {
+      connectedNodeIds.add(edge.source);
+      connectedNodeIds.add(edge.target);
+    }
+
+    return isIncident;
+  });
+  const focusedNodes = sourceNodes.filter((node) => connectedNodeIds.has(node.id));
+  const neighborNodes = focusedNodes
+    .filter((node) => node.id !== seedId)
+    .sort((left, right) => String(left.label || "").localeCompare(String(right.label || "")));
+  const radius = Math.min(420, Math.max(150, 110 + neighborNodes.length * 10));
+  const positionedSeed = {
+    ...seedNode,
+    isSeed: true,
+    x: 0,
+    y: 0
+  };
+  const positionedNeighbors = neighborNodes.map((node, index) => {
+    const angle = (Math.PI * 2 * index) / Math.max(1, neighborNodes.length);
+
+    return {
+      ...node,
+      isSeed: false,
+      x: Math.round(Math.cos(angle) * radius),
+      y: Math.round(Math.sin(angle) * radius)
+    };
+  });
+  const nextNodes = [positionedSeed, ...positionedNeighbors];
+  const nextNodeIds = new Set(nextNodes.map((node) => node.id));
+  const nextEdges = incidentEdges.filter(
+    (edge) => nextNodeIds.has(edge.source) && nextNodeIds.has(edge.target)
+  );
+
+  return {
+    seedNode: positionedSeed,
+    nodes: nextNodes,
+    edges: nextEdges,
+    meta: {
+      ...(sourceGraph?.meta || {}),
+      preview: true,
+      status: `Previewing saved answer context around ${seedNode.label || "the selected node"}.`,
+      nodeCount: nextNodes.length,
+      edgeCount: nextEdges.length,
+      visibleNodeCount: nextNodes.length,
+      visibleEdgeCount: nextEdges.length,
+      availableNodeKinds: [...new Set(nextNodes.map((node) => node.kind).filter(Boolean))].sort(),
+      availableRelationshipTypes: [
+        ...new Set(nextEdges.map((edge) => edge.type).filter(Boolean))
+      ].sort()
+    }
+  };
+}
+
 export function GraphDemoApp({
   GraphCanvas,
   library,
@@ -496,11 +567,13 @@ export function GraphDemoApp({
 
     try {
       const resolvedNode = await resolveExpandableNodeId(nodeId, focusNode);
-      const payload = await fetchGraphSubgraph(resolvedNode.seedId);
+      const payload = resolvedNode.localGraph
+        ? resolvedNode.localGraph
+        : await fetchGraphSubgraph(resolvedNode.seedId);
 
       rememberGraph(payload, {
         label: payload.seedNode?.label || resolvedNode.label || focusNode?.label || "Focused graph",
-        source: "focus"
+        source: resolvedNode.localGraph ? "preview-focus" : "focus"
       });
       setFilters((currentFilters) => syncFilterState(currentFilters, payload));
       suppressInspectOpenRef.current = true;
@@ -515,7 +588,9 @@ export function GraphDemoApp({
       setHoveredElement(null);
       setSearchQuery(payload.seedNode?.label || resolvedNode.label || focusNode?.label || "");
       setSearchStatus(
-        resolvedNode.fromPreview
+        resolvedNode.localGraph
+          ? `Previewing connections for ${payload.seedNode?.label || resolvedNode.label || "selected node"}`
+          : resolvedNode.fromPreview
           ? `Centered persisted ${payload.seedNode?.label || resolvedNode.label || "selected node"}`
           : `Centered ${payload.seedNode?.label || resolvedNode.label || focusNode?.label || "selected node"}`
       );
@@ -530,7 +605,7 @@ export function GraphDemoApp({
     const isPreviewNode = Boolean(
       focusNode?.isPreview ||
         graph.meta?.preview ||
-        (typeof nodeId === "string" && nodeId.startsWith("preview-node-"))
+        isPreviewNodeId(nodeId)
     );
 
     if (!isPreviewNode) {
@@ -568,7 +643,7 @@ export function GraphDemoApp({
       const searchPayload = await searchGraphSeeds(previewLabel, 8);
       const matchedSeed = findMatchingSeedResult(searchPayload.results || [], focusNode);
 
-      if (matchedSeed?.id) {
+      if (matchedSeed?.id && !isPreviewNodeId(matchedSeed.id)) {
         return {
           seedId: matchedSeed.id,
           label: matchedSeed.label || previewLabel,
@@ -577,10 +652,21 @@ export function GraphDemoApp({
       }
     }
 
+    const localGraph = buildLocalPreviewFocusGraph(graph, nodeId);
+
+    if (localGraph) {
+      return {
+        seedId: nodeId,
+        label: localGraph.seedNode?.label || previewLabel,
+        fromPreview: true,
+        localGraph
+      };
+    }
+
     throw new Error(
       previewLabel
-        ? `"${previewLabel}" is still a preview node. Wait for the graph update to finish, then try again.`
-        : "This preview node has not been persisted yet. Wait for the graph update to finish, then try again."
+        ? `"${previewLabel}" is still preview-only and has no saved graph node yet.`
+        : "This preview node has no saved graph node yet."
     );
   }
 
