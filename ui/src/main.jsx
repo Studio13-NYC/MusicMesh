@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { MusicMeshConcept } from "./concept/MusicMeshConcept";
 import { OperatorGraphDemo } from "./operator-graph-demo/OperatorGraphDemo";
 import "./styles/app.css";
 import "./graph-demos/styles.css";
@@ -13,6 +14,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <React.StrictMode>
-    <OperatorGraphDemo />
+    {window.location.pathname === "/concept" ? <MusicMeshConcept /> : <OperatorGraphDemo />}
   </React.StrictMode>
 );
