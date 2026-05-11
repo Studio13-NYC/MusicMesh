@@ -41,10 +41,14 @@ export async function fetchGraphSubgraph(seedId, options = {}) {
   });
 }
 
-export async function fetchThreadFocusedGraph(threadId, window = 200) {
+export async function fetchThreadFocusedGraph(threadId, window = 200, requestId = "") {
   const params = new URLSearchParams();
   params.set("threadId", threadId);
   params.set("window", String(window));
+
+  if (typeof requestId === "string" && requestId.trim()) {
+    params.set("requestId", requestId.trim());
+  }
 
   return fetchJson(`/api/graph-demo/thread-focus?${params.toString()}`);
 }

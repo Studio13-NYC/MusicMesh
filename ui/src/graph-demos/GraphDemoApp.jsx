@@ -25,6 +25,8 @@ const LIBRARY_COPY = {
 };
 
 const GRAPH_HISTORY_LIMIT = 24;
+const DEFAULT_SEED_MAX_NODES = 160;
+const DEFAULT_SEED_MAX_EDGES = 240;
 
 function cloneGraphPayload(graph) {
   return JSON.parse(JSON.stringify(graph || createEmptyGraph()));
@@ -190,6 +192,39 @@ function isPreviewNodeId(value) {
   return typeof value === "string" && value.startsWith("preview-node-");
 }
 
+function parseFocusKey(focusKey) {
+  const text = typeof focusKey === "string" ? focusKey.trim() : "";
+  const separatorIndex = text.indexOf(":");
+
+  if (separatorIndex <= 0) {
+    return {
+      kind: "",
+      id: ""
+    };
+  }
+
+  return {
+    kind: text.slice(0, separatorIndex),
+    id: text.slice(separatorIndex + 1)
+  };
+}
+
+function findPreferredSeedResult(results, query) {
+  const normalizedQuery = normalizeLookupLabel(query);
+  const candidates = Array.isArray(results) ? results : [];
+
+  if (!normalizedQuery) {
+    return candidates[0] || null;
+  }
+
+  return (
+    candidates.find((result) => normalizeLookupLabel(result.label) === normalizedQuery) ||
+    candidates.find((result) => normalizeLookupLabel(result.label).includes(normalizedQuery)) ||
+    candidates[0] ||
+    null
+  );
+}
+
 function buildLocalPreviewFocusGraph(sourceGraph, seedId) {
   const sourceNodes = sourceGraph?.nodes || [];
   const sourceEdges = sourceGraph?.edges || [];
@@ -259,10 +294,12 @@ function buildLocalPreviewFocusGraph(sourceGraph, seedId) {
 
 export function GraphDemoApp({
   GraphCanvas,
+  defaultSeedQuery = "",
   library,
   embedded = false,
   threadId = "",
-  focusKey = ""
+  focusKey = "",
+  onRequestNodeExpansion = null
 }) {
   const [graph, setGraph] = useState(createEmptyGraph());
   const [filters, setFilters] = useState({
@@ -310,82 +347,71 @@ export function GraphDemoApp({
 
       try {
         if (threadId) {
-          if (!focusKey) {
-            autoLoadedRef.current = false;
-            setSearchQuery("");
-            setSearchStatus("No seed loaded.");
-            setGraph(createEmptyGraph());
-            setGraphHistory({
-              entries: [],
-              index: -1
-            });
-            setFilters({
-              nodeKinds: {},
-              relationshipTypes: {}
-            });
-            setSelectedElement(null);
-            setHoveredElement(null);
+          const parsedFocusKey = parseFocusKey(focusKey);
+
+          if (parsedFocusKey.kind === "graph" && parsedFocusKey.id) {
+            setSearchStatus("Loading graph anchor...");
+            await loadSeed(parsedFocusKey.id);
             return;
           }
 
-          let focusPayload = null;
+          if (parsedFocusKey.id) {
+            let focusPayload = null;
 
-          try {
-            focusPayload = await fetchThreadFocusedGraph(threadId);
-          } catch (error) {
+            try {
+              focusPayload = await fetchThreadFocusedGraph(threadId, 200, parsedFocusKey.id);
+            } catch (error) {
+              if (!ignore) {
+                setSearchStatus("Thread focus unavailable; keeping the current graph visible.");
+              }
+            }
+
+            if (!ignore && focusPayload?.hasFocus && focusPayload.graph) {
+              const isPreview = Boolean(focusPayload.graph.meta?.preview);
+              const currentGraph = graphRef.current;
+              const nextGraph = shouldPreserveGraphView(currentGraph, focusPayload.graph)
+                ? mergeGraphPayload(currentGraph, focusPayload.graph)
+                : focusPayload.graph;
+
+              autoLoadedRef.current = true;
+              setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphAnchorId || "");
+              setSearchStatus(
+                isPreview
+                  ? `Previewing ${focusPayload.focusSeed?.label || "answer graph"}`
+                  : `Loaded ${focusPayload.focusSeed?.label || "active graph anchor"}`
+              );
+              rememberGraph(nextGraph, {
+                label: focusPayload.focusSeed?.label || nextGraph.seedNode?.label || "Thread graph",
+                source: isPreview ? "thread-preview" : "thread-focus"
+              });
+              setFilters((currentFilters) => syncFilterState(currentFilters, nextGraph));
+              suppressInspectOpenRef.current = true;
+              setSelectedElement(
+                !isPreview && nextGraph.seedNode
+                  ? {
+                      type: "node",
+                      id: nextGraph.seedNode.id
+                    }
+                  : null
+              );
+              setHoveredElement(null);
+              return;
+            }
+
             if (!ignore) {
-              setSearchStatus("Thread focus unavailable; loading an available graph seed.");
+              setSearchStatus("Building graph from the current answer...");
+              return;
             }
           }
 
-          if (!ignore && focusPayload?.hasFocus && focusPayload.graph) {
-            const isPreview = Boolean(focusPayload.graph.meta?.preview);
-            const currentGraph = graphRef.current;
-            const nextGraph = shouldPreserveGraphView(currentGraph, focusPayload.graph)
-              ? mergeGraphPayload(currentGraph, focusPayload.graph)
-              : focusPayload.graph;
-
-            autoLoadedRef.current = true;
-            setSearchQuery(focusPayload.focusSeed?.label || focusPayload.graphAnchorId || "");
-            setSearchStatus(
-              isPreview
-                ? `Previewing ${focusPayload.focusSeed?.label || "answer graph"}`
-                : `Loaded ${focusPayload.focusSeed?.label || "active graph anchor"}`
-            );
-            rememberGraph(nextGraph, {
-              label: focusPayload.focusSeed?.label || nextGraph.seedNode?.label || "Thread graph",
-              source: isPreview ? "thread-preview" : "thread-focus"
-            });
-            setFilters((currentFilters) => syncFilterState(currentFilters, nextGraph));
-            suppressInspectOpenRef.current = true;
-            setSelectedElement(
-              !isPreview && nextGraph.seedNode
-                ? {
-                    type: "node",
-                    id: nextGraph.seedNode.id
-                  }
-                : null
-            );
-            setHoveredElement(null);
-            return;
-          }
-
-          if (!ignore) {
-            autoLoadedRef.current = false;
-            setSearchQuery("");
-            setSearchStatus("Building graph from the current answer...");
-            setGraph(createEmptyGraph());
-            setFilters({
-              nodeKinds: {},
-              relationshipTypes: {}
-            });
-            setSelectedElement(null);
-            setHoveredElement(null);
+          if (!defaultSeedQuery && !autoLoadedRef.current) {
+            setSearchStatus("No seed loaded.");
             return;
           }
         }
 
-        const payload = await searchGraphSeeds("", 1);
+        const seedQuery = defaultSeedQuery || "";
+        const payload = await searchGraphSeeds(seedQuery, defaultSeedQuery ? 8 : 1);
 
         if (ignore) {
           return;
@@ -393,12 +419,22 @@ export function GraphDemoApp({
 
         if (!autoLoadedRef.current && (payload.results || []).length > 0) {
           autoLoadedRef.current = true;
-          const topMatch = payload.results[0];
+          const topMatch = findPreferredSeedResult(payload.results, seedQuery);
           setSearchQuery(topMatch.label);
           setSearchStatus(`Loaded ${topMatch.label}`);
-          await loadSeed(topMatch.id);
+          await loadSeed(
+            topMatch.id,
+            defaultSeedQuery
+              ? {
+                  depth: 1,
+                  maxNodes: DEFAULT_SEED_MAX_NODES,
+                  maxEdges: DEFAULT_SEED_MAX_EDGES,
+                  pathLimit: DEFAULT_SEED_MAX_EDGES
+                }
+              : {}
+          );
         } else if ((payload.results || []).length === 0) {
-          setSearchStatus("No seed available.");
+          setSearchStatus(defaultSeedQuery ? `No ${defaultSeedQuery} seed available.` : "No seed available.");
         }
       } catch (error) {
         if (!ignore) {
@@ -417,7 +453,7 @@ export function GraphDemoApp({
     return () => {
       ignore = true;
     };
-  }, [focusKey, threadId]);
+  }, [defaultSeedQuery, focusKey, threadId]);
 
   useEffect(() => {
     if (!selectedElement || selectedElement.type !== "node" || graph.meta?.preview) {
@@ -525,12 +561,12 @@ export function GraphDemoApp({
     setSearchStatus(`Redisplayed ${nextEntry.label}`);
   }
 
-  async function loadSeed(seedId) {
+  async function loadSeed(seedId, options = {}) {
     setIsGraphLoading(true);
     setErrorMessage("");
 
     try {
-      const payload = await fetchGraphSubgraph(seedId);
+      const payload = await fetchGraphSubgraph(seedId, options);
 
       rememberGraph(payload, {
         label: payload.seedNode?.label || "Loaded graph",
@@ -566,6 +602,22 @@ export function GraphDemoApp({
     setErrorMessage("");
 
     try {
+      if (typeof onRequestNodeExpansion === "function") {
+        const handled = await onRequestNodeExpansion(
+          focusNode || {
+            id: nodeId,
+            label: nodeId,
+            kind: "Node"
+          }
+        );
+
+        if (handled !== false) {
+          setSearchQuery(focusNode?.label || nodeId);
+          setSearchStatus(`Asked MusicMesh to expand ${focusNode?.label || "the selected node"}.`);
+          return;
+        }
+      }
+
       const resolvedNode = await resolveExpandableNodeId(nodeId, focusNode);
       const payload = resolvedNode.localGraph
         ? resolvedNode.localGraph

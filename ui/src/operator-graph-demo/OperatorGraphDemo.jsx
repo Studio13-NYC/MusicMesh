@@ -55,10 +55,20 @@ function newestThreadEntries(entries, threadId) {
     .map(({ entry }) => entry);
 }
 
-function findLatestThreadGraphFocusKey(entries, threadId) {
+function findLatestThreadGraphFocusKey(entries, threadId, requestIds = new Set()) {
+  if (requestIds.size === 0) {
+    return "";
+  }
+
   for (const entry of newestThreadEntries(entries, threadId)) {
+    const requestId = entry?.payload?.requestId || "";
+
+    if (!requestId || !requestIds.has(requestId)) {
+      continue;
+    }
+
     if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
-      return `preview:${entry.payload.requestId || entry.id}`;
+      return `preview:${requestId || entry.id}`;
     }
 
     const anchorId = entry?.payload?.graphAnchorId;
@@ -68,7 +78,7 @@ function findLatestThreadGraphFocusKey(entries, threadId) {
     }
 
     if (entry?.type === "assistant_message" && entry?.payload?.graphPending) {
-      return `pending:${entry.payload.requestId || entry.id}`;
+      return `pending:${requestId || entry.id}`;
     }
   }
 
@@ -122,6 +132,7 @@ export function OperatorGraphDemo() {
   const [graphFocusAnchorId, setGraphFocusAnchorId] = useState("");
   const viewportRef = useRef(null);
   const composerRef = useRef(null);
+  const activeGraphRequestIdsRef = useRef(new Set());
 
   useEffect(() => {
     loadTape();
@@ -157,7 +168,15 @@ export function OperatorGraphDemo() {
       entries = tapePayload.entries || [];
       setTapeEntries(entries);
       setTapePath(tapePayload.tapePath || "");
-      setGraphFocusAnchorId(findLatestThreadGraphFocusKey(entries, OPERATOR_THREAD_ID));
+      const nextFocusKey = findLatestThreadGraphFocusKey(
+        entries,
+        OPERATOR_THREAD_ID,
+        activeGraphRequestIdsRef.current
+      );
+
+      if (nextFocusKey) {
+        setGraphFocusAnchorId(nextFocusKey);
+      }
     } catch {
       setTapeEntries([]);
       setTapePath("");
@@ -222,23 +241,25 @@ export function OperatorGraphDemo() {
     );
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function submitPrompt(prompt, { displayPrompt = prompt } = {}) {
+    const normalizedPrompt = prompt.trim();
+    const visiblePrompt = displayPrompt.trim() || normalizedPrompt;
 
-    const prompt = composerValue.trim();
-
-    if (!prompt || isSending) {
-      return;
+    if (!normalizedPrompt || isSending) {
+      return false;
     }
 
     setErrorMessage("");
     setIsSending(true);
 
     const requestId = createClientRequestId();
+    activeGraphRequestIdsRef.current.add(requestId);
+    setGraphFocusAnchorId(`pending:${requestId}`);
+
     const nextUserMessage = {
       id: `user-${requestId}`,
       role: "user",
-      content: prompt
+      content: visiblePrompt
     };
 
     const nextMessages = [...messages, nextUserMessage];
@@ -254,7 +275,7 @@ export function OperatorGraphDemo() {
         body: JSON.stringify({
           clientRequestId: requestId,
           threadId: OPERATOR_THREAD_ID,
-          prompt,
+          prompt: normalizedPrompt,
           messages: nextMessages.map((message) => ({
             role: message.role,
             content: message.content
@@ -290,6 +311,7 @@ export function OperatorGraphDemo() {
         }
       ]);
       await loadTape();
+      return true;
     } catch (error) {
       setErrorMessage(error.message);
       const errorMessageId = `assistant-error-${requestId}`;
@@ -303,9 +325,37 @@ export function OperatorGraphDemo() {
         }
       ]);
       recoverAssistantFromTape(requestId, errorMessageId, error.message);
+      return false;
     } finally {
       setIsSending(false);
     }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    await submitPrompt(composerValue);
+  }
+
+  async function handleGraphNodeExpansion(node) {
+    const label = typeof node?.label === "string" ? node.label.trim() : "";
+
+    if (!label) {
+      return false;
+    }
+
+    const kind =
+      typeof node?.kind === "string" && node.kind.trim() ? node.kind.trim() : "music entity";
+    const prompt = [
+      `Expand the graph around "${label}" (${kind}).`,
+      "First answer from your own music knowledge with the most useful direct connections.",
+      "Keep the immediate answer compact: 8 to 12 direct one-hop connections are enough.",
+      "Include the best relevant people, bands/artists, recordings, instruments/equipment, studios/places, scenes/genres, and the relationship types when they are known.",
+      "Then map the useful direct relationships for the graph."
+    ].join(" ");
+
+    return submitPrompt(prompt, {
+      displayPrompt: `Expand ${label}`
+    });
   }
 
   return (
@@ -419,9 +469,11 @@ export function OperatorGraphDemo() {
                 {workspaceMode === "graph" ? (
                   <GraphDemoApp
                     GraphCanvas={CytoscapeCanvas}
+                    defaultSeedQuery="rock music"
                     embedded
                     library="cytoscape"
                     focusKey={graphFocusAnchorId}
+                    onRequestNodeExpansion={handleGraphNodeExpansion}
                     threadId={OPERATOR_THREAD_ID}
                   />
                 ) : (

@@ -78,8 +78,9 @@ app.http("graphDemoThreadFocus", {
       const requestUrl = new URL(request.url);
       const threadId = stableThreadId(requestUrl.searchParams.get("threadId"));
       const tapeWindowSize = Number(requestUrl.searchParams.get("window") || 200);
+      const requestId = stableString(requestUrl.searchParams.get("requestId"));
       const entries = await readTapeEntries(tapeWindowSize);
-      const latestFocus = findLatestThreadGraphFocus(entries, threadId);
+      const latestFocus = findLatestThreadGraphFocus(entries, threadId, requestId);
 
       if (!latestFocus) {
         return jsonResponse(200, {
@@ -230,8 +231,14 @@ function newestThreadEntries(entries, threadId) {
     .map(({ entry }) => entry);
 }
 
-function findLatestThreadGraphFocus(entries, threadId) {
+function findLatestThreadGraphFocus(entries, threadId, requestId = "") {
   for (const entry of newestThreadEntries(entries, threadId)) {
+    const entryRequestId = stableString(entry?.payload?.requestId);
+
+    if (requestId && entryRequestId !== requestId) {
+      continue;
+    }
+
     if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
       const graph = entry.payload.graph;
       const previewId = stableString(entry.payload.previewGraphId || graph.seedNode?.id || entry.id);

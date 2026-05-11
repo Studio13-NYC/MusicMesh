@@ -24,7 +24,9 @@ const EDGE_STYLE_MAP = {
   dotted: "dotted"
 };
 
-const FIT_PADDING = 148;
+const FIT_PADDING = 56;
+const FIT_ZOOM_BOOST = 1.3;
+const MAX_AUTO_ZOOM = 2.1;
 
 function resolveNodeColor(node) {
   return COLOR_MAP[node?.colorKey] || COLOR_MAP.node;
@@ -38,6 +40,7 @@ function fitViewport(cy) {
   }
 
   cy.fit(target, FIT_PADDING);
+  cy.zoom(Math.min(MAX_AUTO_ZOOM, cy.zoom() * FIT_ZOOM_BOOST));
   cy.center(target);
 }
 
