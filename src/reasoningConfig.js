@@ -79,8 +79,25 @@ function configuredEffortFromEnv(envKey) {
 
 function resolveReasoningEffort(stage = REASONING_STAGES.DEFAULT) {
   const stageConfig = STAGE_CONFIG[stage] || STAGE_CONFIG[REASONING_STAGES.DEFAULT];
+  const stageEffort = configuredEffortFromEnv(stageConfig.envKey);
+
+  if (stageEffort) {
+    return {
+      stage,
+      effort: stageEffort.effort,
+      source: stageEffort.source
+    };
+  }
+
+  if (stage !== REASONING_STAGES.DEFAULT) {
+    return {
+      stage,
+      effort: stageConfig.defaultEffort,
+      source: `${stageConfig.envKey}:default`
+    };
+  }
+
   const candidates = [
-    configuredEffortFromEnv(stageConfig.envKey),
     configuredEffortFromEnv(STAGE_CONFIG[REASONING_STAGES.DEFAULT].envKey),
     configuredEffortFromEnv("OPENAI_REASONING_EFFORT"),
     configuredEffortFromEnv("OPENAI_REASONING_LEVEL")
@@ -139,6 +156,16 @@ function resolveChatGraphSyncTimeoutMs() {
   return 25000;
 }
 
+function resolveChatMaxOutputTokens() {
+  const configured = Number(process.env.OPENAI_MAX_OUTPUT_TOKENS_CHAT);
+
+  if (Number.isFinite(configured) && configured >= 256 && configured <= 4096) {
+    return Math.round(configured);
+  }
+
+  return 1800;
+}
+
 function resolveChatAnswerReasoningStage({ prompt, messages }) {
   const promptLength = typeof prompt === "string" ? prompt.trim().length : 0;
   const messageCount = Array.isArray(messages) ? messages.length : 0;
@@ -155,6 +182,7 @@ function getReasoningEnvKeys() {
     "OPENAI_REASONING_EFFORT",
     "OPENAI_REASONING_LEVEL",
     "OPENAI_VERBOSITY",
+    "OPENAI_MAX_OUTPUT_TOKENS_CHAT",
     "MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS",
     ...Object.values(STAGE_CONFIG).map((config) => config.envKey)
   ];
@@ -167,6 +195,7 @@ module.exports = {
   getReasoningEnvKeys,
   normalizeOpenAiModel,
   resolveChatAnswerReasoningStage,
+  resolveChatMaxOutputTokens,
   resolveChatGraphSyncTimeoutMs,
   resolveOpenAiModel,
   resolveReasoningEffort,

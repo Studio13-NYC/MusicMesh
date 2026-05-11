@@ -139,11 +139,22 @@ async function appendGraphUpdate({ threadId, graphPipeline, requestId, responseI
   });
 }
 
+function stableClientRequestId(value) {
+  const requestId = typeof value === "string" ? value.trim() : "";
+
+  if (/^req-[a-zA-Z0-9-]{8,80}$/.test(requestId)) {
+    return requestId;
+  }
+
+  return "";
+}
+
 async function handleChat(request, response) {
-  const requestId = createId("req");
+  let requestId = createId("req");
 
   try {
     const body = await parseJsonBody(request);
+    requestId = stableClientRequestId(body.clientRequestId) || requestId;
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const threadId = typeof body.threadId === "string" ? body.threadId : "default-thread";
     const messages = Array.isArray(body.messages) ? body.messages : [];

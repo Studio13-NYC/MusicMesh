@@ -3,6 +3,7 @@ const { validateEnv } = require("./env");
 const {
   REASONING_STAGES,
   resolveChatAnswerReasoningStage,
+  resolveChatMaxOutputTokens,
   resolveOpenAiModel,
   resolveReasoningEffort,
   resolveVerbosity
@@ -75,6 +76,7 @@ async function callResponsesApi({
   const model = resolveOpenAiModel();
   const reasoningConfig = resolveReasoningEffort(reasoningStage);
   const verbosityConfig = resolveVerbosity();
+  const maxOutputTokens = purpose === "chat" ? resolveChatMaxOutputTokens() : null;
   const startedAt = Date.now();
 
   if (!envResult.isValid) {
@@ -93,23 +95,29 @@ async function callResponsesApi({
     throw new Error(errorMessage);
   }
 
+  const requestBody = {
+    model,
+    input,
+    instructions,
+    reasoning: {
+      effort: reasoningConfig.effort
+    },
+    text: {
+      verbosity: verbosityConfig.verbosity
+    }
+  };
+
+  if (maxOutputTokens) {
+    requestBody.max_output_tokens = maxOutputTokens;
+  }
+
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      model,
-      input,
-      instructions,
-      reasoning: {
-        effort: reasoningConfig.effort
-      },
-      text: {
-        verbosity: verbosityConfig.verbosity
-      }
-    })
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {

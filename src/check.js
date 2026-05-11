@@ -1,8 +1,8 @@
 const { spawnSync } = require("child_process");
 const { validateEnv } = require("./env");
+const { resolveOpenAiModel } = require("./reasoningConfig");
 
 const OPENAI_API_URL = "https://api.openai.com/v1/models";
-const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
 const REQUIRED_DOCKER_MCP_TOOLS = ["read_neo4j_cypher", "browser_navigate"];
 
 function fail(message) {
@@ -111,7 +111,8 @@ function checkDockerMcpGateway() {
 async function checkOpenAI() {
   printSection("openai");
 
-  const response = await fetch(`${OPENAI_API_URL}/${encodeURIComponent(DEFAULT_OPENAI_MODEL)}`, {
+  const model = resolveOpenAiModel();
+  const response = await fetch(`${OPENAI_API_URL}/${encodeURIComponent(model)}`, {
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
     }
@@ -120,14 +121,14 @@ async function checkOpenAI() {
   if (!response.ok) {
     const detail = await response.text();
     fail(
-      `OpenAI connectivity check failed for model ${DEFAULT_OPENAI_MODEL}: ${response.status} ${response.statusText}${
+      `OpenAI connectivity check failed for model ${model}: ${response.status} ${response.statusText}${
         detail ? ` - ${detail}` : ""
       }`
     );
   }
 
   const payload = await response.json();
-  console.log(`OpenAI connectivity passed for model: ${payload.id || DEFAULT_OPENAI_MODEL}`);
+  console.log(`OpenAI connectivity passed for model: ${payload.id || model}`);
 }
 
 async function runCheck() {

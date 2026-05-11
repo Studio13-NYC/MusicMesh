@@ -19,6 +19,20 @@ const WORKBENCH_MODES = [
 const seedMessages = [];
 const OPERATOR_THREAD_ID = "operator-graph-demo";
 
+function createClientRequestId() {
+  if (window.crypto?.randomUUID) {
+    return `req-${window.crypto.randomUUID()}`;
+  }
+
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 function timestampValue(entry) {
   const parsed = Date.parse(entry?.createdAt || "");
 
@@ -77,6 +91,24 @@ function findLatestThreadAssessment(entries, threadId) {
   return null;
 }
 
+function findAssistantEntryForRequest(entries, requestId) {
+  return newestThreadEntries(entries, OPERATOR_THREAD_ID).find(
+    (entry) =>
+      entry?.type === "assistant_message" &&
+      entry?.payload?.requestId === requestId &&
+      typeof entry?.payload?.text === "string" &&
+      entry.payload.text.trim()
+  );
+}
+
+function assistantMessageFromTape(entry) {
+  return {
+    id: entry?.payload?.responseId || `assistant-${entry?.payload?.requestId || Date.now()}`,
+    role: "assistant",
+    content: entry?.payload?.text || ""
+  };
+}
+
 export function OperatorGraphDemo() {
   const [messages, setMessages] = useState(seedMessages);
   const [composerValue, setComposerValue] = useState("");
@@ -112,6 +144,8 @@ export function OperatorGraphDemo() {
   }, [messages]);
 
   async function loadTape() {
+    let entries = [];
+
     try {
       const tapeResponse = await fetch(`${API_BASE_URL}/api/chat/tape?limit=40`);
 
@@ -120,7 +154,7 @@ export function OperatorGraphDemo() {
       }
 
       const tapePayload = await tapeResponse.json();
-      const entries = tapePayload.entries || [];
+      entries = tapePayload.entries || [];
       setTapeEntries(entries);
       setTapePath(tapePayload.tapePath || "");
       setGraphFocusAnchorId(findLatestThreadGraphFocusKey(entries, OPERATOR_THREAD_ID));
@@ -143,6 +177,49 @@ export function OperatorGraphDemo() {
       setRuntimeEvents([]);
       setRuntimeLogPath("");
     }
+
+    return entries;
+  }
+
+  async function recoverAssistantFromTape(requestId, errorMessageId, originalErrorMessage) {
+    for (let attempt = 0; attempt < 45; attempt += 1) {
+      await sleep(attempt === 0 ? 3000 : 2500);
+
+      const entries = await loadTape();
+      const assistantEntry = findAssistantEntryForRequest(entries, requestId);
+
+      if (!assistantEntry) {
+        continue;
+      }
+
+      const recoveredMessage = assistantMessageFromTape(assistantEntry);
+      setMessages((currentMessages) => {
+        const hasRecoveredMessage = currentMessages.some(
+          (message) => message.id === recoveredMessage.id
+        );
+
+        if (hasRecoveredMessage) {
+          return currentMessages.filter((message) => message.id !== errorMessageId);
+        }
+
+        return currentMessages.map((message) =>
+          message.id === errorMessageId ? recoveredMessage : message
+        );
+      });
+      setErrorMessage("");
+      return;
+    }
+
+    setMessages((currentMessages) =>
+      currentMessages.map((message) =>
+        message.id === errorMessageId
+          ? {
+              ...message,
+              content: `MusicMesh could not answer this request: ${originalErrorMessage}`
+            }
+          : message
+      )
+    );
   }
 
   async function handleSubmit(event) {
@@ -157,8 +234,9 @@ export function OperatorGraphDemo() {
     setErrorMessage("");
     setIsSending(true);
 
+    const requestId = createClientRequestId();
     const nextUserMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${requestId}`,
       role: "user",
       content: prompt
     };
@@ -174,6 +252,7 @@ export function OperatorGraphDemo() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          clientRequestId: requestId,
           threadId: OPERATOR_THREAD_ID,
           prompt,
           messages: nextMessages.map((message) => ({
@@ -213,14 +292,17 @@ export function OperatorGraphDemo() {
       await loadTape();
     } catch (error) {
       setErrorMessage(error.message);
+      const errorMessageId = `assistant-error-${requestId}`;
       setMessages((currentMessages) => [
         ...currentMessages,
         {
-          id: `assistant-error-${Date.now()}`,
+          id: errorMessageId,
           role: "assistant",
-          content: `MusicMesh could not answer this request: ${error.message}`
+          content:
+            "MusicMesh lost the live backend connection for this request. I am checking the run tape for the completed answer."
         }
       ]);
+      recoverAssistantFromTape(requestId, errorMessageId, error.message);
     } finally {
       setIsSending(false);
     }

@@ -34,6 +34,16 @@ function jsonResponse(status, payload) {
   };
 }
 
+function stableClientRequestId(value) {
+  const requestId = typeof value === "string" ? value.trim() : "";
+
+  if (/^req-[a-zA-Z0-9-]{8,80}$/.test(requestId)) {
+    return requestId;
+  }
+
+  return "";
+}
+
 function pendingGraphPipelineResult() {
   return {
     mode: "pending",
@@ -124,7 +134,7 @@ app.http("chat", {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const threadId = typeof body.threadId === "string" ? body.threadId : "default-thread";
     const messages = Array.isArray(body.messages) ? body.messages : [];
-    const requestId = createId("req");
+    const requestId = stableClientRequestId(body.clientRequestId) || createId("req");
 
     if (!prompt) {
       await appendRuntimeEvent({
