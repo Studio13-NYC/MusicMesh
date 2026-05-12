@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import * as Separator from "@radix-ui/react-separator";
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
@@ -60,21 +60,51 @@ function findLatestThreadGraphFocusKey(entries, threadId, requestIds = new Set()
     return "";
   }
 
-  for (const entry of newestThreadEntries(entries, threadId)) {
+  const threadEntries = newestThreadEntries(entries, threadId);
+  const requestedEntries = threadEntries.filter((entry) => {
     const requestId = entry?.payload?.requestId || "";
 
-    if (!requestId || !requestIds.has(requestId)) {
+    return requestId && requestIds.has(requestId);
+  });
+  const seenRequestIds = new Set();
+
+  function focusKeyFromEntryGroup(entryGroup) {
+    const persistedEntry = entryGroup.find((entry) => {
+      const anchorId = entry?.payload?.graphAnchorId;
+
+      return typeof anchorId === "string" && anchorId.trim();
+    });
+
+    if (persistedEntry) {
+      return `graph:${persistedEntry.payload.graphAnchorId.trim()}`;
+    }
+
+    const previewEntry = entryGroup.find(
+      (entry) => entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0
+    );
+
+    if (previewEntry) {
+      return `preview:${previewEntry.payload?.requestId || previewEntry.id}`;
+    }
+
+    return "";
+  }
+
+  for (const entry of requestedEntries) {
+    const requestId = entry?.payload?.requestId || "";
+
+    if (seenRequestIds.has(requestId)) {
       continue;
     }
 
-    if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
-      return `preview:${requestId || entry.id}`;
-    }
+    seenRequestIds.add(requestId);
 
-    const anchorId = entry?.payload?.graphAnchorId;
+    const focusKey = focusKeyFromEntryGroup(
+      requestedEntries.filter((candidate) => candidate?.payload?.requestId === requestId)
+    );
 
-    if (typeof anchorId === "string" && anchorId.trim()) {
-      return `graph:${anchorId.trim()}`;
+    if (focusKey) {
+      return focusKey;
     }
 
     if (entry?.type === "assistant_message" && entry?.payload?.graphPending) {
@@ -119,6 +149,202 @@ function assistantMessageFromTape(entry) {
   };
 }
 
+function newestMatchingEntry(entries, requestId, predicate) {
+  return (Array.isArray(entries) ? entries : [])
+    .filter((entry) => entry?.payload?.requestId === requestId && predicate(entry))
+    .sort((left, right) => timestampValue(right) - timestampValue(left))[0] || null;
+}
+
+function buildGraphRunStatus({ requestIds, runtimeEvents, tapeEntries, isSending }) {
+  const latestRequestId = Array.isArray(requestIds) && requestIds.length > 0
+    ? requestIds[requestIds.length - 1]
+    : "";
+
+  if (!latestRequestId) {
+    return null;
+  }
+
+  const pipelineComplete = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) =>
+      entry.type === "chat_graph_pipeline_deferred_completed" ||
+      entry.type === "chat_graph_pipeline_completed"
+  );
+  const pipelineFailed = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) =>
+      entry.type === "chat_graph_pipeline_deferred_failed" ||
+      entry.type === "chat_graph_pipeline_failed"
+  );
+  const previewCompleted = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) => entry.type === "graph_preview_completed"
+  );
+  const previewFailed = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) => entry.type === "graph_preview_failed"
+  );
+  const previewStarted = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) => entry.type === "graph_preview_started"
+  );
+  const graphPlanCompleted = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) => entry.type === "llm_call_completed" && entry.payload?.purpose === "graph_plan"
+  );
+  const graphGroundingCompleted = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) => entry.type === "llm_call_completed" && entry.payload?.purpose === "graph_grounding"
+  );
+  const answerReturned = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) => entry.type === "chat_answer_returned"
+  );
+  const requestReceived = newestMatchingEntry(
+    runtimeEvents,
+    latestRequestId,
+    (entry) => entry.type === "chat_request_received"
+  );
+  const graphPreviewTapeEntry = newestMatchingEntry(
+    tapeEntries,
+    latestRequestId,
+    (entry) => entry.type === "graph_preview"
+  );
+
+  if (pipelineFailed) {
+    return {
+      requestId: latestRequestId,
+      stage: "failed",
+      label: "Graph pipeline failed before saving",
+      detail: pipelineFailed.payload?.message || "The Complete Graph was not changed.",
+      variant: "error",
+      isActive: false
+    };
+  }
+
+  if (pipelineComplete) {
+    const mode = pipelineComplete.payload?.mode || "";
+
+    if (mode === "persist_graph") {
+      return {
+        requestId: latestRequestId,
+        stage: "saved",
+        label: "Graph saved to Complete Graph",
+        detail: `${pipelineComplete.payload?.graphNodeCount || 0} nodes / ${pipelineComplete.payload?.graphRelationshipCount || 0} relationships persisted${pipelineComplete.payload?.graphAnchorName ? ` around ${pipelineComplete.payload.graphAnchorName}` : ""}.`,
+        variant: "saved",
+        isActive: false
+      };
+    }
+
+    if (mode === "needs_human_input" || pipelineComplete.payload?.humanInputNeeded) {
+      return {
+        requestId: latestRequestId,
+        stage: "needs_human_input",
+        label: "Needs human input before saving",
+        detail: "The preview was not written to the Complete Graph.",
+        variant: "warning",
+        isActive: false
+      };
+    }
+
+    return {
+      requestId: latestRequestId,
+      stage: "answer_only",
+      label: "Answer complete",
+      detail: "No graph save was needed for this turn.",
+      variant: "quiet",
+      isActive: false
+    };
+  }
+
+  if (graphGroundingCompleted) {
+    return {
+      requestId: latestRequestId,
+      stage: "saving",
+      label: "Saving graph...",
+      detail: "Grounding is complete; MusicMesh is writing the connected graph patch.",
+      variant: "active",
+      isActive: true
+    };
+  }
+
+  if (graphPlanCompleted) {
+    return {
+      requestId: latestRequestId,
+      stage: "grounding",
+      label: "Grounding against existing graph...",
+      detail: "MusicMesh is matching the answer to Complete Graph nodes.",
+      variant: "active",
+      isActive: true
+    };
+  }
+
+  if (previewCompleted || graphPreviewTapeEntry) {
+    return {
+      requestId: latestRequestId,
+      stage: "preview",
+      label: "Preview rendered; saving to Complete Graph...",
+      detail: "The canvas is provisional until persistence finishes.",
+      variant: "active",
+      isActive: true
+    };
+  }
+
+  if (previewFailed) {
+    return {
+      requestId: latestRequestId,
+      stage: "preview_failed",
+      label: "Checking Complete Graph...",
+      detail: "Preview failed, but the persistence pipeline is still running.",
+      variant: "active",
+      isActive: true
+    };
+  }
+
+  if (previewStarted) {
+    return {
+      requestId: latestRequestId,
+      stage: "previewing",
+      label: "Drafting graph preview...",
+      detail: "MusicMesh is creating the first visible graph slice.",
+      variant: "active",
+      isActive: true
+    };
+  }
+
+  if (answerReturned) {
+    return {
+      requestId: latestRequestId,
+      stage: "complete_graph",
+      label: "Checking Complete Graph...",
+      detail: "The answer is visible; graph planning is still running.",
+      variant: "active",
+      isActive: true
+    };
+  }
+
+  if (requestReceived || isSending) {
+    return {
+      requestId: latestRequestId,
+      stage: "answering",
+      label: "Answering...",
+      detail: "MusicMesh is preparing the direct response.",
+      variant: "active",
+      isActive: true
+    };
+  }
+
+  return null;
+}
+
 export function OperatorGraphDemo() {
   const [messages, setMessages] = useState(seedMessages);
   const [composerValue, setComposerValue] = useState("");
@@ -130,9 +356,20 @@ export function OperatorGraphDemo() {
   const [runtimeLogPath, setRuntimeLogPath] = useState("");
   const [workspaceMode, setWorkspaceMode] = useState("graph");
   const [graphFocusAnchorId, setGraphFocusAnchorId] = useState("");
+  const [activeGraphRequestIds, setActiveGraphRequestIds] = useState([]);
   const viewportRef = useRef(null);
   const composerRef = useRef(null);
   const activeGraphRequestIdsRef = useRef(new Set());
+  const graphRunStatus = useMemo(
+    () =>
+      buildGraphRunStatus({
+        requestIds: activeGraphRequestIds,
+        runtimeEvents,
+        tapeEntries,
+        isSending
+      }),
+    [activeGraphRequestIds, isSending, runtimeEvents, tapeEntries]
+  );
 
   useEffect(() => {
     loadTape();
@@ -241,7 +478,7 @@ export function OperatorGraphDemo() {
     );
   }
 
-  async function submitPrompt(prompt, { displayPrompt = prompt } = {}) {
+  async function submitPrompt(prompt, { displayPrompt = prompt, graphContext = null } = {}) {
     const normalizedPrompt = prompt.trim();
     const visiblePrompt = displayPrompt.trim() || normalizedPrompt;
 
@@ -254,6 +491,10 @@ export function OperatorGraphDemo() {
 
     const requestId = createClientRequestId();
     activeGraphRequestIdsRef.current.add(requestId);
+    setActiveGraphRequestIds((currentRequestIds) => [
+      ...currentRequestIds.filter((currentRequestId) => currentRequestId !== requestId),
+      requestId
+    ].slice(-12));
     setGraphFocusAnchorId(`pending:${requestId}`);
 
     const nextUserMessage = {
@@ -276,6 +517,7 @@ export function OperatorGraphDemo() {
           clientRequestId: requestId,
           threadId: OPERATOR_THREAD_ID,
           prompt: normalizedPrompt,
+          graphContext,
           messages: nextMessages.map((message) => ({
             role: message.role,
             content: message.content
@@ -336,7 +578,7 @@ export function OperatorGraphDemo() {
     await submitPrompt(composerValue);
   }
 
-  async function handleGraphNodeExpansion(node) {
+  async function handleGraphNodeExpansion(node, graphContext = null) {
     const label = typeof node?.label === "string" ? node.label.trim() : "";
 
     if (!label) {
@@ -350,11 +592,22 @@ export function OperatorGraphDemo() {
       "First answer from your own music knowledge with the most useful direct connections.",
       "Keep the immediate answer compact: 8 to 12 direct one-hop connections are enough.",
       "Include the best relevant people, bands/artists, recordings, instruments/equipment, studios/places, scenes/genres, and the relationship types when they are known.",
+      "When mapping the graph, connect the expansion into the Complete Graph in Neo4j and reuse existing nodes when they already exist.",
+      "Do not leave labels, albums, tracks, people, or scenes as disconnected local islands.",
       "Then map the useful direct relationships for the graph."
     ].join(" ");
 
     return submitPrompt(prompt, {
-      displayPrompt: `Expand ${label}`
+      displayPrompt: `Expand ${label}`,
+      graphContext: {
+        ...(graphContext || {}),
+        intent: "expand_node",
+        selectedNode: graphContext?.selectedNode || {
+          id: node?.id || "",
+          label,
+          kind
+        }
+      }
     });
   }
 
@@ -394,6 +647,7 @@ export function OperatorGraphDemo() {
                       <TranscriptEntry entry={message} key={message.id} />
                     ))}
                     {isSending ? <PendingAssistantEntry /> : null}
+                    {graphRunStatus ? <GraphRunStatusCard status={graphRunStatus} /> : null}
                   </div>
                 </ScrollArea.Viewport>
                 <ScrollArea.Scrollbar className="scrollbar" orientation="vertical">
@@ -473,6 +727,7 @@ export function OperatorGraphDemo() {
                     embedded
                     library="cytoscape"
                     focusKey={graphFocusAnchorId}
+                    graphRunStatus={graphRunStatus}
                     onRequestNodeExpansion={handleGraphNodeExpansion}
                     threadId={OPERATOR_THREAD_ID}
                   />
@@ -518,6 +773,22 @@ function PendingAssistantEntry() {
     <article className="assistant-stream assistant-stream-pending">
       <div className="markdown-stream">
         <p>MusicMesh is working through that request...</p>
+      </div>
+    </article>
+  );
+}
+
+function GraphRunStatusCard({ status }) {
+  if (!status) {
+    return null;
+  }
+
+  return (
+    <article className={`graph-run-card graph-run-card-${status.variant || "active"}`}>
+      <span className={`graph-run-spinner${status.isActive ? " is-active" : ""}`} aria-hidden="true" />
+      <div>
+        <strong>{status.label}</strong>
+        <span>{status.detail}</span>
       </div>
     </article>
   );

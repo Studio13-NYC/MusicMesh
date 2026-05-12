@@ -125,8 +125,9 @@ Current workbench shape:
 - graph seed search and Cytoscape graph inspection
 - chat-derived domain graph persistence
 - graph preview while persistence continues in the background
+- visible graph progress from answer to preview, Complete Graph grounding, save, or human-input-needed outcome
 - graph view history with `Back` / `Forward` replay of already-seen graph payloads
-- double-click or `Expand` centers the selected node and loads its connected subgraph
+- double-click or `Expand` routes through chat and expands the selected node against the Complete Graph in Neo4j
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
 - post-run quality assessment written to the conversation tape

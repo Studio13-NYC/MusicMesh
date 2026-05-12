@@ -971,9 +971,22 @@ async function fetchSeededGraph(seedId, options = {}) {
     UNWIND rawNodes AS rawNode
     WITH seed, collect(DISTINCT rawNode) AS distinctNodes, rawRels
     WITH seed, distinctNodes[..$maxNodes] AS nodes, rawRels
+    WITH seed, nodes, rawRels, [node IN nodes | elementId(node)] AS nodeIds
     CALL {
-      WITH nodes, rawRels
-      WITH nodes, CASE WHEN size(rawRels) = 0 THEN [null] ELSE rawRels END AS relCandidates
+      WITH nodeIds
+      UNWIND nodeIds AS leftNodeId
+      MATCH (leftNode)
+      WHERE elementId(leftNode) = leftNodeId
+      OPTIONAL MATCH (leftNode)-[directRel]-(rightNode)
+      WHERE
+        elementId(rightNode) IN nodeIds AND
+        NOT type(directRel) IN $hiddenRelationshipTypes
+      RETURN collect(DISTINCT directRel) AS directRels
+    }
+    CALL {
+      WITH nodes, rawRels, directRels
+      WITH nodes, rawRels + directRels AS relCandidates
+      WITH nodes, CASE WHEN size(relCandidates) = 0 THEN [null] ELSE relCandidates END AS relCandidates
       UNWIND relCandidates AS rawRel
       WITH nodes, collect(DISTINCT rawRel) AS distinctRels
       RETURN [rel IN distinctRels WHERE rel IS NOT NULL AND startNode(rel) IN nodes AND endNode(rel) IN nodes][..$maxEdges] AS rels
@@ -1000,6 +1013,7 @@ async function fetchSeededGraph(seedId, options = {}) {
   const records = await runRead(cypher, {
     seedId: normalizedSeedId,
     hiddenNodeLabels: HIDDEN_GRAPH_NODE_LABELS,
+    hiddenRelationshipTypes: HIDDEN_GRAPH_RELATIONSHIP_TYPES,
     maxNodes: toCypherInteger(maxNodes),
     maxEdges: toCypherInteger(maxEdges),
     pathLimit: toCypherInteger(pathLimit)

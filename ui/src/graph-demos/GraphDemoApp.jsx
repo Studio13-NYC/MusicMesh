@@ -225,6 +225,50 @@ function findPreferredSeedResult(results, query) {
   );
 }
 
+function graphContextNode(node) {
+  if (!node) {
+    return null;
+  }
+
+  const label = typeof node.label === "string" ? node.label.trim() : "";
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    id: typeof node.id === "string" ? node.id : "",
+    label,
+    kind: typeof node.kind === "string" ? node.kind : ""
+  };
+}
+
+function buildGraphExpansionContext(graph, focusNode) {
+  const nodes = (graph?.nodes || []).map(graphContextNode).filter(Boolean);
+  const nodeLabelById = new Map(nodes.map((node) => [node.id, node.label]));
+
+  return {
+    intent: "expand_node",
+    selectedNode: graphContextNode(focusNode),
+    currentView: {
+      seedNode: graphContextNode(graph?.seedNode),
+      nodeCount: graph?.nodes?.length || 0,
+      relationshipCount: graph?.edges?.length || 0,
+      nodes: nodes.slice(0, 80),
+      relationships: (graph?.edges || [])
+        .map((edge) => ({
+          source: edge.source || "",
+          sourceLabel: nodeLabelById.get(edge.source) || "",
+          type: edge.type || "",
+          target: edge.target || "",
+          targetLabel: nodeLabelById.get(edge.target) || ""
+        }))
+        .filter((edge) => edge.type && edge.sourceLabel && edge.targetLabel)
+        .slice(0, 120)
+    }
+  };
+}
+
 function buildLocalPreviewFocusGraph(sourceGraph, seedId) {
   const sourceNodes = sourceGraph?.nodes || [];
   const sourceEdges = sourceGraph?.edges || [];
@@ -299,6 +343,7 @@ export function GraphDemoApp({
   embedded = false,
   threadId = "",
   focusKey = "",
+  graphRunStatus = null,
   onRequestNodeExpansion = null
 }) {
   const [graph, setGraph] = useState(createEmptyGraph());
@@ -603,12 +648,21 @@ export function GraphDemoApp({
 
     try {
       if (typeof onRequestNodeExpansion === "function") {
-        const handled = await onRequestNodeExpansion(
+        const expansionContext = buildGraphExpansionContext(
+          graph,
           focusNode || {
             id: nodeId,
             label: nodeId,
             kind: "Node"
           }
+        );
+        const handled = await onRequestNodeExpansion(
+          focusNode || {
+            id: nodeId,
+            label: nodeId,
+            kind: "Node"
+          },
+          expansionContext
         );
 
         if (handled !== false) {
@@ -971,6 +1025,8 @@ export function GraphDemoApp({
             </div>
           </div>
 
+          {graphRunStatus ? <GraphRunStatusStrip status={graphRunStatus} /> : null}
+
           <div className="demo-canvas-shell">
             {isGraphLoading ? (
               <div className="demo-empty-state">Loading graph from Neo4j...</div>
@@ -1050,6 +1106,22 @@ function LegendEdgeRow({ styleKey, label }) {
     <div className="demo-legend-row">
       <span className={`demo-edge-chip ${styleKey}`} />
       <span>{label}</span>
+    </div>
+  );
+}
+
+function GraphRunStatusStrip({ status }) {
+  if (!status) {
+    return null;
+  }
+
+  return (
+    <div className={`demo-run-status demo-run-status-${status.variant || "active"}`}>
+      <span className={`demo-run-spinner${status.isActive ? " is-active" : ""}`} aria-hidden="true" />
+      <div>
+        <strong>{status.label}</strong>
+        <span>{status.detail}</span>
+      </div>
     </div>
   );
 }

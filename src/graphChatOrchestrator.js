@@ -244,20 +244,181 @@ function normalizePlanRelationship(relationship, entityByName, index) {
   };
 }
 
-function normalizeGraphPlan(rawPlan) {
+function normalizeContextNode(node) {
+  if (!node || typeof node !== "object") {
+    return null;
+  }
+
+  const label = stableString(node.label || node.name);
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    id: stableString(node.id),
+    label,
+    kind: stableString(node.kind || node.type || node.labelType)
+  };
+}
+
+function summarizeGraphContextForPrompt(graphContext) {
+  if (!graphContext || typeof graphContext !== "object") {
+    return null;
+  }
+
+  const selectedNode = normalizeContextNode(graphContext.selectedNode);
+  const currentView = graphContext.currentView && typeof graphContext.currentView === "object"
+    ? graphContext.currentView
+    : {};
+  const nodes = (Array.isArray(currentView.nodes) ? currentView.nodes : [])
+    .map(normalizeContextNode)
+    .filter(Boolean)
+    .slice(0, 80);
+  const relationships = (Array.isArray(currentView.relationships)
+    ? currentView.relationships
+    : []
+  )
+    .map((relationship) => ({
+      source: stableString(relationship?.source),
+      sourceLabel: stableString(relationship?.sourceLabel),
+      type: sanitizeIdentifier(relationship?.type, "RELATED_TO").toUpperCase(),
+      target: stableString(relationship?.target),
+      targetLabel: stableString(relationship?.targetLabel)
+    }))
+    .filter((relationship) => relationship.type && (relationship.source || relationship.sourceLabel) && (relationship.target || relationship.targetLabel))
+    .slice(0, 120);
+
+  return {
+    intent: stableString(graphContext.intent) || "prompt",
+    selectedNode,
+    currentView: {
+      seedNode: normalizeContextNode(currentView.seedNode),
+      nodeCount: Number.isFinite(Number(currentView.nodeCount)) ? Number(currentView.nodeCount) : nodes.length,
+      relationshipCount: Number.isFinite(Number(currentView.relationshipCount))
+        ? Number(currentView.relationshipCount)
+        : relationships.length,
+      nodes,
+      relationships
+    }
+  };
+}
+
+function graphContextEntities(graphContext) {
+  const summary = summarizeGraphContextForPrompt(graphContext);
+
+  if (!summary) {
+    return [];
+  }
+
+  const candidates = [
+    summary.selectedNode,
+    summary.currentView.seedNode,
+    ...summary.currentView.nodes
+  ].filter(Boolean);
+  const seen = new Set();
+
+  return candidates
+    .map((node) => ({
+      name: node.label,
+      type: node.kind
+    }))
+    .filter((entity) => {
+      const key = `${entity.name.toLowerCase()}|||${entity.type.toLowerCase()}`;
+
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+}
+
+function mergeCanonLookups(...lookupGroups) {
+  const lookupByKey = new Map();
+
+  for (const lookup of lookupGroups.flat()) {
+    const inputName = stableString(lookup?.input?.name);
+    const inputType = stableString(lookup?.input?.type);
+
+    if (!inputName) {
+      continue;
+    }
+
+    const key = `${inputName.toLowerCase()}|||${inputType.toLowerCase()}`;
+    const currentLookup = lookupByKey.get(key) || {
+      input: {
+        name: inputName,
+        type: inputType
+      },
+      matches: []
+    };
+    const matchById = new Map(
+      currentLookup.matches.map((match) => [stableString(match.id), match])
+    );
+
+    for (const match of lookup.matches || []) {
+      const matchId = stableString(match.id);
+
+      if (matchId && !matchById.has(matchId)) {
+        matchById.set(matchId, match);
+      }
+    }
+
+    currentLookup.matches = [...matchById.values()];
+    lookupByKey.set(key, currentLookup);
+  }
+
+  return [...lookupByKey.values()];
+}
+
+function normalizeGraphPlan(rawPlan, graphContext = {}) {
   const mode = ["answer_only", "persist_graph", "needs_human_input"].includes(rawPlan.mode)
     ? rawPlan.mode
     : "answer_only";
-  const entities = (Array.isArray(rawPlan.entities) ? rawPlan.entities : [])
+  const contextSummary = summarizeGraphContextForPrompt(graphContext);
+  const selectedAnchorName =
+    contextSummary?.intent === "expand_node"
+      ? stableString(contextSummary.selectedNode?.label)
+      : "";
+  const selectedAnchorKind =
+    contextSummary?.intent === "expand_node"
+      ? stableString(contextSummary.selectedNode?.kind)
+      : "";
+  let entities = (Array.isArray(rawPlan.entities) ? rawPlan.entities : [])
     .map(normalizePlanEntity)
     .filter(Boolean);
+
+  if (
+    selectedAnchorName &&
+    !entities.some((entity) => entity.name.toLowerCase() === selectedAnchorName.toLowerCase())
+  ) {
+    const selectedLabel = sanitizeIdentifier(selectedAnchorKind, "Entity");
+    const selectedLabels = ALLOWED_NODE_LABELS.has(selectedLabel) ? [selectedLabel] : ["Entity"];
+
+    entities = [
+      {
+        tempId: "context-selected-node",
+        name: selectedAnchorName,
+        type: selectedLabels[0],
+        labels: selectedLabels,
+        aliases: [],
+        properties: {},
+        confidenceScore: 1,
+        evidenceBasis: "graph_context"
+      },
+      ...entities
+    ];
+  }
+
   const entityByName = new Map(
     entities.map((entity) => [entity.name.toLowerCase(), entity])
   );
   const relationships = (Array.isArray(rawPlan.relationships) ? rawPlan.relationships : [])
     .map((relationship, index) => normalizePlanRelationship(relationship, entityByName, index))
     .filter(Boolean);
-  const anchorName = stableString(rawPlan.anchor?.name || rawPlan.anchor);
+  const anchorName = selectedAnchorName || stableString(rawPlan.anchor?.name || rawPlan.anchor);
   const anchorByName = anchorName ? entityByName.get(anchorName.toLowerCase()) : null;
 
   return {
@@ -274,11 +435,23 @@ function normalizeGraphPlan(rawPlan) {
   };
 }
 
-async function planGraphFromAnswer({ prompt, messages, assistantText, telemetryContext = {} }) {
+async function planGraphFromAnswer({
+  prompt,
+  messages,
+  assistantText,
+  graphContext = {},
+  telemetryContext = {}
+}) {
+  const graphContextSummary = summarizeGraphContextForPrompt(graphContext);
   const instructions = [
     "Read the user request, recent messages, and assistant answer.",
     "Decide whether this turn should produce graph data.",
     "Use music-domain reasoning to identify real entities and real relationships.",
+    "The Complete Graph is the full Neo4j database. The current view is only the graph slice visible in the browser.",
+    "When graphContext.intent is expand_node, use graphContext.selectedNode as the expansion anchor.",
+    "For expansion, every graph-worthy new fact must connect back to the selected node or another reasonable existing Complete Graph candidate.",
+    "For expansion, do not ask for human input merely because some facts may need later verification; use confidenceScore and evidenceBasis, then persist a connected graph patch when the selected entity is clear.",
+    "Do not create detached album, track, label, or scene clusters during expansion.",
     "Do not create task phrases, section headings, proposal objects, review objects, or relationship-as-entity nodes.",
     `Use node labels only from this catalog when possible: ${[...ALLOWED_NODE_LABELS].join(", ")}.`,
     "Do not bury graph-worthy domain objects in generic Entity nodes or relationship properties.",
@@ -300,6 +473,9 @@ async function planGraphFromAnswer({ prompt, messages, assistantText, telemetryC
     "Recent messages:",
     buildRecentMessageText(messages),
     "",
+    "Graph context:",
+    graphContextSummary ? JSON.stringify(graphContextSummary, null, 2) : "None supplied.",
+    "",
     "Assistant answer:",
     assistantText
   ].join("\n");
@@ -314,7 +490,7 @@ async function planGraphFromAnswer({ prompt, messages, assistantText, telemetryC
     }
   });
 
-  return normalizeGraphPlan(rawPlan);
+  return normalizeGraphPlan(rawPlan, graphContextSummary || graphContext);
 }
 
 function summarizeCandidates(canonLookups) {
@@ -407,15 +583,109 @@ function validateGroundedGraph(rawGrounded, plan, canonLookups) {
   };
 }
 
-async function groundGraphPlan(plan, { telemetryContext = {} } = {}) {
-  const [schema, canonLookups] = await Promise.all([
+function enforceExpansionConnectivity(groundedGraph, graphContext) {
+  const graphContextSummary = summarizeGraphContextForPrompt(graphContext);
+
+  if (graphContextSummary?.intent !== "expand_node") {
+    return groundedGraph;
+  }
+
+  const nodes = Array.isArray(groundedGraph.nodes) ? groundedGraph.nodes : [];
+  const relationships = Array.isArray(groundedGraph.relationships)
+    ? groundedGraph.relationships
+    : [];
+  const completeGraphAnchorIds = nodes
+    .filter((node) => stableString(node.matchedCanonId))
+    .map((node) => node.tempId);
+
+  if (completeGraphAnchorIds.length === 0) {
+    return {
+      ...groundedGraph,
+      humanInputNeeded: true,
+      reason:
+        "Expansion could not be connected to an existing Complete Graph node. The preview was not safe to persist."
+    };
+  }
+
+  const adjacency = new Map(nodes.map((node) => [node.tempId, new Set()]));
+
+  for (const relationship of relationships) {
+    if (!adjacency.has(relationship.sourceRef) || !adjacency.has(relationship.targetRef)) {
+      continue;
+    }
+
+    adjacency.get(relationship.sourceRef).add(relationship.targetRef);
+    adjacency.get(relationship.targetRef).add(relationship.sourceRef);
+  }
+
+  const reachableNodeIds = new Set(completeGraphAnchorIds);
+  const queue = [...completeGraphAnchorIds];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift();
+
+    for (const nextId of adjacency.get(currentId) || []) {
+      if (reachableNodeIds.has(nextId)) {
+        continue;
+      }
+
+      reachableNodeIds.add(nextId);
+      queue.push(nextId);
+    }
+  }
+
+  const connectedNodes = nodes.filter((node) => reachableNodeIds.has(node.tempId));
+  const connectedRelationships = relationships.filter(
+    (relationship) =>
+      reachableNodeIds.has(relationship.sourceRef) &&
+      reachableNodeIds.has(relationship.targetRef)
+  );
+
+  if (connectedRelationships.length === 0 && connectedNodes.length > 1) {
+    return {
+      ...groundedGraph,
+      humanInputNeeded: true,
+      reason:
+        "Expansion found Complete Graph candidates but no safe connected relationships to persist."
+    };
+  }
+
+  const droppedNodeCount = nodes.length - connectedNodes.length;
+  const anchorRef = stableString(groundedGraph.anchor?.tempId || groundedGraph.anchor?.id);
+  const anchor =
+    anchorRef && reachableNodeIds.has(anchorRef)
+      ? groundedGraph.anchor
+      : connectedNodes.find((node) => stableString(node.matchedCanonId)) || connectedNodes[0] || groundedGraph.anchor;
+
+  return {
+    ...groundedGraph,
+    anchor,
+    nodes: connectedNodes,
+    relationships: connectedRelationships,
+    reason:
+      droppedNodeCount > 0
+        ? `${stableString(groundedGraph.reason)} Dropped ${droppedNodeCount} disconnected expansion node(s) before persistence.`.trim()
+        : groundedGraph.reason
+  };
+}
+
+async function groundGraphPlan(plan, { graphContext = {}, telemetryContext = {} } = {}) {
+  const contextEntities = graphContextEntities(graphContext);
+  const [schema, canonLookups, contextCanonLookups] = await Promise.all([
     inspectSchema(),
-    lookupCanonEntities(plan.entities, { limit: 5 })
+    lookupCanonEntities(plan.entities, { limit: 5 }),
+    lookupCanonEntities(contextEntities, { limit: 5 })
   ]);
+  const combinedCanonLookups = mergeCanonLookups(canonLookups, contextCanonLookups);
+  const graphContextSummary = summarizeGraphContextForPrompt(graphContext);
   const instructions = [
     "Resolve planned entities against provided Neo4j candidate matches.",
+    "The Complete Graph is the full Neo4j database. Candidate matches are existing Complete Graph nodes.",
     "Prefer existing canon when the intended entity is the same.",
     "Create a new domain entity only when no candidate is a reasonable match.",
+    "When graphContext.intent is expand_node, preserve the selected node as the anchor when possible.",
+    "For expansion, use matchedCanonId for existing nodes such as labels, albums, artists, studios, and people already present in the Complete Graph.",
+    "For expansion, do not return a disconnected local cluster. New nodes must connect to selectedNode or to another existing Complete Graph candidate through real domain relationships.",
     "Return JSON only with keys: anchor, nodes, relationships, humanInputNeeded, reason.",
     "Do not emit GraphProposal, ProposalItem, ProposedEntity, ProposedRelationship, or PROPOSED_RELATIONSHIP.",
     "The proposed/candidate status is metadata only and must not change labels or relationship types.",
@@ -428,8 +698,9 @@ async function groundGraphPlan(plan, { telemetryContext = {} } = {}) {
   const input = JSON.stringify(
     {
       schema,
+      graphContext: graphContextSummary,
       plan,
-      candidateMatches: summarizeCandidates(canonLookups)
+      candidateMatches: summarizeCandidates(combinedCanonLookups)
     },
     null,
     2
@@ -445,7 +716,10 @@ async function groundGraphPlan(plan, { telemetryContext = {} } = {}) {
     }
   });
 
-  return validateGroundedGraph(rawGrounded, plan, canonLookups);
+  return enforceExpansionConnectivity(
+    validateGroundedGraph(rawGrounded, plan, combinedCanonLookups),
+    graphContextSummary || graphContext
+  );
 }
 
 async function createHumanLoopMessage({
@@ -495,6 +769,7 @@ async function runChatTurnPipeline({
   prompt,
   messages,
   assistantText,
+  graphContext = {},
   threadId,
   turnId,
   telemetryContext = {}
@@ -515,7 +790,13 @@ async function runChatTurnPipeline({
   let plan;
 
   try {
-    plan = await planGraphFromAnswer({ prompt, messages, assistantText, telemetryContext });
+    plan = await planGraphFromAnswer({
+      prompt,
+      messages,
+      assistantText,
+      graphContext,
+      telemetryContext
+    });
   } catch (error) {
     const humanMessage = await createHumanLoopMessage({
       prompt,
@@ -559,7 +840,7 @@ async function runChatTurnPipeline({
   let groundedGraph;
 
   try {
-    groundedGraph = await groundGraphPlan(plan, { telemetryContext });
+    groundedGraph = await groundGraphPlan(plan, { graphContext, telemetryContext });
   } catch (error) {
     const humanMessage = await createHumanLoopMessage({
       prompt,

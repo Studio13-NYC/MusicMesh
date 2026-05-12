@@ -232,16 +232,34 @@ function newestThreadEntries(entries, threadId) {
 }
 
 function findLatestThreadGraphFocus(entries, threadId, requestId = "") {
-  for (const entry of newestThreadEntries(entries, threadId)) {
-    const entryRequestId = stableString(entry?.payload?.requestId);
+  const threadEntries = newestThreadEntries(entries, threadId);
+  const seenRequestIds = new Set();
 
-    if (requestId && entryRequestId !== requestId) {
-      continue;
+  function focusFromEntryGroup(entryGroup) {
+    const persistedEntry = entryGroup.find((entry) => {
+      const anchorId = entry?.payload?.graphAnchorId;
+
+      return typeof anchorId === "string" && anchorId.trim();
+    });
+
+    if (persistedEntry) {
+      return {
+        kind: "persisted",
+        id: persistedEntry.payload.graphAnchorId.trim(),
+        name:
+          typeof persistedEntry?.payload?.graphAnchorName === "string"
+            ? persistedEntry.payload.graphAnchorName.trim()
+            : ""
+      };
     }
 
-    if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
-      const graph = entry.payload.graph;
-      const previewId = stableString(entry.payload.previewGraphId || graph.seedNode?.id || entry.id);
+    const previewEntry = entryGroup.find(
+      (entry) => entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0
+    );
+
+    if (previewEntry) {
+      const graph = previewEntry.payload.graph;
+      const previewId = stableString(previewEntry.payload.previewGraphId || graph.seedNode?.id || previewEntry.id);
 
       return {
         kind: "preview",
@@ -251,17 +269,30 @@ function findLatestThreadGraphFocus(entries, threadId, requestId = "") {
       };
     }
 
-    const anchorId = entry?.payload?.graphAnchorId;
+    return null;
+  }
 
-    if (typeof anchorId === "string" && anchorId.trim()) {
-      return {
-        kind: "persisted",
-        id: anchorId.trim(),
-        name:
-          typeof entry?.payload?.graphAnchorName === "string"
-            ? entry.payload.graphAnchorName.trim()
-            : ""
-      };
+  if (requestId) {
+    return focusFromEntryGroup(
+      threadEntries.filter((entry) => stableString(entry?.payload?.requestId) === requestId)
+    );
+  }
+
+  for (const entry of threadEntries) {
+    const entryRequestId = stableString(entry?.payload?.requestId);
+
+    if (!entryRequestId || seenRequestIds.has(entryRequestId)) {
+      continue;
+    }
+
+    seenRequestIds.add(entryRequestId);
+
+    const focus = focusFromEntryGroup(
+      threadEntries.filter((candidate) => stableString(candidate?.payload?.requestId) === entryRequestId)
+    );
+
+    if (focus) {
+      return focus;
     }
 
     if (entry?.type === "assistant_message" && entry?.payload?.graphPending) {

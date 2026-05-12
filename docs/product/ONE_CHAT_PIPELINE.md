@@ -20,10 +20,28 @@ The Graph tab is an inspection and comparison surface for graph results created 
 
 - Search loads a seed-centered graph.
 - Chat focus loads the current answer's graph anchor when available.
-- Double-clicking a node centers that node and loads its connected subgraph.
-- `Expand` has the same centered-node behavior as double-click.
+- Double-clicking a node routes through chat as an expansion request.
+- `Expand` has the same chat-routed expansion behavior as double-click.
 - `Back` and `Forward` redisplay graph payloads that have already been shown; they do not call the LLM or run new graph research.
 - Dragging a node updates the current view layout only.
+
+## Complete Graph Expansion
+
+The Complete Graph means everything in Neo4j. The canvas is only the current view or slice.
+
+For typed prompts and double-click expansion, the UI can show a fast provisional preview while the backend continues graph planning, Complete Graph grounding, and persistence. A preview is not proof that Neo4j changed.
+
+The UI surfaces the lifecycle explicitly:
+
+- `Answering...`
+- `Drafting graph preview...`
+- `Checking Complete Graph...`
+- `Grounding against existing graph...`
+- `Saving graph...`
+- `Graph saved`
+- `Needs human input before saving`
+
+Expansion requests send the selected node and current graph view as context. The LLM still decides music meaning, but the persistence path enforces structural graph integrity: expansion output must connect to an existing Complete Graph node after grounding. Disconnected local islands are not persisted. If a preview cannot be safely connected to the Complete Graph, the run ends in human-in-the-loop status instead of silently saving.
 
 ## Visible Model
 
@@ -139,7 +157,7 @@ Recent graph-interaction verification confirmed:
 
 - `Back` / `Forward` restored already-seen `CBGB` and `Brian Eno` graph views with no graph API calls during history replay.
 - Dragging on the canvas did not change graph counts.
-- Double-clicking the centered `CBGB` node called `/api/graph-demo/subgraph` and did not call `/api/graph-demo/expand`.
+- Double-click and `Expand` are now routed through chat so the answer, preview, Complete Graph grounding, and persistence lifecycle stay together.
 
 Screenshots from that run are in `output/playwright/`:
 

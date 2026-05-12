@@ -44,6 +44,82 @@ function stableClientRequestId(value) {
   return "";
 }
 
+function stableString(value) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "";
+}
+
+function normalizeGraphContextNode(node) {
+  if (!node || typeof node !== "object") {
+    return null;
+  }
+
+  const label = stableString(node.label || node.name);
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    id: stableString(node.id),
+    label,
+    kind: stableString(node.kind || node.type)
+  };
+}
+
+function normalizeGraphContext(rawContext) {
+  if (!rawContext || typeof rawContext !== "object") {
+    return null;
+  }
+
+  const currentView = rawContext.currentView && typeof rawContext.currentView === "object"
+    ? rawContext.currentView
+    : {};
+  const nodes = (Array.isArray(currentView.nodes) ? currentView.nodes : [])
+    .map(normalizeGraphContextNode)
+    .filter(Boolean)
+    .slice(0, 80);
+  const relationships = (Array.isArray(currentView.relationships)
+    ? currentView.relationships
+    : []
+  )
+    .map((relationship) => ({
+      source: stableString(relationship?.source),
+      sourceLabel: stableString(relationship?.sourceLabel),
+      type: stableString(relationship?.type).toUpperCase(),
+      target: stableString(relationship?.target),
+      targetLabel: stableString(relationship?.targetLabel)
+    }))
+    .filter(
+      (relationship) =>
+        relationship.type &&
+        (relationship.source || relationship.sourceLabel) &&
+        (relationship.target || relationship.targetLabel)
+    )
+    .slice(0, 120);
+
+  return {
+    intent: stableString(rawContext.intent) || "prompt",
+    selectedNode: normalizeGraphContextNode(rawContext.selectedNode),
+    currentView: {
+      seedNode: normalizeGraphContextNode(currentView.seedNode),
+      nodeCount: Number.isFinite(Number(currentView.nodeCount)) ? Number(currentView.nodeCount) : nodes.length,
+      relationshipCount: Number.isFinite(Number(currentView.relationshipCount))
+        ? Number(currentView.relationshipCount)
+        : relationships.length,
+      nodes,
+      relationships
+    }
+  };
+}
+
 function pendingGraphPipelineResult() {
   return {
     mode: "pending",
@@ -135,6 +211,7 @@ app.http("chat", {
     const threadId = typeof body.threadId === "string" ? body.threadId : "default-thread";
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const requestId = stableClientRequestId(body.clientRequestId) || createId("req");
+    const graphContext = normalizeGraphContext(body.graphContext);
 
     if (!prompt) {
       await appendRuntimeEvent({
@@ -158,6 +235,8 @@ app.http("chat", {
           threadId,
           prompt,
           messageCount: messages.length,
+          graphContextIntent: graphContext?.intent || "",
+          graphContextSelectedNode: graphContext?.selectedNode?.label || "",
           systemPromptPath: SYSTEM_PROMPT_PATH
         }
       });
@@ -169,7 +248,9 @@ app.http("chat", {
         payload: {
           requestId,
           prompt,
-          messageCount: messages.length
+          messageCount: messages.length,
+          graphContextIntent: graphContext?.intent || "",
+          graphContextSelectedNode: graphContext?.selectedNode?.label || ""
         }
       });
 
@@ -229,6 +310,7 @@ app.http("chat", {
         prompt,
         messages,
         assistantText: assistantReply.text,
+        graphContext,
         threadId,
         turnId: requestId,
         telemetryContext: {
@@ -243,6 +325,7 @@ app.http("chat", {
         threadId,
         prompt,
         assistantText: assistantReply.text,
+        graphContext,
         responseId: assistantReply.responseId
       });
 

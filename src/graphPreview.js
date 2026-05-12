@@ -218,6 +218,57 @@ function normalizeRawEdge(edge, index, nodeIdByRef) {
   };
 }
 
+function normalizeContextNode(node) {
+  if (!node || typeof node !== "object") {
+    return null;
+  }
+
+  const label = stableString(node.label || node.name);
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    id: stableString(node.id),
+    label,
+    kind: stableString(node.kind || node.type)
+  };
+}
+
+function summarizeGraphContextForPreview(graphContext) {
+  if (!graphContext || typeof graphContext !== "object") {
+    return null;
+  }
+
+  const currentView = graphContext.currentView && typeof graphContext.currentView === "object"
+    ? graphContext.currentView
+    : {};
+
+  return {
+    intent: stableString(graphContext.intent) || "prompt",
+    selectedNode: normalizeContextNode(graphContext.selectedNode),
+    currentView: {
+      seedNode: normalizeContextNode(currentView.seedNode),
+      nodes: (Array.isArray(currentView.nodes) ? currentView.nodes : [])
+        .map(normalizeContextNode)
+        .filter(Boolean)
+        .slice(0, 40),
+      relationships: (Array.isArray(currentView.relationships)
+        ? currentView.relationships
+        : []
+      )
+        .map((relationship) => ({
+          sourceLabel: stableString(relationship?.sourceLabel),
+          type: sanitizeIdentifier(relationship?.type, "RELATED_TO").toUpperCase(),
+          targetLabel: stableString(relationship?.targetLabel)
+        }))
+        .filter((relationship) => relationship.type && relationship.sourceLabel && relationship.targetLabel)
+        .slice(0, 60)
+    }
+  };
+}
+
 function applyPreviewPositions(graph) {
   const seedId = graph.seedNode?.id || graph.nodes[0]?.id || "";
   const positionedNodes = graph.nodes.map((node, index) => {
@@ -300,7 +351,7 @@ function normalizePreviewGraph(rawPreview, { requestId, responseId }) {
   return graph.nodes.length > 0 ? graph : null;
 }
 
-async function callPreviewModel({ prompt, assistantText, telemetryContext }) {
+async function callPreviewModel({ prompt, assistantText, graphContext = {}, telemetryContext }) {
   const envResult = validateEnv();
   const model = resolveOpenAiModel();
   const reasoningStage = REASONING_STAGES.GRAPH_PREVIEW;
@@ -326,6 +377,8 @@ async function callPreviewModel({ prompt, assistantText, telemetryContext }) {
   const instructions = [
     "Create a provisional graph preview for display only.",
     "Use only entities and relationships that are visible in the supplied user prompt and assistant answer.",
+    "The Complete Graph is the full Neo4j database. The current view is only a screen slice.",
+    "When graphContext.intent is expand_node, center the preview on graphContext.selectedNode and keep preview facts connected to that node.",
     "Do not create canon, proposal, review, task, or workflow nodes.",
     `Use node kinds from this catalog when possible: ${[...ALLOWED_NODE_LABELS].join(", ")}.`,
     `Use music-domain relationship types such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`,
@@ -336,6 +389,7 @@ async function callPreviewModel({ prompt, assistantText, telemetryContext }) {
   const input = JSON.stringify(
     {
       prompt,
+      graphContext: summarizeGraphContextForPreview(graphContext),
       assistantAnswer: assistantText
     },
     null,
@@ -417,7 +471,7 @@ async function callPreviewModel({ prompt, assistantText, telemetryContext }) {
   return parsed;
 }
 
-async function createGraphPreview({ requestId, threadId, prompt, assistantText, responseId }) {
+async function createGraphPreview({ requestId, threadId, prompt, assistantText, graphContext = {}, responseId }) {
   const telemetryContext = {
     requestId,
     threadId,
@@ -437,7 +491,12 @@ async function createGraphPreview({ requestId, threadId, prompt, assistantText, 
   });
 
   try {
-    const rawPreview = await callPreviewModel({ prompt, assistantText, telemetryContext });
+    const rawPreview = await callPreviewModel({
+      prompt,
+      assistantText,
+      graphContext,
+      telemetryContext
+    });
     const graph = normalizePreviewGraph(rawPreview, { requestId, responseId });
 
     if (!graph) {

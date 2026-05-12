@@ -158,6 +158,7 @@ async function handleChat(request, response) {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const threadId = typeof body.threadId === "string" ? body.threadId : "default-thread";
     const messages = Array.isArray(body.messages) ? body.messages : [];
+    const graphContext = normalizeGraphContext(body.graphContext);
 
     await appendRuntimeEvent({
       id: createId("log"),
@@ -167,6 +168,8 @@ async function handleChat(request, response) {
         threadId,
         prompt,
         messageCount: messages.length,
+        graphContextIntent: graphContext?.intent || "",
+        graphContextSelectedNode: graphContext?.selectedNode?.label || "",
         systemPromptPath: SYSTEM_PROMPT_PATH
       }
     });
@@ -192,7 +195,9 @@ async function handleChat(request, response) {
       payload: {
         requestId,
         prompt,
-        messageCount: messages.length
+        messageCount: messages.length,
+        graphContextIntent: graphContext?.intent || "",
+        graphContextSelectedNode: graphContext?.selectedNode?.label || ""
       }
     });
 
@@ -252,6 +257,7 @@ async function handleChat(request, response) {
       prompt,
       messages,
       assistantText: assistantReply.text,
+      graphContext,
       threadId,
       turnId: requestId,
       telemetryContext: {
@@ -266,6 +272,7 @@ async function handleChat(request, response) {
       threadId,
       prompt,
       assistantText: assistantReply.text,
+      graphContext,
       responseId: assistantReply.responseId
     });
 
@@ -435,6 +442,70 @@ function stableString(value) {
   return "";
 }
 
+function normalizeGraphContextNode(node) {
+  if (!node || typeof node !== "object") {
+    return null;
+  }
+
+  const label = stableString(node.label || node.name);
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    id: stableString(node.id),
+    label,
+    kind: stableString(node.kind || node.type)
+  };
+}
+
+function normalizeGraphContext(rawContext) {
+  if (!rawContext || typeof rawContext !== "object") {
+    return null;
+  }
+
+  const currentView = rawContext.currentView && typeof rawContext.currentView === "object"
+    ? rawContext.currentView
+    : {};
+  const nodes = (Array.isArray(currentView.nodes) ? currentView.nodes : [])
+    .map(normalizeGraphContextNode)
+    .filter(Boolean)
+    .slice(0, 80);
+  const relationships = (Array.isArray(currentView.relationships)
+    ? currentView.relationships
+    : []
+  )
+    .map((relationship) => ({
+      source: stableString(relationship?.source),
+      sourceLabel: stableString(relationship?.sourceLabel),
+      type: stableString(relationship?.type).toUpperCase(),
+      target: stableString(relationship?.target),
+      targetLabel: stableString(relationship?.targetLabel)
+    }))
+    .filter(
+      (relationship) =>
+        relationship.type &&
+        (relationship.source || relationship.sourceLabel) &&
+        (relationship.target || relationship.targetLabel)
+    )
+    .slice(0, 120);
+
+  return {
+    intent: stableString(rawContext.intent) || "prompt",
+    selectedNode: normalizeGraphContextNode(rawContext.selectedNode),
+    currentView: {
+      seedNode: normalizeGraphContextNode(currentView.seedNode),
+      nodeCount: Number.isFinite(Number(currentView.nodeCount)) ? Number(currentView.nodeCount) : nodes.length,
+      relationshipCount: Number.isFinite(Number(currentView.relationshipCount))
+        ? Number(currentView.relationshipCount)
+        : relationships.length,
+      nodes,
+      relationships
+    }
+  };
+}
+
 function timestampValue(entry) {
   const parsed = Date.parse(entry?.createdAt || "");
 
@@ -458,16 +529,34 @@ function newestThreadEntries(entries, threadId) {
 }
 
 function findLatestThreadGraphFocus(entries, threadId, requestId = "") {
-  for (const entry of newestThreadEntries(entries, threadId)) {
-    const entryRequestId = stableString(entry?.payload?.requestId);
+  const threadEntries = newestThreadEntries(entries, threadId);
+  const seenRequestIds = new Set();
 
-    if (requestId && entryRequestId !== requestId) {
-      continue;
+  function focusFromEntryGroup(entryGroup) {
+    const persistedEntry = entryGroup.find((entry) => {
+      const anchorId = entry?.payload?.graphAnchorId;
+
+      return typeof anchorId === "string" && anchorId.trim();
+    });
+
+    if (persistedEntry) {
+      return {
+        kind: "persisted",
+        id: persistedEntry.payload.graphAnchorId.trim(),
+        name:
+          typeof persistedEntry?.payload?.graphAnchorName === "string"
+            ? persistedEntry.payload.graphAnchorName.trim()
+            : ""
+      };
     }
 
-    if (entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0) {
-      const graph = entry.payload.graph;
-      const previewId = stableString(entry.payload.previewGraphId || graph.seedNode?.id || entry.id);
+    const previewEntry = entryGroup.find(
+      (entry) => entry?.type === "graph_preview" && entry?.payload?.graph?.nodes?.length > 0
+    );
+
+    if (previewEntry) {
+      const graph = previewEntry.payload.graph;
+      const previewId = stableString(previewEntry.payload.previewGraphId || graph.seedNode?.id || previewEntry.id);
 
       return {
         kind: "preview",
@@ -477,17 +566,30 @@ function findLatestThreadGraphFocus(entries, threadId, requestId = "") {
       };
     }
 
-    const anchorId = entry?.payload?.graphAnchorId;
+    return null;
+  }
 
-    if (typeof anchorId === "string" && anchorId.trim()) {
-      return {
-        kind: "persisted",
-        id: anchorId.trim(),
-        name:
-          typeof entry?.payload?.graphAnchorName === "string"
-            ? entry.payload.graphAnchorName.trim()
-            : ""
-      };
+  if (requestId) {
+    return focusFromEntryGroup(
+      threadEntries.filter((entry) => stableString(entry?.payload?.requestId) === requestId)
+    );
+  }
+
+  for (const entry of threadEntries) {
+    const entryRequestId = stableString(entry?.payload?.requestId);
+
+    if (!entryRequestId || seenRequestIds.has(entryRequestId)) {
+      continue;
+    }
+
+    seenRequestIds.add(entryRequestId);
+
+    const focus = focusFromEntryGroup(
+      threadEntries.filter((candidate) => stableString(candidate?.payload?.requestId) === entryRequestId)
+    );
+
+    if (focus) {
+      return focus;
     }
 
     if (entry?.type === "assistant_message" && entry?.payload?.graphPending) {

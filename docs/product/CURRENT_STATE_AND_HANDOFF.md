@@ -83,13 +83,16 @@ Current workbench shape:
 - graph browse filters and legend
 - node/relationship inspect drawer
 - `Back` / `Forward` graph history for views already shown, with no new graph research/API call
-- double-click or `Expand` centers the selected node and loads that node's connected subgraph
+- double-click or `Expand` routes through chat and asks MusicMesh to expand the selected node
 - chat-derived domain graph persistence
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
 - post-run quality assessment writes `run_quality_assessment` tape entries after completed chat/graph runs, with outcome, stage timings, findings, next actions, and an operator-attention flag
 - answer-first chat responses now return after the chat LLM completes; graph preview, graph persistence, and run review continue as background work
 - provisional graph previews are written as `graph_preview` tape entries and are never persisted to Neo4j
+- graph progress is visible after the answer appears, including preview, Complete Graph grounding, saving, saved, and human-input-needed states
+- expansion sends the selected node and current graph view as context, then grounds output against the Complete Graph, meaning all Neo4j content rather than only the visible canvas
+- expansion previews that cannot be safely connected to existing Complete Graph nodes are not silently persisted
 - graph writes persist real domain relationships; relationship examples are guidance, not an allow-list
 - `canonicalStatus` / `isProposed` are hidden maintenance metadata and must not be overwritten on existing canonized graph objects
 - `Other` and generic `Entity` are ontology-review signals, not final modeling destinations
@@ -124,7 +127,7 @@ Latest graph-interaction proofs:
 
 - `Back` / `Forward` restored already-seen `CBGB` and `Brian Eno` graph views with `0` graph API requests during history navigation
 - dragging on the canvas did not change graph counts
-- double-clicking the centered `CBGB` node called `/api/graph-demo/subgraph` and did not call `/api/graph-demo/expand`
+- double-click and `Expand` now use chat-routed expansion, then show whether the preview was saved to the Complete Graph or needs human input before saving
 - screenshots:
   - [graph-history-workbench.png](/D:/Studio13/Lab/Code/MusicMesh/output/playwright/graph-history-workbench.png)
   - [double-click-focus-workbench.png](/D:/Studio13/Lab/Code/MusicMesh/output/playwright/double-click-focus-workbench.png)
