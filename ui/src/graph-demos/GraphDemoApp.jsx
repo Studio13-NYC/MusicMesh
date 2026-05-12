@@ -1,5 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  CircleDot,
+  Filter,
+  Info,
+  Maximize2,
+  RotateCcw,
+  Search,
+  X,
+  Zap
+} from "lucide-react";
+import {
   fetchGraphSubgraph,
   fetchThreadFocusedGraph,
   fetchNodeDetail,
@@ -344,7 +357,8 @@ export function GraphDemoApp({
   threadId = "",
   focusKey = "",
   graphRunStatus = null,
-  onRequestNodeExpansion = null
+  onRequestNodeExpansion = null,
+  rightRailPanels = []
 }) {
   const [graph, setGraph] = useState(createEmptyGraph());
   const [filters, setFilters] = useState({
@@ -360,6 +374,8 @@ export function GraphDemoApp({
   const [hoveredElement, setHoveredElement] = useState(null);
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false);
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);
+  const [activeLeftRailPanel, setActiveLeftRailPanel] = useState("filters");
+  const [activeRightRailPanel, setActiveRightRailPanel] = useState("inspect");
   const [nodeDetails, setNodeDetails] = useState({});
   const [detailError, setDetailError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -377,6 +393,7 @@ export function GraphDemoApp({
     () => buildRelationshipFilterCatalog(graph),
     [graph]
   );
+  const externalRightRailPanels = Array.isArray(rightRailPanels) ? rightRailPanels : [];
   const libraryCopy = LIBRARY_COPY[library] || LIBRARY_COPY.cytoscape;
 
   useEffect(() => {
@@ -557,11 +574,10 @@ export function GraphDemoApp({
         suppressInspectOpenRef.current = false;
         return;
       }
-      if (!embedded) {
-        setIsRightDrawerOpen(true);
-      }
+      setActiveRightRailPanel("inspect");
+      setIsRightDrawerOpen(true);
     }
-  }, [embedded, selectedElement]);
+  }, [selectedElement]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -577,6 +593,20 @@ export function GraphDemoApp({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  function toggleLeftRailPanel(panelId) {
+    setActiveLeftRailPanel(panelId);
+    setIsLeftDrawerOpen(
+      (currentValue) => !(currentValue && activeLeftRailPanel === panelId)
+    );
+  }
+
+  function toggleRightRailPanel(panelId) {
+    setActiveRightRailPanel(panelId);
+    setIsRightDrawerOpen(
+      (currentValue) => !(currentValue && activeRightRailPanel === panelId)
+    );
+  }
 
   function rememberGraph(nextGraph, { label = "", source = "graph" } = {}) {
     setGraph(nextGraph);
@@ -828,6 +858,45 @@ export function GraphDemoApp({
       ? graph.edges.find((edge) => edge.id === selectedElement.id) || null
       : null;
   const selectedNodeDetail = selectedNode ? nodeDetails[selectedNode.id] || null : null;
+  const activeExternalRightPanel = externalRightRailPanels.find(
+    (panel) => panel?.id === activeRightRailPanel
+  );
+  const graphSeedLabel = graph.meta?.preview
+    ? `${graph.seedNode?.label || "Answer graph"} preview`
+    : graph.seedNode?.label || "No seed loaded";
+  const activeLeftRailLabel =
+    {
+      search: "Seed search",
+      filters: "Filters",
+      legend: "Legend"
+    }[activeLeftRailPanel] || "Graph tools";
+  const activeRightRailLabel =
+    activeExternalRightPanel?.label ||
+    {
+      inspect: "Inspect",
+      run: "Run status"
+    }[activeRightRailPanel] ||
+    "Details";
+  const rightRailItems = [
+    {
+      id: "inspect",
+      label: "Inspect",
+      icon: Info,
+      badge: selectedNode || selectedEdge ? "1" : ""
+    },
+    ...externalRightRailPanels.map((panel) => ({
+      id: panel.id,
+      label: panel.label,
+      icon: panel.icon || Activity,
+      badge: panel.badge || ""
+    })),
+    {
+      id: "run",
+      label: "Run",
+      icon: Activity,
+      badge: graphRunStatus?.isActive ? "live" : ""
+    }
+  ];
 
   return (
     <div className={`graph-demo-page${embedded ? " graph-demo-page-embedded" : ""}`}>
@@ -847,185 +916,176 @@ export function GraphDemoApp({
         </header>
       ) : null}
 
-      <div className="demo-layout">
+      <div
+        className={`demo-layout${isLeftDrawerOpen ? " has-left-drawer" : ""}${
+          isRightDrawerOpen ? " has-right-drawer" : ""
+        }`}
+      >
+        <nav className="demo-rail demo-rail-left" aria-label="Graph instruments">
+          <RailButton
+            icon={Search}
+            isActive={isLeftDrawerOpen && activeLeftRailPanel === "search"}
+            label="Search"
+            onClick={() => toggleLeftRailPanel("search")}
+          />
+          <RailButton
+            icon={Filter}
+            isActive={isLeftDrawerOpen && activeLeftRailPanel === "filters"}
+            label="Filters"
+            onClick={() => toggleLeftRailPanel("filters")}
+          />
+          <RailButton
+            icon={CircleDot}
+            isActive={isLeftDrawerOpen && activeLeftRailPanel === "legend"}
+            label="Legend"
+            onClick={() => toggleLeftRailPanel("legend")}
+          />
+        </nav>
+
         <aside
+          aria-label={activeLeftRailLabel}
           className={`demo-sidebar demo-drawer demo-drawer-left${
             isLeftDrawerOpen ? " is-open" : ""
           }`}
         >
           <div className="demo-panel demo-panel-scroll demo-drawer-panel">
             <div className="demo-drawer-header">
-              <p className="demo-panel-label">Browse</p>
+              <div>
+                <p className="demo-panel-label">Graph rail</p>
+                <h2>{activeLeftRailLabel}</h2>
+              </div>
               <button
-                aria-label="Close browse drawer"
+                aria-label="Close graph rail"
                 className="demo-button demo-button-tight demo-button-icon"
                 onClick={() => setIsLeftDrawerOpen(false)}
                 type="button"
               >
-                ×
+                <X aria-hidden="true" size={16} />
               </button>
             </div>
 
-            <section className="demo-drawer-section">
-              <p className="demo-panel-label">Seed search</p>
-              <form className="demo-search-form" onSubmit={handleSearchSubmit}>
-                <div className="demo-search-row">
-                  <input
-                    className="demo-search-input"
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search graph seeds"
-                    value={searchQuery}
-                  />
-                  <button className="demo-button demo-button-inline" type="submit">
-                    {isSearchLoading ? "Loading..." : "Load"}
-                  </button>
-                </div>
-              </form>
-              {searchStatus ? <p className="demo-search-status">{searchStatus}</p> : null}
-            </section>
-
-            <section className="demo-drawer-section">
-              <p className="demo-panel-label">Filters</p>
-              <div className="demo-filter-group">
-                <p className="demo-filter-title">Node kinds</p>
-                {nodeFilterCatalog.map((group) => (
-                  <label className="demo-checkbox" key={group.id}>
+            {activeLeftRailPanel === "search" ? (
+              <section className="demo-drawer-section demo-drawer-section-first">
+                <p className="demo-panel-label">Seed search</p>
+                <form className="demo-search-form" onSubmit={handleSearchSubmit}>
+                  <div className="demo-search-row">
                     <input
+                      className="demo-search-input"
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search graph seeds"
+                      value={searchQuery}
+                    />
+                    <button className="demo-button demo-button-inline" type="submit">
+                      {isSearchLoading ? "Loading..." : "Load"}
+                    </button>
+                  </div>
+                </form>
+                {searchStatus ? <p className="demo-search-status">{searchStatus}</p> : null}
+              </section>
+            ) : null}
+
+            {activeLeftRailPanel === "filters" ? (
+              <section className="demo-drawer-section demo-drawer-section-first">
+                <p className="demo-panel-label">Visibility</p>
+                <div className="demo-filter-group">
+                  <p className="demo-filter-title">Node types</p>
+                  {nodeFilterCatalog.map((group) => (
+                    <FilterToggleButton
                       checked={filters.nodeKinds[group.id] !== false}
+                      count={group.count}
                       disabled={group.count === 0}
-                      onChange={() => handleFilterToggle("nodeKinds", group.id)}
-                      type="checkbox"
+                      key={group.id}
+                      label={group.label}
+                      onClick={() => handleFilterToggle("nodeKinds", group.id)}
                     />
-                    <span>{group.label}</span>
-                    <strong>{group.count}</strong>
-                  </label>
-                ))}
-              </div>
-              <div className="demo-filter-group">
-                <p className="demo-filter-title">Relationship types</p>
-                {relationshipFilterCatalog.map((group) => (
-                  <label className="demo-checkbox" key={group.id}>
-                    <input
+                  ))}
+                </div>
+                <div className="demo-filter-group">
+                  <p className="demo-filter-title">Relationship types</p>
+                  {relationshipFilterCatalog.map((group) => (
+                    <FilterToggleButton
                       checked={filters.relationshipTypes[group.id] !== false}
+                      count={group.count}
                       disabled={group.count === 0}
-                      onChange={() => handleFilterToggle("relationshipTypes", group.id)}
-                      type="checkbox"
+                      key={group.id}
+                      label={group.label}
+                      onClick={() => handleFilterToggle("relationshipTypes", group.id)}
                     />
-                    <span>{group.label}</span>
-                    <strong>{group.count}</strong>
-                  </label>
-                ))}
-              </div>
-            </section>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
-            <section className="demo-drawer-section">
-              <p className="demo-panel-label">Legend</p>
-              <div className="demo-legend">
-                <LegendRow colorClass="artist" label="Artist / Band" />
-                <LegendRow colorClass="album" label="Album / Release" />
-                <LegendRow colorClass="track" label="Track / Song" />
-                <LegendRow colorClass="person" label="Person / Member" />
-                <LegendRow colorClass="label" label="Record label" />
-                <LegendRow colorClass="scene" label="Scene" />
-                <LegendRow colorClass="venue" label="Venue" />
-                <LegendRow colorClass="genre" label="Genre / Other typed node" />
-              </div>
-              <div className="demo-legend demo-legend-edges">
-                <LegendEdgeRow styleKey="solid" label="Strong structural relationship" />
-                <LegendEdgeRow styleKey="dashed" label="Contributed / member / collaborator style" />
-                <LegendEdgeRow styleKey="dotted" label="Influence / soft relationship style" />
-              </div>
-            </section>
+            {activeLeftRailPanel === "legend" ? (
+              <section className="demo-drawer-section demo-drawer-section-first">
+                <p className="demo-panel-label">Legend</p>
+                <div className="demo-legend">
+                  <LegendRow colorClass="artist" label="Artist / Band" />
+                  <LegendRow colorClass="album" label="Album / Release" />
+                  <LegendRow colorClass="track" label="Track / Song" />
+                  <LegendRow colorClass="person" label="Person / Member" />
+                  <LegendRow colorClass="label" label="Record label" />
+                  <LegendRow colorClass="scene" label="Scene" />
+                  <LegendRow colorClass="venue" label="Venue" />
+                  <LegendRow colorClass="genre" label="Genre / Other typed node" />
+                </div>
+                <div className="demo-legend demo-legend-edges">
+                  <LegendEdgeRow styleKey="solid" label="Strong structural relationship" />
+                  <LegendEdgeRow styleKey="dashed" label="Contributed / member / collaborator style" />
+                  <LegendEdgeRow styleKey="dotted" label="Influence / soft relationship style" />
+                </div>
+              </section>
+            ) : null}
           </div>
         </aside>
 
         <main className="demo-canvas-panel">
-          <div className="demo-toolbar-shell">
-            <div className="demo-toolbar">
-              <div className="demo-toolbar-group">
-                <button
-                  className="demo-button demo-button-tight"
-                  disabled={graphHistory.index <= 0}
-                  onClick={() => handleHistoryStep(-1)}
-                  title="Redisplay the previous graph view without research"
-                  type="button"
-                >
-                  Back
-                </button>
-                <button
-                  className="demo-button demo-button-tight"
-                  disabled={
-                    graphHistory.index < 0 ||
-                    graphHistory.index >= graphHistory.entries.length - 1
-                  }
-                  onClick={() => handleHistoryStep(1)}
-                  title="Redisplay the next graph view without research"
-                  type="button"
-                >
-                  Forward
-                </button>
-                <button
-                  aria-expanded={isLeftDrawerOpen}
-                  className="demo-button demo-button-tight"
-                  onClick={() => setIsLeftDrawerOpen((currentValue) => !currentValue)}
-                  type="button"
-                >
-                  Browse
-                </button>
-                <button
-                  className="demo-button demo-button-tight"
-                  disabled={isGraphLoading || graph.nodes.length === 0}
-                  onClick={() => canvasRef.current?.fitToGraph()}
-                  type="button"
-                >
-                  Fit
-                </button>
-                <button
-                  className="demo-button demo-button-tight"
-                  disabled={isGraphLoading || graph.nodes.length === 0}
-                  onClick={() => canvasRef.current?.resetView()}
-                  type="button"
-                >
-                  Reset
-                </button>
-              </div>
-              <div className="demo-toolbar-meta">
-                <span className="demo-toolbar-seed">
-                  {graph.meta?.preview
-                    ? `${graph.seedNode?.label || "Answer graph"} preview`
-                    : graph.seedNode?.label || "No seed loaded"}
-                </span>
+          <div className="demo-graph-topbar">
+            <form className="demo-command-search" onSubmit={handleSearchSubmit}>
+              <Search aria-hidden="true" size={16} />
+              <input
+                aria-label="Search graph seeds"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search graph seeds"
+                value={searchQuery}
+              />
+              <button type="submit">{isSearchLoading ? "Loading" : "Load"}</button>
+            </form>
+            <div className="demo-toolbar-meta">
+              <span className="demo-toolbar-seed">{graphSeedLabel}</span>
+              <span>
+                {graph.meta.nodeCount || 0}n / {graph.meta.edgeCount || 0}e
+              </span>
+              {graphHistory.entries.length > 0 ? (
                 <span>
-                  {graph.meta.nodeCount || 0}n / {graph.meta.edgeCount || 0}e
+                  View {graphHistory.index + 1}/{graphHistory.entries.length}
                 </span>
-                {graphHistory.entries.length > 0 ? (
-                  <span>
-                    View {graphHistory.index + 1}/{graphHistory.entries.length}
-                  </span>
-                ) : null}
-              </div>
-              <div className="demo-toolbar-group">
-                <button
-                  className="demo-button demo-button-tight demo-button-accent"
-                  disabled={isExpandLoading || !selectedNode || isGraphLoading}
-                  onClick={() => handleExpand(selectedNode?.id)}
-                  type="button"
-                >
-                  {isExpandLoading ? "Expanding..." : "Expand"}
-                </button>
-                <button
-                  aria-expanded={isRightDrawerOpen}
-                  className="demo-button demo-button-tight"
-                  onClick={() => setIsRightDrawerOpen((currentValue) => !currentValue)}
-                  type="button"
-                >
-                  Inspect
-                </button>
-              </div>
+              ) : null}
+            </div>
+            <div className="demo-history-controls" aria-label="Graph history controls">
+              <button
+                aria-label="Back"
+                disabled={graphHistory.index <= 0}
+                onClick={() => handleHistoryStep(-1)}
+                title="Redisplay the previous graph view without research"
+                type="button"
+              >
+                <ChevronLeft aria-hidden="true" size={16} />
+              </button>
+              <button
+                aria-label="Forward"
+                disabled={
+                  graphHistory.index < 0 ||
+                  graphHistory.index >= graphHistory.entries.length - 1
+                }
+                onClick={() => handleHistoryStep(1)}
+                title="Redisplay the next graph view without research"
+                type="button"
+              >
+                <ChevronRight aria-hidden="true" size={16} />
+              </button>
             </div>
           </div>
-
-          {graphRunStatus ? <GraphRunStatusStrip status={graphRunStatus} /> : null}
 
           <div className="demo-canvas-shell">
             {isGraphLoading ? (
@@ -1049,46 +1109,192 @@ export function GraphDemoApp({
             )}
           </div>
 
-          {errorMessage ? <p className="demo-error">{errorMessage}</p> : null}
+          <div className="demo-floating-tools" aria-label="Graph canvas tools">
+            <button
+              aria-label="Fit graph"
+              disabled={isGraphLoading || graph.nodes.length === 0}
+              onClick={() => canvasRef.current?.fitToGraph()}
+              title="Fit graph"
+              type="button"
+            >
+              <Maximize2 aria-hidden="true" size={16} />
+            </button>
+            <button
+              aria-label="Reset view"
+              disabled={isGraphLoading || graph.nodes.length === 0}
+              onClick={() => canvasRef.current?.resetView()}
+              title="Reset view"
+              type="button"
+            >
+              <RotateCcw aria-hidden="true" size={16} />
+            </button>
+            <button
+              aria-label="Expand selected node"
+              className="demo-floating-tool-accent"
+              disabled={isExpandLoading || !selectedNode || isGraphLoading}
+              onClick={() => handleExpand(selectedNode?.id)}
+              title="Expand selected node through chat"
+              type="button"
+            >
+              <Zap aria-hidden="true" size={16} />
+            </button>
+          </div>
+
+          {graphRunStatus ? (
+            <button
+              className={`demo-status-chip demo-status-chip-${graphRunStatus.variant || "active"}`}
+              onClick={() => {
+                setActiveRightRailPanel("run");
+                setIsRightDrawerOpen(true);
+              }}
+              type="button"
+            >
+              <span className={`demo-run-spinner${graphRunStatus.isActive ? " is-active" : ""}`} />
+              <span>{graphRunStatus.label}</span>
+            </button>
+          ) : null}
+
+          {errorMessage ? <p className="demo-error demo-canvas-error">{errorMessage}</p> : null}
         </main>
 
+        <nav className="demo-rail demo-rail-right" aria-label="Context panels">
+          {rightRailItems.map((item) => (
+            <RailButton
+              badge={item.badge}
+              icon={item.icon}
+              isActive={isRightDrawerOpen && activeRightRailPanel === item.id}
+              key={item.id}
+              label={item.label}
+              onClick={() => toggleRightRailPanel(item.id)}
+            />
+          ))}
+        </nav>
+
         <aside
+          aria-label={activeRightRailLabel}
           className={`demo-detail-panel demo-drawer demo-drawer-right${
             isRightDrawerOpen ? " is-open" : ""
           }`}
         >
           <section className="demo-panel demo-panel-scroll demo-drawer-panel">
             <div className="demo-drawer-header">
-              <p className="demo-panel-label">Inspect</p>
+              <div>
+                <p className="demo-panel-label">Context rail</p>
+                <h2>{activeRightRailLabel}</h2>
+              </div>
               <button
-                aria-label="Close inspect drawer"
+                aria-label="Close context rail"
                 className="demo-button demo-button-tight demo-button-icon"
                 onClick={() => setIsRightDrawerOpen(false)}
                 type="button"
               >
-                ×
+                <X aria-hidden="true" size={16} />
               </button>
             </div>
-            <p className="demo-panel-label">Selection</p>
-            {selectedNode ? (
-              <NodeDetailCard
-                detail={selectedNodeDetail}
-                fallbackNode={selectedNode}
-                errorMessage={detailError}
+
+            {activeRightRailPanel === "inspect" ? (
+              <section className="demo-drawer-section demo-drawer-section-first">
+                <p className="demo-panel-label">Selection</p>
+                {selectedNode ? (
+                  <NodeDetailCard
+                    detail={selectedNodeDetail}
+                    fallbackNode={selectedNode}
+                    errorMessage={detailError}
+                  />
+                ) : null}
+                {selectedEdge ? (
+                  <EdgeDetailCard edge={selectedEdge} graph={graph} />
+                ) : null}
+                {!selectedNode && !selectedEdge ? (
+                  <p className="demo-muted">
+                    Click a node or relationship to inspect it here. Double-clicking a node expands its neighborhood.
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
+
+            {activeExternalRightPanel ? (
+              <section className="demo-drawer-section demo-drawer-section-first">
+                {typeof activeExternalRightPanel.render === "function"
+                  ? activeExternalRightPanel.render()
+                  : activeExternalRightPanel.content}
+              </section>
+            ) : null}
+
+            {activeRightRailPanel === "run" ? (
+              <RunStatusPanel
+                errorMessage={errorMessage}
+                graphHistory={graphHistory}
+                status={graphRunStatus}
               />
-            ) : null}
-            {selectedEdge ? (
-              <EdgeDetailCard edge={selectedEdge} graph={graph} />
-            ) : null}
-            {!selectedNode && !selectedEdge ? (
-              <p className="demo-muted">
-                Click a node or relationship to inspect it here. Double-clicking a node expands its neighborhood.
-              </p>
             ) : null}
           </section>
         </aside>
       </div>
     </div>
+  );
+}
+
+function RailButton({ badge = "", icon: Icon, isActive = false, label, onClick }) {
+  return (
+    <button
+      aria-label={label}
+      aria-pressed={isActive}
+      className={`demo-rail-button${isActive ? " is-active" : ""}`}
+      onClick={onClick}
+      title={label}
+      type="button"
+    >
+      <Icon aria-hidden="true" size={18} />
+      {badge ? <span className="demo-rail-badge">{badge}</span> : null}
+    </button>
+  );
+}
+
+function FilterToggleButton({ checked, count, disabled, label, onClick }) {
+  return (
+    <button
+      aria-pressed={checked}
+      className={`demo-filter-toggle${checked ? " is-active" : ""}`}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      <span>{label}</span>
+      <strong>{count}</strong>
+    </button>
+  );
+}
+
+function RunStatusPanel({ errorMessage, graphHistory, status }) {
+  const activeEntry = graphHistory.entries[graphHistory.index] || null;
+
+  return (
+    <section className="demo-drawer-section demo-drawer-section-first">
+      <p className="demo-panel-label">Run state</p>
+      {status ? (
+        <div className={`demo-run-card demo-run-card-${status.variant || "active"}`}>
+          <span className={`demo-run-spinner${status.isActive ? " is-active" : ""}`} aria-hidden="true" />
+          <div>
+            <strong>{status.label}</strong>
+            <span>{status.detail}</span>
+          </div>
+        </div>
+      ) : (
+        <p className="demo-muted">No graph run is active for the current turn.</p>
+      )}
+      {errorMessage ? <p className="demo-error">{errorMessage}</p> : null}
+      <div className="demo-run-facts">
+        <div>
+          <span>History</span>
+          <strong>{graphHistory.entries.length}</strong>
+        </div>
+        <div>
+          <span>Current view</span>
+          <strong>{activeEntry?.label || "None"}</strong>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1106,22 +1312,6 @@ function LegendEdgeRow({ styleKey, label }) {
     <div className="demo-legend-row">
       <span className={`demo-edge-chip ${styleKey}`} />
       <span>{label}</span>
-    </div>
-  );
-}
-
-function GraphRunStatusStrip({ status }) {
-  if (!status) {
-    return null;
-  }
-
-  return (
-    <div className={`demo-run-status demo-run-status-${status.variant || "active"}`}>
-      <span className={`demo-run-spinner${status.isActive ? " is-active" : ""}`} aria-hidden="true" />
-      <div>
-        <strong>{status.label}</strong>
-        <span>{status.detail}</span>
-      </div>
     </div>
   );
 }

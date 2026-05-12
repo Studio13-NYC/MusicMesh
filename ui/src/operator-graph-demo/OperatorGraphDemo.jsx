@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
-import * as Separator from "@radix-ui/react-separator";
-import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { GraphDemoApp } from "../graph-demos/GraphDemoApp";
@@ -10,11 +8,6 @@ import { CytoscapeCanvas } from "../graph-demos/CytoscapeCanvas";
 const API_BASE_RAW = import.meta.env.VITE_MUSICMESH_API_BASE ?? "";
 const API_BASE_URL =
   typeof API_BASE_RAW === "string" ? API_BASE_RAW.replace(/\/$/, "") : "";
-
-const WORKBENCH_MODES = [
-  { id: "graph", label: "Graph" },
-  { id: "workflow", label: "Workflow" }
-];
 
 const seedMessages = [];
 const OPERATOR_THREAD_ID = "operator-graph-demo";
@@ -354,7 +347,6 @@ export function OperatorGraphDemo() {
   const [tapePath, setTapePath] = useState("");
   const [runtimeEvents, setRuntimeEvents] = useState([]);
   const [runtimeLogPath, setRuntimeLogPath] = useState("");
-  const [workspaceMode, setWorkspaceMode] = useState("graph");
   const [graphFocusAnchorId, setGraphFocusAnchorId] = useState("");
   const [activeGraphRequestIds, setActiveGraphRequestIds] = useState([]);
   const viewportRef = useRef(null);
@@ -369,6 +361,25 @@ export function OperatorGraphDemo() {
         isSending
       }),
     [activeGraphRequestIds, isSending, runtimeEvents, tapeEntries]
+  );
+  const graphRightRailPanels = useMemo(
+    () => [
+      {
+        id: "workflow",
+        label: "Workflow",
+        badge: runtimeEvents.length > 0 ? String(Math.min(runtimeEvents.length, 99)) : "",
+        render: () => (
+          <WorkflowWorkbench
+            compact
+            runtimeEvents={runtimeEvents}
+            runtimeLogPath={runtimeLogPath}
+            tapeEntries={tapeEntries}
+            tapePath={tapePath}
+          />
+        )
+      }
+    ],
+    [runtimeEvents, runtimeLogPath, tapeEntries, tapePath]
   );
 
   useEffect(() => {
@@ -624,8 +635,8 @@ export function OperatorGraphDemo() {
           </div>
         </header>
 
-        <PanelGroup className="operator-demo-panels" direction="horizontal">
-          <Panel className="operator-demo-chat-panel" defaultSize={52} minSize={36}>
+        <div className="operator-demo-panels">
+          <div className="operator-demo-chat-panel">
             <section className="operator-chat-surface">
               <header className="operator-pane-header">
                 <div>
@@ -679,70 +690,36 @@ export function OperatorGraphDemo() {
                 {errorMessage ? <p className="composer-error">{errorMessage}</p> : null}
               </form>
             </section>
-          </Panel>
+          </div>
 
-          <PanelResizeHandle className="resize-handle operator-demo-resize-handle" />
-
-          <Panel className="operator-demo-workbench-panel" defaultSize={48} minSize={32}>
+          <div className="operator-demo-workbench-panel">
             <section className="operator-workbench">
               <header className="operator-pane-header operator-workbench-header">
                 <div>
                   <p className="section-label">Workbench</p>
-                  <h2>
-                    {workspaceMode === "graph"
-                      ? "Graph workspace"
-                        : "Workflow stream"}
-                  </h2>
+                  <h2>Graph workspace</h2>
                   <p className="operator-workbench-summary">
-                    {workspaceMode === "graph"
-                      ? "Use the graph as a live sidecar, not a separate destination."
-                        : "Trace recent tape and runtime events without losing the active thread."}
+                    Use the graph as a live operator canvas with search, filters, workflow, and run state in the rails.
                   </p>
-                </div>
-                <div className="operator-mode-switch" role="tablist" aria-label="Workbench mode">
-                  {WORKBENCH_MODES.map((mode) => (
-                    <button
-                      aria-selected={workspaceMode === mode.id}
-                      className={`operator-mode-button${
-                        workspaceMode === mode.id ? " is-active" : ""
-                      }`}
-                      key={mode.id}
-                      onClick={() => setWorkspaceMode(mode.id)}
-                      role="tab"
-                      type="button"
-                    >
-                      {mode.label}
-                    </button>
-                  ))}
                 </div>
               </header>
 
-              <Separator.Root className="separator operator-demo-separator" decorative orientation="horizontal" />
-
               <div className="operator-workbench-body">
-                {workspaceMode === "graph" ? (
-                  <GraphDemoApp
-                    GraphCanvas={CytoscapeCanvas}
-                    defaultSeedQuery="rock music"
-                    embedded
-                    library="cytoscape"
-                    focusKey={graphFocusAnchorId}
-                    graphRunStatus={graphRunStatus}
-                    onRequestNodeExpansion={handleGraphNodeExpansion}
-                    threadId={OPERATOR_THREAD_ID}
-                  />
-                ) : (
-                  <WorkflowWorkbench
-                    runtimeEvents={runtimeEvents}
-                    runtimeLogPath={runtimeLogPath}
-                    tapeEntries={tapeEntries}
-                    tapePath={tapePath}
-                  />
-                )}
+                <GraphDemoApp
+                  GraphCanvas={CytoscapeCanvas}
+                  defaultSeedQuery="rock music"
+                  embedded
+                  library="cytoscape"
+                  focusKey={graphFocusAnchorId}
+                  graphRunStatus={graphRunStatus}
+                  onRequestNodeExpansion={handleGraphNodeExpansion}
+                  rightRailPanels={graphRightRailPanels}
+                  threadId={OPERATOR_THREAD_ID}
+                />
               </div>
             </section>
-          </Panel>
-        </PanelGroup>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -794,13 +771,17 @@ function GraphRunStatusCard({ status }) {
   );
 }
 
-function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPath }) {
+function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPath, compact = false }) {
   const latestAssessmentEntry = findLatestThreadAssessment(tapeEntries, OPERATOR_THREAD_ID);
 
   return (
-    <ScrollArea.Root className="operator-workflow-scroll-root">
+    <ScrollArea.Root
+      className={`operator-workflow-scroll-root${
+        compact ? " operator-workflow-scroll-root-compact" : ""
+      }`}
+    >
       <ScrollArea.Viewport className="worksurface-scroll-viewport">
-        <div className="operator-workflow-grid">
+        <div className={`operator-workflow-grid${compact ? " operator-workflow-grid-compact" : ""}`}>
           <section className="workspace-block operator-workflow-card">
             <p className="workspace-block-title">Tape file</p>
             <code className="workspace-path">{tapePath || "Not written yet."}</code>

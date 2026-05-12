@@ -1,6 +1,7 @@
 node_modules/
 .env
 .playwright-cli/
+.gitnexus/
 playwright-report/
 test-results/
 output/
