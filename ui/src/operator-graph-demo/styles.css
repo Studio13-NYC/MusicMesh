@@ -423,13 +423,8 @@
   height: 100%;
 }
 
-.operator-demo-page .graph-demo-page-embedded .demo-layout {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 48px;
-}
-
 .operator-demo-page .graph-demo-page-embedded .demo-canvas-panel {
-  border-radius: 0;
+  border-radius: 16px;
 }
 
 .operator-demo-page .graph-demo-page-embedded .demo-toolbar-shell {
@@ -437,7 +432,7 @@
 }
 
 .operator-demo-page .graph-demo-page-embedded .demo-canvas-shell {
-  border-radius: 0;
+  border-radius: 12px;
 }
 
 .operator-demo-page .graph-demo-page-embedded .demo-drawer {
@@ -540,131 +535,5 @@
 
   .operator-demo-panels[data-panel-group-direction="horizontal"] {
     flex-direction: column;
-  }
-}
-
-/* Workbench rails pass */
-.operator-demo-page {
-  padding: 0;
-  background: #0b0c10;
-}
-
-.operator-demo-shell {
-  border-radius: 0;
-  border-color: rgba(255, 255, 255, 0.06);
-  background: #0b0c10;
-  box-shadow: none;
-}
-
-.operator-demo-panels {
-  display: grid;
-  grid-template-columns: minmax(280px, 34%) minmax(0, 1fr);
-  min-height: 0;
-  height: 100%;
-}
-
-.operator-demo-topbar {
-  min-height: 54px;
-  padding: 8px 12px;
-  background: rgba(14, 15, 20, 0.96);
-}
-
-.operator-demo-summary {
-  display: none;
-}
-
-.operator-chat-surface {
-  padding: 10px 10px 8px;
-  background: #101116;
-}
-
-.operator-workbench {
-  padding: 8px 8px 8px 6px;
-  background: #07080d;
-}
-
-.operator-workbench-header {
-  min-height: 42px;
-  padding: 0 2px;
-}
-
-.operator-workbench-summary {
-  max-width: 42rem;
-}
-
-.operator-workbench-body {
-  margin-top: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  background: #07080d;
-}
-
-.operator-demo-page .graph-demo-page-embedded .demo-layout {
-  grid-template-columns: 48px minmax(0, 1fr) 48px;
-  border-radius: 10px;
-}
-
-.operator-demo-page .graph-demo-page-embedded .demo-canvas-panel,
-.operator-demo-page .graph-demo-page-embedded .demo-canvas-shell {
-  border-radius: 0;
-}
-
-.operator-demo-page .graph-demo-page-embedded .demo-drawer {
-  width: min(316px, calc(100vw - 112px));
-}
-
-.operator-demo-page .graph-demo-page-embedded .demo-drawer-right {
-  width: min(352px, calc(100vw - 112px));
-}
-
-.operator-demo-page .graph-demo-page-embedded .demo-graph-topbar {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.operator-demo-page .graph-demo-page-embedded .demo-toolbar-meta {
-  display: none;
-}
-
-.operator-demo-page .graph-demo-page-embedded .demo-command-search {
-  min-width: 0;
-}
-
-.operator-workflow-scroll-root-compact {
-  height: auto;
-}
-
-.operator-workflow-grid-compact {
-  gap: 8px;
-  padding-right: 0;
-}
-
-.operator-workflow-grid-compact .operator-workflow-card {
-  padding: 10px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.operator-workflow-grid-compact .workspace-block-title,
-.operator-workflow-grid-compact .run-quality-section-title {
-  font-size: 0.68rem;
-}
-
-.operator-workflow-grid-compact .tape-entry {
-  padding: 10px;
-  border-radius: 10px;
-}
-
-@media (max-width: 900px) {
-  .operator-demo-panels {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(260px, 38vh) minmax(520px, 1fr);
-  }
-
-  .operator-demo-page .graph-demo-page-embedded .demo-layout {
-    grid-template-columns: 42px minmax(0, 1fr) 42px;
-  }
-
-  .operator-workbench-body {
-    min-height: 520px;
   }
 }

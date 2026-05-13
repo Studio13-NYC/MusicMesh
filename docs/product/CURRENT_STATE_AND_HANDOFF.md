@@ -6,7 +6,7 @@ It should answer one question:
 
 What is real in the repo right now, and how should the next agent work?
 
-Last refreshed: 2026-05-12 after the Workbench rails UI pass.
+Last refreshed: 2026-05-13 after rolling back the Workbench rails UI pass.
 
 ## Clean-Sheet Status
 
@@ -81,7 +81,7 @@ curl.exe -I https://musicmesh.s13.nyc/
 curl.exe https://musicmesh.s13.nyc/api/chat/tape?limit=1
 ```
 
-Known baseline proof before the rails pass:
+Known stable deployment proof before the rollback:
 
 - GitHub Actions run `25741185320` completed successfully for commit `b82d3e9`
 - `https://musicmesh.s13.nyc/` returned `200`
@@ -99,20 +99,16 @@ Current stack:
 - Vite
 - Radix UI
 - Cytoscape
-- `lucide-react`
+- `react-resizable-panels`
 
 Current workbench shape:
 
 - chat-first main surface
-- graph workspace is the primary canvas beside the chat
-- icon rails drive the graph tools instead of the older Browse/Inspect drawer buttons
-- left rail: graph search, node/relationship filters, compact legend
-- right rail: inspect, workflow, run status
-- drawers slide over the canvas from the rails rather than nesting cards inside cards
-- floating graph tools keep fit/reset/expand near the canvas
+- neighboring graph/workflow panel
+- resizable layout
 - simple local API path for chat requests
 - graph seed search and Cytoscape graph inspection
-- filter controls show visible node/relationship counts and clearer active/inactive states
+- graph browse filters and legend
 - node/relationship inspect drawer
 - `Back` / `Forward` graph history for views already shown, with no new graph research/API call
 - double-click or `Expand` routes through chat and asks MusicMesh to expand the selected node
@@ -133,12 +129,11 @@ Current workbench shape:
 Important limitation:
 
 - the UI is now wired to a thin GPT-5.5-backed API path
-- the rails pass is UI-only; it does not change graph APIs, Neo4j persistence, or LLM orchestration
 - the workbench can now read recent conversation tape entries and runtime events from disk
-- the Workflow rail surfaces the latest run-quality assessment before the raw tape/runtime event streams
+- the Workflow panel surfaces the latest run-quality assessment before the raw tape/runtime event streams
 - chat and graph demo routes can read and write Neo4j through the local API
-- the graph rail prefers completed `graph_update` entries and falls back to the latest `graph_preview` while persistence is still running
-- the graph rail keeps richer local views from being collapsed by narrower focused-graph refreshes
+- the graph workspace prefers completed `graph_update` entries and falls back to the latest `graph_preview` while persistence is still running
+- the graph workspace keeps richer local views from being collapsed by narrower focused-graph refreshes
 - for the same request, persisted graph updates should win over previews when the thread focus is resolved
 
 Build/deploy note:
@@ -167,8 +162,6 @@ Latest headed-browser proof from a cleared Neo4j database:
 
 Latest graph-interaction proofs:
 
-- Workbench rails pass browser checks confirmed default desktop, left rail filters, right rail workflow, inspect-on-node-select, collapsed rails, chat composer text entry, and narrow/mobile layout
-- the pass preserved select, hover, drag, fit/reset, graph history, and double-click/`Expand` wiring
 - `Back` / `Forward` restored already-seen `CBGB` and `Brian Eno` graph views with `0` graph API requests during history navigation
 - dragging on the canvas did not change graph counts
 - double-click and `Expand` now use chat-routed expansion, then show whether the preview was saved to the Complete Graph or needs human input before saving
@@ -190,6 +183,12 @@ Known nonfatal verification noise:
 
 - Vite reports the main bundle is larger than 500 kB after minification
 - Azure Functions local verification logs test-mode warnings because it is not running inside the Functions runtime
+
+Rollback note:
+
+- The Workbench rails UI pass from commit `799421a` was rolled back because it introduced multiple UI issues and there was no time to tune them safely.
+- The rollback restores the previous resizable chat/workbench layout and the Browse/Inspect graph drawers.
+- Graph APIs, Neo4j persistence, LLM orchestration, chat-routed expansion, tape reads, runtime reads, and GitNexus segregation remain unchanged.
 
 Graph visualization decision:
 
