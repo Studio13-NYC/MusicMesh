@@ -26,8 +26,8 @@ jobs:
       - name: Build and verify deployment bundles
         run: |
           npm ci
-          npm test
           npm run build
+          npm test
           npm run build:api
       - name: Build And Deploy
         id: builddeploy
