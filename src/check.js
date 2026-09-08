@@ -3,7 +3,7 @@ const { validateEnv } = require("./env");
 const { resolveOpenAiModel } = require("./reasoningConfig");
 
 const OPENAI_API_URL = "https://api.openai.com/v1/models";
-const REQUIRED_DOCKER_MCP_TOOLS = ["read_neo4j_cypher", "browser_navigate"];
+const { getDatabase, closeDatabase } = require("./postgres");
 
 function fail(message) {
   throw new Error(message);
@@ -38,30 +38,6 @@ function checkEnv() {
   }
 }
 
-function checkGraphViaMcp() {
-  printSection("graph");
-
-  const result = spawnSync('docker mcp tools call read_neo4j_cypher query="RETURN 1 AS ok"', {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    stdio: "pipe",
-    shell: true
-  });
-
-  if (result.status !== 0) {
-    const detail = (result.stderr || result.stdout || "").trim();
-    fail(`Neo4j MCP connectivity check failed${detail ? `: ${detail}` : "."}`);
-  }
-
-  const output = (result.stdout || "").trim();
-
-  if (!output.includes('"ok": 1') && !output.includes('"ok":1')) {
-    fail(`Unexpected Neo4j MCP query result: ${output}`);
-  }
-
-  console.log("Neo4j MCP query passed: read_neo4j_cypher query=\"RETURN 1 AS ok\"");
-}
-
 function checkPlaywright() {
   printSection("playwright");
 
@@ -78,34 +54,6 @@ function checkPlaywright() {
   }
 
   console.log(result.stdout.trim());
-}
-
-function checkDockerMcpGateway() {
-  printSection("docker-mcp");
-
-  const result = spawnSync("docker mcp tools ls", {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    stdio: "pipe",
-    shell: true
-  });
-
-  if (result.status !== 0) {
-    const detail = (result.stderr || result.stdout || "").trim();
-    fail(`Docker MCP gateway check failed${detail ? `: ${detail}` : "."}`);
-  }
-
-  const output = result.stdout || "";
-  const missingTools = REQUIRED_DOCKER_MCP_TOOLS.filter((toolName) => !output.includes(toolName));
-
-  if (missingTools.length > 0) {
-    fail(
-      `Docker MCP gateway is reachable but missing expected tools: ${missingTools.join(", ")}`
-    );
-  }
-
-  console.log("Docker MCP gateway is available.");
-  console.log(`Required MCP tools found: ${REQUIRED_DOCKER_MCP_TOOLS.join(", ")}`);
 }
 
 async function checkOpenAI() {
@@ -133,8 +81,14 @@ async function checkOpenAI() {
 
 async function runCheck() {
   checkEnv();
-  checkDockerMcpGateway();
-  checkGraphViaMcp();
+  printSection("postgresql");
+  try {
+    const database = getDatabase();
+    const [result] = await database.$queryRaw`SELECT current_database() AS database, version() AS version`;
+    const nodes = await database.entity.count();
+    const relationships = await database.relationship.count();
+    console.log(`PostgreSQL connected: ${result.database}; ${nodes} nodes / ${relationships} relationships.`);
+  } finally { await closeDatabase(); }
   await checkOpenAI();
   checkPlaywright();
   console.log("\nMusicMesh startup check passed.");

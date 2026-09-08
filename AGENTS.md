@@ -4,6 +4,8 @@ This file is for new agents entering the MusicMesh clean-sheet repo.
 
 Read this first.
 
+Migration status (2026-09-07): Prisma/PostgreSQL implementation and isolated validation are complete; the user approved the final maintenance window. Read docs/deployment/NEON_MIGRATION.md and CURRENT_STATE_AND_HANDOFF.md for the latest deployment state. Use .env.migration for isolated local validation.
+
 More specific direct user instructions take priority over this file.
 
 ## Always Check Current Status
@@ -127,7 +129,7 @@ Current workbench shape:
 - graph preview while persistence continues in the background
 - visible graph progress from answer to preview, Complete Graph grounding, save, or human-input-needed outcome
 - graph view history with `Back` / `Forward` replay of already-seen graph payloads
-- double-click or `Expand` routes through chat and expands the selected node against the Complete Graph in Neo4j
+- double-click or `Expand` routes through chat and expands the selected node against the Complete Graph in PostgreSQL
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
 - post-run quality assessment written to the conversation tape
@@ -136,7 +138,7 @@ Important limitations:
 
 - the UI is wired to a thin GPT-5.5-backed API path
 - the workbench reads recent conversation tape entries and runtime events from disk
-- chat and graph demo routes can read and write Neo4j through the local API
+- chat and graph demo routes can read and write PostgreSQL through the local API
 - the operator surface is minimally live, not complete
 - there is one chat-driven graph path and no separate graph creation workspace
 
@@ -200,8 +202,7 @@ What they currently prove:
 
 - `npm run check`
   - validates the root `.env`
-  - verifies the Docker MCP gateway is available
-  - verifies Neo4j connectivity through the Docker MCP gateway with a live read query
+  - verifies PostgreSQL connectivity and the Prisma-managed schema with a live read query
   - verifies OpenAI connectivity
   - verifies Playwright CLI availability
 - `npm run startup`
@@ -238,12 +239,12 @@ The root `.env` is active.
 Current required env keys:
 
 - `OPENAI_API_KEY`
-- `NEO4J_URI`
-- `NEO4J_USERNAME`
-- `NEO4J_PASSWORD`
-- `NEO4J_DATABASE`
+- `DATABASE_URL` (MusicMesh Neon pooled URL with sslmode=verify-full)
 
 Current optional env keys:
+
+- `DIRECT_URL` (direct URL for Prisma migrations/imports)
+- `MUSICMESH_MAINTENANCE` (`true` pauses chat with HTTP 503; graph read endpoints remain available)
 
 - `BRAVE_API_KEY`
 - `DISCOGS_TOKEN`
@@ -269,30 +270,14 @@ Current optional env keys:
 
 Operational rules:
 
-- Aura is the active graph target unless the user explicitly changes direction.
+- Production remains Aura until the approved Neon cutover. Local migration validation uses the dedicated MusicMesh Neon branch; never point it at Alexander.
 - Do not silently switch to local Neo4j or another graph target to make a check pass.
-- If Aura, Docker MCP, OpenAI, or Playwright is unavailable, report blocked infrastructure rather than treating it as an app bug.
+- If PostgreSQL, OpenAI, or Playwright is unavailable, report blocked infrastructure rather than treating it as an app bug.
 - Never print or commit secrets.
 
-## Verified External Connections
+## Database tooling
 
-As of the current clean-sheet bootstrap:
-
-- Neo4j graph access through `MCP_DOCKER` is working
-- Playwright is available locally
-
-Operational requirement:
-
-- the Docker-backed MCP service must be running before relying on `MCP_DOCKER`
-- if `MCP_DOCKER` is unavailable, graph-dependent work is blocked infrastructure
-
-Verified checks used so far:
-
-```powershell
-docker mcp tools call read_neo4j_cypher query="RETURN 1 AS ok"
-npx playwright --version
-npm run smoke:playwright
-```
+Prisma and PostgreSQL are the application runtime. Neo4j credentials and the development-only driver are retained for the read-only migration exporter and rollback. Docker MCP is not an application prerequisite. Never use Alexander databases or credentials.
 
 ## Testing Posture
 
@@ -314,7 +299,7 @@ Before claiming work is done, run the smallest useful proof.
 
 - For infrastructure readiness, use `npm run check` or `npm run startup`.
 - For UI behavior, test through the SPA/workbench, not only through terminal scripts.
-- For graph or persistence behavior, verify logs, tape entries, runtime events, graph API responses, and Neo4j state separately from the chat answer.
+- For graph or persistence behavior, verify logs, tape entries, runtime events, graph API responses, and PostgreSQL state separately from the chat answer.
 - Do not treat a good answer as proof that the graph updated.
 - Do not treat browser completion as proof that persistence worked.
 - Pair live UI runs with saved-log inspection when persistence, graph writes, or runtime orchestration matters.

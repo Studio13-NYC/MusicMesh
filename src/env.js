@@ -2,17 +2,15 @@ const fs = require("fs");
 const path = require("path");
 const { getReasoningEnvKeys } = require("./reasoningConfig");
 
-const ENV_PATH = path.join(process.cwd(), ".env");
+const ENV_PATH = path.resolve(__dirname, "..", ".env");
 
 const requiredEnvKeys = [
   "OPENAI_API_KEY",
-  "NEO4J_URI",
-  "NEO4J_USERNAME",
-  "NEO4J_PASSWORD",
-  "NEO4J_DATABASE"
+  "DATABASE_URL"
 ];
 
 const optionalEnvKeys = [
+  "DIRECT_URL",
   "BRAVE_API_KEY",
   "DISCOGS_TOKEN",
   "OPENAI_MODEL",

@@ -1,5 +1,6 @@
-const neo4j = require("neo4j-driver");
-const { validateEnv } = require("./env");
+const { randomUUID } = require("node:crypto");
+const { getDatabase } = require("./postgres");
+const { toColumns, fromColumns, searchText } = require("./graphProperties");
 
 const ALLOWED_NODE_LABELS = new Set([
   "Artist",
@@ -59,34 +60,8 @@ const ALLOWED_NODE_LABELS = new Set([
   "Source",
   "Evidence",
   "Reference",
-  "Entity"
+  "Entity",
 ]);
-
-let driver = null;
-
-function ensureDriver() {
-  const envResult = validateEnv();
-
-  if (!envResult.isValid) {
-    throw new Error("Graph domain writer is missing required Neo4j environment variables.");
-  }
-
-  if (!driver) {
-    driver = neo4j.driver(
-      process.env.NEO4J_URI,
-      neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
-    );
-  }
-
-  return driver;
-}
-
-function createWriteSession() {
-  return ensureDriver().session({
-    database: process.env.NEO4J_DATABASE,
-    defaultAccessMode: neo4j.session.WRITE
-  });
-}
 
 function stableString(value) {
   if (typeof value === "string" && value.trim()) {
@@ -109,10 +84,7 @@ function sanitizeIdentifier(value, fallback) {
 }
 
 function normalizeNodeLabels(labels, type) {
-  const candidates = [
-    ...(Array.isArray(labels) ? labels : []),
-    type
-  ]
+  const candidates = [...(Array.isArray(labels) ? labels : []), type]
     .map((label) => sanitizeIdentifier(label, "Entity"))
     .filter((label) => ALLOWED_NODE_LABELS.has(label));
 
@@ -136,43 +108,31 @@ function proposedProperties(baseProperties, context) {
     source: "chat",
     threadId: context.threadId || "",
     turnId: context.turnId || "",
-    updatedAt: context.now
+    updatedAt: context.now,
   };
 }
 
 function relationshipUpdateProperties(baseProperties, context) {
-  const {
-    canonicalStatus,
-    isProposed,
-    source,
-    threadId,
-    turnId,
-    ...rest
-  } = proposedProperties(baseProperties, context);
+  const { canonicalStatus, isProposed, source, threadId, turnId, ...rest } =
+    proposedProperties(baseProperties, context);
 
   return {
     ...rest,
     lastChatThreadId: threadId,
     lastChatTurnId: turnId,
-    lastChatSource: source
+    lastChatSource: source,
   };
 }
 
 function nodeUpdateProperties(baseProperties, context) {
-  const {
-    canonicalStatus,
-    isProposed,
-    source,
-    threadId,
-    turnId,
-    ...rest
-  } = proposedProperties(baseProperties, context);
+  const { canonicalStatus, isProposed, source, threadId, turnId, ...rest } =
+    proposedProperties(baseProperties, context);
 
   return {
     ...rest,
     lastChatThreadId: threadId,
     lastChatTurnId: turnId,
-    lastChatSource: source
+    lastChatSource: source,
   };
 }
 
@@ -195,14 +155,16 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
     : [];
   const now = new Date().toISOString();
   const context = { threadId, turnId, now };
-  const session = createWriteSession();
+  const database = getDatabase();
   const nodeWriteByTempId = new Map();
   const persistedNodes = [];
   const persistedRelationships = [];
   const skippedRelationships = [];
 
-  try {
-    await session.executeWrite(async (tx) => {
+  await database.$transaction(
+    async (tx) => {
+      // Serialize graph merges across app instances without forbidding parallel imported edges.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;
       for (const node of nodes) {
         const tempId = stableString(node.tempId || node.id);
         const name = stableString(node.name || node.label);
@@ -213,7 +175,8 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
 
         const labels = normalizeNodeLabels(node.labels, node.type);
         const primaryLabel = labels[0];
-        const nodeId = stableString(node.properties?.id || node.id) ||
+        const nodeId =
+          stableString(node.properties?.id || node.id) ||
           `chat-${primaryLabel.toLowerCase()}-${slugify(name)}`;
         const properties = proposedProperties(
           {
@@ -223,9 +186,9 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
             label: name,
             aliasesJson: toJsonProperty(node.aliases || []),
             confidenceScore: node.confidenceScore ?? null,
-            evidenceBasis: node.evidenceBasis || "assistant_answer"
+            evidenceBasis: node.evidenceBasis || "assistant_answer",
           },
-          context
+          context,
         );
         const updateProperties = nodeUpdateProperties(
           {
@@ -235,48 +198,55 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
             label: name,
             aliasesJson: toJsonProperty(node.aliases || []),
             confidenceScore: node.confidenceScore ?? null,
-            evidenceBasis: node.evidenceBasis || "assistant_answer"
+            evidenceBasis: node.evidenceBasis || "assistant_answer",
           },
-          context
+          context,
         );
 
-        let result;
-
+        let row;
         if (node.matchedCanonId) {
-          result = await tx.run(
-            `
-              MATCH (n)
-              WHERE elementId(n) = $matchedCanonId
-              SET n.lastChatThreadId = $threadId,
-                  n.lastChatTurnId = $turnId,
-                  n.updatedAt = $now
-              RETURN elementId(n) AS elementId
-            `,
-            {
-              matchedCanonId: node.matchedCanonId,
-              threadId: context.threadId || "",
-              turnId: context.turnId || "",
-              now
-            }
-          );
+          row = await tx.entity.findUnique({
+            where: { id: node.matchedCanonId },
+          });
+          if (row)
+            row = await tx.entity.update({
+              where: { id: row.id },
+              data: {
+                lastChatThreadId: context.threadId || "",
+                lastChatTurnId: context.turnId || "",
+                updatedAt: now,
+              },
+            });
         } else {
-          result = await tx.run(
-            `
-              MERGE (n:${primaryLabel} {id: $id})
-              ON CREATE SET n += $properties
-              ON MATCH SET n += $updateProperties
-              RETURN elementId(n) AS elementId
-            `,
-            {
-              id: nodeId,
-              properties,
-              updateProperties
-            }
-          );
+          const matches = await tx.entity.findMany({
+            where: { labels: { has: primaryLabel }, domainId: nodeId },
+            orderBy: { id: "asc" },
+          });
+          for (const match of matches) {
+            const merged = { ...fromColumns(match), ...updateProperties };
+            const updated = await tx.entity.update({
+              where: { id: match.id },
+              data: {
+                ...toColumns(merged),
+                searchText: searchText(merged, match.id),
+              },
+            });
+            row ||= updated;
+          }
+          if (!row) {
+            const id = randomUUID();
+            row = await tx.entity.create({
+              data: {
+                id,
+                labels: [primaryLabel],
+                primaryLabel,
+                searchText: searchText(properties, id),
+                ...toColumns(properties),
+              },
+            });
+          }
         }
-
-        const record = result.records[0];
-        const elementId = record ? stableString(record.get("elementId")) : "";
+        const elementId = row?.id || "";
 
         if (!elementId) {
           continue;
@@ -288,24 +258,31 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
           id: nodeId,
           label: name,
           labels,
-          action: node.matchedCanonId ? "matched" : "merged"
+          action: node.matchedCanonId ? "matched" : "merged",
         });
         persistedNodes.push(nodeWriteByTempId.get(tempId));
       }
 
       for (const relationship of relationships) {
-        const sourceRef = stableString(relationship.sourceRef || relationship.sourceId);
-        const targetRef = stableString(relationship.targetRef || relationship.targetId);
+        const sourceRef = stableString(
+          relationship.sourceRef || relationship.sourceId,
+        );
+        const targetRef = stableString(
+          relationship.targetRef || relationship.targetId,
+        );
         const sourceNode = nodeWriteByTempId.get(sourceRef);
         const targetNode = nodeWriteByTempId.get(targetRef);
-        const relationshipType = sanitizeIdentifier(relationship.type, "RELATED_TO").toUpperCase();
+        const relationshipType = sanitizeIdentifier(
+          relationship.type,
+          "RELATED_TO",
+        ).toUpperCase();
 
         if (!sourceNode || !targetNode) {
           skippedRelationships.push({
             sourceRef,
             targetRef,
             type: relationshipType,
-            reason: "Missing persisted source or target node."
+            reason: "Missing persisted source or target node.",
           });
           continue;
         }
@@ -314,50 +291,63 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
           {
             ...(relationship.properties || {}),
             confidenceScore: relationship.confidenceScore ?? null,
-            evidenceBasis: relationship.evidenceBasis || "assistant_answer"
+            evidenceBasis: relationship.evidenceBasis || "assistant_answer",
           },
-          context
+          context,
         );
         const updateProperties = relationshipUpdateProperties(
           {
             ...(relationship.properties || {}),
             confidenceScore: relationship.confidenceScore ?? null,
-            evidenceBasis: relationship.evidenceBasis || "assistant_answer"
+            evidenceBasis: relationship.evidenceBasis || "assistant_answer",
           },
-          context
+          context,
         );
-        const result = await tx.run(
-          `
-            MATCH (source), (target)
-            WHERE elementId(source) = $sourceElementId AND elementId(target) = $targetElementId
-            MERGE (source)-[relationship:${relationshipType}]->(target)
-            ON CREATE SET relationship += $properties
-            ON MATCH SET relationship += $updateProperties
-            RETURN elementId(relationship) AS elementId
-          `,
-          {
-            sourceElementId: sourceNode.elementId,
-            targetElementId: targetNode.elementId,
-            properties,
-            updateProperties
-          }
-        );
-        const record = result.records[0];
-
+        const matches = await tx.relationship.findMany({
+          where: {
+            sourceId: sourceNode.elementId,
+            targetId: targetNode.elementId,
+            type: relationshipType,
+          },
+          orderBy: { id: "asc" },
+        });
+        let persisted;
+        for (const match of matches) {
+          const updated = await tx.relationship.update({
+            where: { id: match.id },
+            data: toColumns(
+              { ...fromColumns(match, true), ...updateProperties },
+              true,
+            ),
+          });
+          persisted ||= updated;
+        }
+        if (!persisted)
+          persisted = await tx.relationship.create({
+            data: {
+              id: randomUUID(),
+              sourceId: sourceNode.elementId,
+              targetId: targetNode.elementId,
+              type: relationshipType,
+              ...toColumns(properties, true),
+            },
+          });
         persistedRelationships.push({
-          elementId: record ? stableString(record.get("elementId")) : "",
+          elementId: persisted.id,
           type: relationshipType,
           sourceElementId: sourceNode.elementId,
-          targetElementId: targetNode.elementId
+          targetElementId: targetNode.elementId,
         });
       }
-    });
-  } finally {
-    await session.close();
-  }
+    },
+    { timeout: 60000, maxWait: 15000 },
+  );
 
-  const anchorRef = stableString(groundedGraph?.anchor?.tempId || groundedGraph?.anchor?.id);
-  const anchorNode = nodeWriteByTempId.get(anchorRef) || persistedNodes[0] || null;
+  const anchorRef = stableString(
+    groundedGraph?.anchor?.tempId || groundedGraph?.anchor?.id,
+  );
+  const anchorNode =
+    nodeWriteByTempId.get(anchorRef) || persistedNodes[0] || null;
 
   return {
     persistedAt: now,
@@ -367,7 +357,7 @@ async function persistChatGraph({ groundedGraph, threadId, turnId }) {
     skippedRelationshipCount: skippedRelationships.length,
     persistedNodes,
     persistedRelationships,
-    skippedRelationships
+    skippedRelationships,
   };
 }
 
@@ -375,5 +365,5 @@ module.exports = {
   ALLOWED_NODE_LABELS,
   persistChatGraph,
   sanitizeIdentifier,
-  stableString
+  stableString,
 };

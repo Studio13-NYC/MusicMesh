@@ -1,5 +1,7 @@
 # MusicMesh API: local vs Azure Static Web Apps
 
+Migration note (2026-09-07): the local code now uses Prisma/PostgreSQL; production still uses the previous Neo4j deployment. Follow [NEON_MIGRATION.md](NEON_MIGRATION.md) before changing production settings.
+
 ## The problem we fixed
 
 The React shell originally called the chat API at `http://<hostname>:43101`. That works only when a **local** Node server is bound to loopback and the browser can reach it. On **HTTPS** production (`musicmesh.s13.nyc` or the default `*.azurestaticapps.net` host):
@@ -61,9 +63,9 @@ The sync copies shared runtime modules and `docs/product/MUSICMESH_CHAT_SYSTEM_P
 Configure required keys on the Static Web App (or linked Function settings) the same way as local `.env`. Chat uses `validateEnv()` from `src/env.js`, which requires at least:
 
 - `OPENAI_API_KEY`
-- `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`
+- `DATABASE_URL` (MusicMesh pooled PostgreSQL URL, sslmode=verify-full)
 
-Optional keys are listed in `src/env.js`. **Note:** the hosted Function does not use Neo4j for chat today, but validation still expects those variables until that requirement is split for “chat-only” deployments.
+Optional keys are listed in `src/env.js`. `DIRECT_URL` is used only by database migrations and backups; do not use the pooled endpoint for those commands. The new API performs graph reads and writes through PostgreSQL. Production settings must remain unchanged until cutover validation passes.
 
 For the current OpenAI chat path, `OPENAI_MODEL` can override the default model. Model IDs are normalized to lowercase so `GPT-5.5` is treated as `gpt-5.5`.
 

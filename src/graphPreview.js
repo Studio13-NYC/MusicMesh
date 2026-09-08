@@ -377,7 +377,7 @@ async function callPreviewModel({ prompt, assistantText, graphContext = {}, tele
   const instructions = [
     "Create a provisional graph preview for display only.",
     "Use only entities and relationships that are visible in the supplied user prompt and assistant answer.",
-    "The Complete Graph is the full Neo4j database. The current view is only a screen slice.",
+    "The Complete Graph is the full MusicMesh database. The current view is only a screen slice.",
     "When graphContext.intent is expand_node, center the preview on graphContext.selectedNode and keep preview facts connected to that node.",
     "Do not create canon, proposal, review, task, or workflow nodes.",
     `Use node kinds from this catalog when possible: ${[...ALLOWED_NODE_LABELS].join(", ")}.`,

@@ -8,8 +8,7 @@ Before working on product code, we should be able to prove:
 
 - the repo installs cleanly
 - the root `.env` is readable
-- Docker MCP is reachable
-- Neo4j can be queried through Docker MCP
+- PostgreSQL and its versioned Prisma schema can be queried
 - OpenAI connectivity works
 - Playwright is available
 - the local runtime boots
@@ -19,12 +18,12 @@ Before working on product code, we should be able to prove:
 Required env keys:
 
 - `OPENAI_API_KEY`
-- `NEO4J_URI`
-- `NEO4J_USERNAME`
-- `NEO4J_PASSWORD`
-- `NEO4J_DATABASE`
+- `DATABASE_URL` (dedicated MusicMesh pooled Neon URL; `sslmode=verify-full`)
 
 Optional env keys:
+
+- `DIRECT_URL` (direct URL for migration/import tools)
+- `MUSICMESH_MAINTENANCE` (`true` pauses chat writes with HTTP 503)
 
 - `BRAVE_API_KEY`
 - `DISCOGS_TOKEN`
@@ -50,19 +49,23 @@ Optional env keys:
 
 ## Required External Runtime
 
-- Docker MCP must be running for graph checks
+- MusicMesh PostgreSQL must be reachable and `prisma migrate deploy` applied
 - Playwright must be available locally
 
 Important rule:
 
-- if Docker MCP is unavailable, graph checks are blocked infrastructure, not an app bug
+- If PostgreSQL is unavailable, graph checks are blocked infrastructure, not an app bug. Docker MCP is not needed.
+- Neo4j credentials are retained only for the exporter and rollback.
+- For isolated development, use `node --env-file=.env.migration src/index.js`; do not run test writes against production.
+- See [Neon migration](deployment/NEON_MIGRATION.md) for branch IDs and deployment status.
 
 ## Commands
 
 Install dependencies:
 
 ```powershell
-npm install
+npm ci
+npm run db:generate
 ```
 
 Run the full startup path:
@@ -117,8 +120,7 @@ npm run ontology:review
 `npm run check` verifies:
 
 - root `.env`
-- Docker MCP availability
-- Neo4j connectivity through Docker MCP
+- PostgreSQL connectivity, schema access and graph row counts
 - OpenAI connectivity
 - Playwright availability
 

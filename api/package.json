@@ -10,11 +10,13 @@
     "start": "func start"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.19.0"
   },
   "dependencies": {
     "@azure/functions": "^4.7.0",
     "@azure/storage-blob": "^12.31.0",
-    "neo4j-driver": "^6.0.1"
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "pg": "8.23.0"
   }
 }

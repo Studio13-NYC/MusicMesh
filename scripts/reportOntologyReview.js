@@ -1,4 +1,5 @@
-const neo4j = require("neo4j-driver");
+const { getDatabase, closeDatabase } = require("../src/postgres");
+const { fromColumns } = require("../src/graphProperties");
 const { validateEnv } = require("../src/env");
 const filterCatalog = require("../ui/src/graph-demos/graphFilterCatalog.json");
 
@@ -6,14 +7,14 @@ const HIDDEN_GRAPH_NODE_LABELS = new Set([
   "GraphProposal",
   "ProposalItem",
   "ProposedEntity",
-  "ProposedRelationship"
+  "ProposedRelationship",
 ]);
 const HIDDEN_GRAPH_RELATIONSHIP_TYPES = new Set([
   "HAS_ITEM",
   "PROPOSED_SOURCE",
   "PROPOSED_TARGET",
   "PROPOSED_RELATIONSHIP",
-  "PROPOSES_CANON_MATCH"
+  "PROPOSES_CANON_MATCH",
 ]);
 const HOUSEKEEPING_PROPERTY_KEYS = new Set([
   "canonicalStatus",
@@ -33,7 +34,7 @@ const HOUSEKEEPING_PROPERTY_KEYS = new Set([
   "relationshipType",
   "updatedAt",
   "confidenceScore",
-  "evidenceBasis"
+  "evidenceBasis",
 ]);
 const IDENTITY_PROPERTY_KEYS = new Set([
   "id",
@@ -44,32 +45,10 @@ const IDENTITY_PROPERTY_KEYS = new Set([
   "fullName",
   "stageName",
   "canonicalName",
-  "aliasesJson"
+  "aliasesJson",
 ]);
 
 function toNativeValue(value) {
-  if (neo4j.isInt(value)) {
-    return value.inSafeRange() ? value.toNumber() : value.toString();
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => toNativeValue(item));
-  }
-
-  if (value && typeof value === "object") {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-
-    if (value.constructor && value.constructor !== Object) {
-      return value.toString();
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entryValue]) => [key, toNativeValue(entryValue)])
-    );
-  }
-
   return value;
 }
 
@@ -87,7 +66,8 @@ function stableString(value) {
 
 function shortValue(value) {
   const nativeValue = toNativeValue(value);
-  const text = typeof nativeValue === "string" ? nativeValue : JSON.stringify(nativeValue);
+  const text =
+    typeof nativeValue === "string" ? nativeValue : JSON.stringify(nativeValue);
 
   if (!text) {
     return "";
@@ -199,7 +179,7 @@ function addPropertySample(map, key, sample) {
     map.set(key, {
       key,
       count: 0,
-      samples: []
+      samples: [],
     });
   }
 
@@ -211,191 +191,174 @@ function addPropertySample(map, key, sample) {
   }
 }
 
-async function runRead(session, cypher, parameters = {}) {
-  const result = await session.executeRead((tx) => tx.run(cypher, parameters));
-  return result.records;
-}
-
 async function collectReview() {
-  const envResult = validateEnv();
-
-  if (!envResult.isValid) {
-    throw new Error(
-      `Missing required environment variables: ${envResult.missingRequired.join(", ")}`
+  validateEnv();
+  const { nodeRecords, relationshipPropertyRecords } =
+    await getDatabase().$transaction(
+      async (tx) => {
+        const allNodes = await tx.entity.findMany();
+        const names = new Map(
+          allNodes.map((n) => [
+            n.id,
+            n.name ??
+              n.label ??
+              n.extra.title ??
+              n.extra.displayName ??
+              n.domainId ??
+              n.id,
+          ]),
+        );
+        return {
+          nodeRecords: allNodes
+            .map((n) => ({
+              elementId: n.id,
+              labels: n.labels,
+              name: names.get(n.id),
+              properties: fromColumns(n),
+            }))
+            .sort((a, b) =>
+              a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+            ),
+          relationshipPropertyRecords: (await tx.relationship.findMany()).map(
+            (r) => ({
+              type: r.type,
+              source: names.get(r.sourceId),
+              target: names.get(r.targetId),
+              properties: fromColumns(r, true),
+            }),
+          ),
+        };
+      },
+      { isolationLevel: "RepeatableRead" },
     );
+  const nodeCountRecord = { nodes: nodeRecords.length },
+    relationshipCountRecord = {
+      relationships: relationshipPropertyRecords.length,
+    };
+  const byType = new Map();
+  for (const r of relationshipPropertyRecords) {
+    if (!byType.has(r.type))
+      byType.set(r.type, { type: r.type, count: 0, samples: [] });
+    const group = byType.get(r.type);
+    group.count++;
+    if (group.samples.length < 6) group.samples.push(r);
   }
-
-  const driver = neo4j.driver(
-    process.env.NEO4J_URI,
-    neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
+  const relationshipRecords = [...byType.values()].sort(
+    (a, b) => b.count - a.count || a.type.localeCompare(b.type),
   );
-  const session = driver.session({
-    database: process.env.NEO4J_DATABASE,
-    defaultAccessMode: neo4j.session.READ
-  });
+  const nodes = nodeRecords
+    .map((record) => ({
+      elementId: stableString(record.elementId),
+      labels: toNativeValue(record.labels) || [],
+      name: stableString(record.name),
+      properties: toNativeValue(record.properties) || {},
+    }))
+    .filter((node) => labelsAreVisible(node.labels));
+  const otherNodes = nodes
+    .map((node) => ({
+      ...node,
+      groupId: getNodeGroupId(node.labels),
+    }))
+    .filter((node) => node.groupId === "other");
+  const nodeProperties = new Map();
 
-  try {
-    const [nodeCountRecord] = await runRead(
-      session,
-      `
-        MATCH (n)
-        RETURN count(n) AS nodes
-      `
-    );
-    const [relationshipCountRecord] = await runRead(
-      session,
-      `
-        MATCH ()-[r]->()
-        RETURN count(r) AS relationships
-      `
-    );
-    const nodeRecords = await runRead(
-      session,
-      `
-        MATCH (n)
-        RETURN
-          elementId(n) AS elementId,
-          labels(n) AS labels,
-          coalesce(n.name, n.label, n.title, n.displayName, n.id, elementId(n)) AS name,
-          properties(n) AS properties
-        ORDER BY toLower(toString(coalesce(n.name, n.label, n.title, n.displayName, n.id, elementId(n))))
-      `
-    );
-    const relationshipRecords = await runRead(
-      session,
-      `
-        MATCH (source)-[relationship]->(target)
-        RETURN
-          type(relationship) AS type,
-          count(relationship) AS count,
-          collect({
-            source: coalesce(source.name, source.label, source.title, source.displayName, source.id, elementId(source)),
-            target: coalesce(target.name, target.label, target.title, target.displayName, target.id, elementId(target)),
-            properties: properties(relationship)
-          })[0..6] AS samples
-        ORDER BY count(relationship) DESC, type(relationship)
-      `
-    );
-    const relationshipPropertyRecords = await runRead(
-      session,
-      `
-        MATCH (source)-[relationship]->(target)
-        RETURN
-          type(relationship) AS type,
-          coalesce(source.name, source.label, source.title, source.displayName, source.id, elementId(source)) AS source,
-          coalesce(target.name, target.label, target.title, target.displayName, target.id, elementId(target)) AS target,
-          properties(relationship) AS properties
-      `
-    );
-
-    const nodes = nodeRecords
-      .map((record) => ({
-        elementId: stableString(record.get("elementId")),
-        labels: toNativeValue(record.get("labels")) || [],
-        name: stableString(record.get("name")),
-        properties: toNativeValue(record.get("properties")) || {}
-      }))
-      .filter((node) => labelsAreVisible(node.labels));
-    const otherNodes = nodes
-      .map((node) => ({
-        ...node,
-        groupId: getNodeGroupId(node.labels)
-      }))
-      .filter((node) => node.groupId === "other");
-    const nodeProperties = new Map();
-
-    for (const node of nodes) {
-      for (const [key, value] of Object.entries(node.properties)) {
-        if (HOUSEKEEPING_PROPERTY_KEYS.has(key) || IDENTITY_PROPERTY_KEYS.has(key)) {
-          continue;
-        }
-
-        addPropertySample(nodeProperties, key, {
-          holder: node.name,
-          labels: node.labels,
-          value: shortValue(value)
-        });
-      }
-    }
-
-    const relationships = relationshipRecords
-      .map((record) => ({
-        type: stableString(record.get("type")),
-        count: Number(toNativeValue(record.get("count")) || 0),
-        samples: toNativeValue(record.get("samples")) || []
-      }))
-      .filter((relationship) => !HIDDEN_GRAPH_RELATIONSHIP_TYPES.has(relationship.type));
-    const otherRelationships = relationships
-      .map((relationship) => ({
-        ...relationship,
-        groupId: getRelationshipGroupId(relationship.type)
-      }))
-      .filter((relationship) => relationship.groupId === "other");
-    const relationshipProperties = new Map();
-
-    for (const record of relationshipPropertyRecords) {
-      const type = stableString(record.get("type"));
-
-      if (HIDDEN_GRAPH_RELATIONSHIP_TYPES.has(type)) {
+  for (const node of nodes) {
+    for (const [key, value] of Object.entries(node.properties)) {
+      if (
+        HOUSEKEEPING_PROPERTY_KEYS.has(key) ||
+        IDENTITY_PROPERTY_KEYS.has(key)
+      ) {
         continue;
       }
 
-      const properties = toNativeValue(record.get("properties")) || {};
+      addPropertySample(nodeProperties, key, {
+        holder: node.name,
+        labels: node.labels,
+        value: shortValue(value),
+      });
+    }
+  }
 
-      for (const [key, value] of Object.entries(properties)) {
-        if (HOUSEKEEPING_PROPERTY_KEYS.has(key)) {
-          continue;
-        }
+  const relationships = relationshipRecords
+    .map((record) => ({
+      type: stableString(record.type),
+      count: Number(toNativeValue(record.count) || 0),
+      samples: toNativeValue(record.samples) || [],
+    }))
+    .filter(
+      (relationship) => !HIDDEN_GRAPH_RELATIONSHIP_TYPES.has(relationship.type),
+    );
+  const otherRelationships = relationships
+    .map((relationship) => ({
+      ...relationship,
+      groupId: getRelationshipGroupId(relationship.type),
+    }))
+    .filter((relationship) => relationship.groupId === "other");
+  const relationshipProperties = new Map();
 
-        addPropertySample(relationshipProperties, key, {
-          relationshipType: type,
-          source: stableString(record.get("source")),
-          target: stableString(record.get("target")),
-          value: shortValue(value)
-        });
-      }
+  for (const record of relationshipPropertyRecords) {
+    const type = stableString(record.type);
+
+    if (HIDDEN_GRAPH_RELATIONSHIP_TYPES.has(type)) {
+      continue;
     }
 
-    return {
-      database: process.env.NEO4J_DATABASE,
-      generatedAt: new Date().toISOString(),
-      totals: {
-        nodes: Number(toNativeValue(nodeCountRecord.get("nodes")) || 0),
-        relationships: Number(toNativeValue(relationshipCountRecord.get("relationships")) || 0)
-      },
-      otherNodes: otherNodes.map((node) => ({
-        name: node.name,
-        labels: node.labels,
-        propertyKeys: Object.keys(node.properties).filter(
-          (key) => !HOUSEKEEPING_PROPERTY_KEYS.has(key)
-        )
-      })),
-      otherRelationships: otherRelationships.map((relationship) => ({
-        type: relationship.type,
-        count: relationship.count,
-        samples: relationship.samples.map((sample) => ({
-          source: stableString(sample.source),
-          target: stableString(sample.target)
-        }))
-      })),
-      reviewableNodeProperties: [...nodeProperties.values()].sort((left, right) =>
-        left.key.localeCompare(right.key)
-      ),
-      reviewableRelationshipProperties: [...relationshipProperties.values()].sort((left, right) =>
-        left.key.localeCompare(right.key)
-      )
-    };
-  } finally {
-    await session.close();
-    await driver.close();
+    const properties = toNativeValue(record.properties) || {};
+
+    for (const [key, value] of Object.entries(properties)) {
+      if (HOUSEKEEPING_PROPERTY_KEYS.has(key)) {
+        continue;
+      }
+
+      addPropertySample(relationshipProperties, key, {
+        relationshipType: type,
+        source: stableString(record.source),
+        target: stableString(record.target),
+        value: shortValue(value),
+      });
+    }
   }
+
+  return {
+    database: new URL(process.env.DATABASE_URL).pathname.slice(1),
+    generatedAt: new Date().toISOString(),
+    totals: {
+      nodes: Number(toNativeValue(nodeCountRecord.nodes) || 0),
+      relationships: Number(
+        toNativeValue(relationshipCountRecord.relationships) || 0,
+      ),
+    },
+    otherNodes: otherNodes.map((node) => ({
+      name: node.name,
+      labels: node.labels,
+      propertyKeys: Object.keys(node.properties).filter(
+        (key) => !HOUSEKEEPING_PROPERTY_KEYS.has(key),
+      ),
+    })),
+    otherRelationships: otherRelationships.map((relationship) => ({
+      type: relationship.type,
+      count: relationship.count,
+      samples: relationship.samples.map((sample) => ({
+        source: stableString(sample.source),
+        target: stableString(sample.target),
+      })),
+    })),
+    reviewableNodeProperties: [...nodeProperties.values()].sort((left, right) =>
+      left.key.localeCompare(right.key),
+    ),
+    reviewableRelationshipProperties: [...relationshipProperties.values()].sort(
+      (left, right) => left.key.localeCompare(right.key),
+    ),
+  };
 }
 
 function printReview(review) {
   console.log("Ontology review");
   console.log(`  generated: ${review.generatedAt}`);
   console.log(`  database: ${review.database}`);
-  console.log(`  graph: ${review.totals.nodes} nodes / ${review.totals.relationships} relationships`);
+  console.log(
+    `  graph: ${review.totals.nodes} nodes / ${review.totals.relationships} relationships`,
+  );
   console.log("");
   console.log(`Other node candidates: ${review.otherNodes.length}`);
 
@@ -408,20 +371,26 @@ function printReview(review) {
   }
 
   console.log("");
-  console.log(`Other relationship type candidates: ${review.otherRelationships.length}`);
+  console.log(
+    `Other relationship type candidates: ${review.otherRelationships.length}`,
+  );
 
   if (review.otherRelationships.length === 0) {
     console.log("  none");
   } else {
     for (const relationship of review.otherRelationships) {
       const sample = relationship.samples[0];
-      const example = sample ? `, e.g. ${sample.source} -> ${sample.target}` : "";
+      const example = sample
+        ? `, e.g. ${sample.source} -> ${sample.target}`
+        : "";
       console.log(`  - ${relationship.type}: ${relationship.count}${example}`);
     }
   }
 
   console.log("");
-  console.log(`Reviewable node properties: ${review.reviewableNodeProperties.length}`);
+  console.log(
+    `Reviewable node properties: ${review.reviewableNodeProperties.length}`,
+  );
 
   if (review.reviewableNodeProperties.length === 0) {
     console.log("  none");
@@ -434,7 +403,9 @@ function printReview(review) {
   }
 
   console.log("");
-  console.log(`Reviewable relationship properties: ${review.reviewableRelationshipProperties.length}`);
+  console.log(
+    `Reviewable relationship properties: ${review.reviewableRelationshipProperties.length}`,
+  );
 
   if (review.reviewableRelationshipProperties.length === 0) {
     console.log("  none");
@@ -460,7 +431,9 @@ async function main() {
   printReview(review);
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+main()
+  .catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  })
+  .finally(closeDatabase);

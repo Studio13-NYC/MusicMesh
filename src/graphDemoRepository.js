@@ -1,5 +1,4 @@
-const neo4j = require("neo4j-driver");
-const { validateEnv } = require("./env");
+const store = require("./graphStore");
 
 const DEFAULT_SEARCH_LIMIT = 8;
 const DEFAULT_SUBGRAPH_DEPTH = 2;
@@ -41,7 +40,6 @@ const HIDDEN_GRAPH_PROPERTY_KEYS = new Set([
   "evidenceBasis"
 ]);
 
-let driver = null;
 
 function clampInteger(value, min, max, fallback) {
   const numeric = Number(value);
@@ -53,63 +51,7 @@ function clampInteger(value, min, max, fallback) {
   return Math.min(max, Math.max(min, Math.trunc(numeric)));
 }
 
-function toCypherInteger(value) {
-  return neo4j.int(value);
-}
-
-function ensureDriver() {
-  const envResult = validateEnv();
-
-  if (!envResult.isValid) {
-    throw new Error(
-      "Graph demo API is missing required Neo4j environment variables (see src/env.js)."
-    );
-  }
-
-  if (driver) {
-    return driver;
-  }
-
-  driver = neo4j.driver(
-    process.env.NEO4J_URI,
-    neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
-  );
-
-  return driver;
-}
-
-function createSession() {
-  return ensureDriver().session({
-    database: process.env.NEO4J_DATABASE,
-    defaultAccessMode: neo4j.session.READ
-  });
-}
-
-function toNativeValue(value) {
-  if (neo4j.isInt(value)) {
-    return value.inSafeRange() ? value.toNumber() : value.toString();
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => toNativeValue(item));
-  }
-
-  if (value && typeof value === "object") {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-
-    if (value.constructor && value.constructor !== Object) {
-      return value.toString();
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entryValue]) => [key, toNativeValue(entryValue)])
-    );
-  }
-
-  return value;
-}
+function toNativeValue(value) { return value; }
 
 function stableString(value) {
   if (typeof value === "string" && value.trim()) {
@@ -827,51 +769,10 @@ function transformGraphRecords(seedRecord, rawNodes, rawRelationships, diagnosti
   };
 }
 
-async function runRead(cypher, parameters) {
-  const session = createSession();
-
-  try {
-    const result = await session.executeRead((tx) => tx.run(cypher, parameters));
-    return result.records.map((record) => record.toObject());
-  } finally {
-    await session.close();
-  }
-}
-
 async function searchGraphSeeds(query, limit = DEFAULT_SEARCH_LIMIT) {
   const normalizedQuery = typeof query === "string" ? query.trim() : "";
   const boundedLimit = clampInteger(limit, 1, 25, DEFAULT_SEARCH_LIMIT);
-  const cypher = `
-    MATCH (n)
-    WITH
-      n,
-      labels(n) AS labels,
-      properties(n) AS properties,
-      elementId(n) AS id,
-      count { (n)--() } AS degree,
-      coalesce(
-        toString(n.name),
-        toString(n.title),
-        toString(n.displayName),
-        toString(n.label),
-        toString(n.fullName),
-        toString(n.stageName),
-        toString(n.canonicalName),
-        toString(n.id),
-        elementId(n)
-      ) AS searchText
-    WHERE
-      none(label IN labels WHERE label IN $hiddenNodeLabels) AND
-      ($query = "" OR toLower(searchText) CONTAINS toLower($query))
-    RETURN id, labels, properties, degree, searchText
-    ORDER BY degree DESC, toLower(searchText) ASC, id ASC
-    LIMIT $limit
-  `;
-  const records = await runRead(cypher, {
-    query: normalizedQuery,
-    hiddenNodeLabels: HIDDEN_GRAPH_NODE_LABELS,
-    limit: toCypherInteger(boundedLimit)
-  });
+  const records = await store.searchEntities(normalizedQuery, boundedLimit, HIDDEN_GRAPH_NODE_LABELS);
 
   const mappedResults = records.map((record) => {
     const properties = toNativeValue(record.properties || {});
@@ -954,71 +855,9 @@ async function fetchSeededGraph(seedId, options = {}) {
   const maxNodes = clampInteger(options.maxNodes, 1, 200, DEFAULT_MAX_NODES);
   const maxEdges = clampInteger(options.maxEdges, 1, 300, DEFAULT_MAX_EDGES);
   const pathLimit = clampInteger(options.pathLimit, 1, 400, DEFAULT_PATH_LIMIT);
-  const cypher = `
-    MATCH (seed)
-    WHERE elementId(seed) = $seedId AND none(label IN labels(seed) WHERE label IN $hiddenNodeLabels)
-    CALL {
-      WITH seed
-      OPTIONAL MATCH p = (seed)-[*1..${depth}]-(neighbor)
-      WITH p
-      LIMIT $pathLimit
-      RETURN collect(p) AS paths
-    }
-    WITH
-      seed,
-      reduce(allNodes = [seed], path IN paths | allNodes + nodes(path)) AS rawNodes,
-      reduce(allRels = [], path IN paths | allRels + relationships(path)) AS rawRels
-    UNWIND rawNodes AS rawNode
-    WITH seed, collect(DISTINCT rawNode) AS distinctNodes, rawRels
-    WITH seed, distinctNodes[..$maxNodes] AS nodes, rawRels
-    WITH seed, nodes, rawRels, [node IN nodes | elementId(node)] AS nodeIds
-    CALL {
-      WITH nodeIds
-      UNWIND nodeIds AS leftNodeId
-      MATCH (leftNode)
-      WHERE elementId(leftNode) = leftNodeId
-      OPTIONAL MATCH (leftNode)-[directRel]-(rightNode)
-      WHERE
-        elementId(rightNode) IN nodeIds AND
-        NOT type(directRel) IN $hiddenRelationshipTypes
-      RETURN collect(DISTINCT directRel) AS directRels
-    }
-    CALL {
-      WITH nodes, rawRels, directRels
-      WITH nodes, rawRels + directRels AS relCandidates
-      WITH nodes, CASE WHEN size(relCandidates) = 0 THEN [null] ELSE relCandidates END AS relCandidates
-      UNWIND relCandidates AS rawRel
-      WITH nodes, collect(DISTINCT rawRel) AS distinctRels
-      RETURN [rel IN distinctRels WHERE rel IS NOT NULL AND startNode(rel) IN nodes AND endNode(rel) IN nodes][..$maxEdges] AS rels
-    }
-    RETURN
-      {
-        id: elementId(seed),
-        labels: labels(seed),
-        properties: properties(seed)
-      } AS seed,
-      [node IN nodes | {
-        id: elementId(node),
-        labels: labels(node),
-        properties: properties(node)
-      }] AS nodes,
-      [rel IN rels | {
-        id: elementId(rel),
-        source: elementId(startNode(rel)),
-        target: elementId(endNode(rel)),
-        type: type(rel),
-        properties: properties(rel)
-      }] AS rels
-  `;
-  const records = await runRead(cypher, {
-    seedId: normalizedSeedId,
-    hiddenNodeLabels: HIDDEN_GRAPH_NODE_LABELS,
-    hiddenRelationshipTypes: HIDDEN_GRAPH_RELATIONSHIP_TYPES,
-    maxNodes: toCypherInteger(maxNodes),
-    maxEdges: toCypherInteger(maxEdges),
-    pathLimit: toCypherInteger(pathLimit)
-  });
-  const payload = records[0];
+  const graph = await store.neighborhood([normalizedSeedId], { depth, pathLimit, nodeLimit:maxNodes, edgeLimit:maxEdges, induced:true, hiddenLabels:HIDDEN_GRAPH_NODE_LABELS, hiddenTypes:HIDDEN_GRAPH_RELATIONSHIP_TYPES });
+  const seed = graph.nodes.find(n=>n.id===normalizedSeedId);
+  const payload = seed ? { seed, nodes:graph.nodes, rels:graph.relationships } : null;
 
   if (!payload) {
     throw new Error(`No graph node exists for seed ${normalizedSeedId}.`);
@@ -1071,41 +910,7 @@ async function getNodeDetail(nodeId) {
     throw new Error("Graph demo node detail requests require a node id.");
   }
 
-  const cypher = `
-    MATCH (n)
-    WHERE elementId(n) = $nodeId AND none(label IN labels(n) WHERE label IN $hiddenNodeLabels)
-    CALL {
-      WITH n
-      OPTIONAL MATCH (n)-[r]-()
-      WHERE NOT type(r) IN $hiddenRelationshipTypes
-      RETURN count(r) AS relationshipCount
-    }
-    CALL {
-      WITH n
-      OPTIONAL MATCH (n)-[r]-()
-      WITH type(r) AS relationshipType, count(*) AS count
-      WHERE
-        relationshipType IS NOT NULL AND
-        NOT relationshipType IN $hiddenRelationshipTypes
-      ORDER BY count DESC, relationshipType ASC
-      RETURN collect({ type: relationshipType, count: count })[..$relationshipTypeLimit] AS relationshipTypes
-    }
-    RETURN
-      {
-        id: elementId(n),
-        labels: labels(n),
-        properties: properties(n)
-      } AS node,
-      relationshipCount,
-      relationshipTypes
-  `;
-  const records = await runRead(cypher, {
-    nodeId: normalizedNodeId,
-    hiddenNodeLabels: HIDDEN_GRAPH_NODE_LABELS,
-    hiddenRelationshipTypes: HIDDEN_GRAPH_RELATIONSHIP_TYPES,
-    relationshipTypeLimit: toCypherInteger(DEFAULT_DETAIL_RELATIONSHIP_TYPE_LIMIT)
-  });
-  const payload = records[0];
+  const payload = await store.detail(normalizedNodeId, HIDDEN_GRAPH_NODE_LABELS, HIDDEN_GRAPH_RELATIONSHIP_TYPES, DEFAULT_DETAIL_RELATIONSHIP_TYPE_LIMIT);
 
   if (!payload) {
     throw new Error(`No graph node exists for id ${normalizedNodeId}.`);

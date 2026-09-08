@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// IDs retain Neo4j element IDs so saved graph links and tape remain valid.
+model Entity {
+  id               String         @id
+  domainId         String?
+  labels           String[]
+  primaryLabel     String
+  searchText       String
+  name             String?
+  label            String?
+  description      String?
+  aliasesJson      String?
+  canonicalStatus  String?
+  isProposed       Boolean?
+  source           String?
+  threadId         String?
+  turnId           String?
+  lastChatThreadId String?
+  lastChatTurnId   String?
+  lastChatSource   String?
+  updatedAt        String?
+  confidenceScore  Float?
+  evidenceBasis    String?
+  extra            Json           @default("{}")
+  outgoing         Relationship[] @relation("source")
+  incoming         Relationship[] @relation("target")
+
+  @@index([primaryLabel, domainId])
+  @@index([labels], type: Gin)
+  @@map("entities")
+}
+
+// Independent relationship IDs preserve parallel edges and direction.
+model Relationship {
+  id               String   @id
+  sourceId         String
+  targetId         String
+  type             String
+  sourceEntity     Entity   @relation("source", fields: [sourceId], references: [id], onDelete: Restrict)
+  targetEntity     Entity   @relation("target", fields: [targetId], references: [id], onDelete: Restrict)
+  year             Float?
+  basis            String?
+  role             String?
+  foundingMember   Boolean?
+  date             String?
+  performanceName  String?
+  format           String?
+  position         Float?
+  canonicalStatus  String?
+  isProposed       Boolean?
+  source           String?
+  threadId         String?
+  turnId           String?
+  lastChatThreadId String?
+  lastChatTurnId   String?
+  lastChatSource   String?
+  updatedAt        String?
+  confidenceScore  Float?
+  evidenceBasis    String?
+  extra            Json     @default("{}")
+
+  @@index([sourceId, type, targetId])
+  @@index([targetId])
+  @@index([type])
+  @@map("relationships")
+}
+
+model ImportBatch {
+  sourceHash    String   @id
+  importedAt    DateTime @default(now()) @db.Timestamptz(6)
+  nodes         Int
+  relationships Int
+
+  @@map("import_batches")
+}

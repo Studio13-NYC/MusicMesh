@@ -20,6 +20,9 @@ fs.mkdirSync(contentDir, { recursive: true });
 
 const copies = [
   ["src/env.js", "shared/env.js"],
+  ["src/postgres.js", "shared/postgres.js"],
+  ["src/graphStore.js", "shared/graphStore.js"],
+  ["src/graphProperties.js", "shared/graphProperties.js"],
   ["src/activityStore.js", "shared/activityStore.js"],
   ["src/reasoningConfig.js", "shared/reasoningConfig.js"],
   ["src/llmTelemetry.js", "shared/llmTelemetry.js"],
@@ -40,3 +43,6 @@ for (const [fromRel, toRel] of copies) {
 }
 
 console.log("syncForSwaApi: staged shared runtime files and system prompt under api/.");
+const generatedClient = path.join(root, "generated", "prisma");
+if (!fs.existsSync(generatedClient)) throw new Error("Run npm run db:generate before staging the API.");
+fs.cpSync(generatedClient, path.join(apiRoot, "generated", "prisma"), { recursive: true });

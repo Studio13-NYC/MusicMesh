@@ -447,7 +447,7 @@ async function planGraphFromAnswer({
     "Read the user request, recent messages, and assistant answer.",
     "Decide whether this turn should produce graph data.",
     "Use music-domain reasoning to identify real entities and real relationships.",
-    "The Complete Graph is the full Neo4j database. The current view is only the graph slice visible in the browser.",
+    "The Complete Graph is the full MusicMesh database. The current view is only the graph slice visible in the browser.",
     "When graphContext.intent is expand_node, use graphContext.selectedNode as the expansion anchor.",
     "For expansion, every graph-worthy new fact must connect back to the selected node or another reasonable existing Complete Graph candidate.",
     "For expansion, do not ask for human input merely because some facts may need later verification; use confidenceScore and evidenceBasis, then persist a connected graph patch when the selected entity is clear.",
@@ -679,8 +679,8 @@ async function groundGraphPlan(plan, { graphContext = {}, telemetryContext = {} 
   const combinedCanonLookups = mergeCanonLookups(canonLookups, contextCanonLookups);
   const graphContextSummary = summarizeGraphContextForPrompt(graphContext);
   const instructions = [
-    "Resolve planned entities against provided Neo4j candidate matches.",
-    "The Complete Graph is the full Neo4j database. Candidate matches are existing Complete Graph nodes.",
+    "Resolve planned entities against provided Complete Graph candidate matches.",
+    "The Complete Graph is the full MusicMesh database. Candidate matches are existing Complete Graph nodes.",
     "Prefer existing canon when the intended entity is the same.",
     "Create a new domain entity only when no candidate is a reasonable match.",
     "When graphContext.intent is expand_node, preserve the selected node as the anchor when possible.",
