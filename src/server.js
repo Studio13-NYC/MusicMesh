@@ -762,6 +762,10 @@ function startServer(port = DEFAULT_PORT) {
     }
 
     if (request.method === "POST" && requestUrl.pathname === "/api/chat") {
+      if (process.env.MUSICMESH_MAINTENANCE === "true") {
+        sendJson(response, 503, { error: "MusicMesh is undergoing maintenance. Please try again shortly." });
+        return;
+      }
       handleChat(request, response);
       return;
     }

@@ -199,6 +199,10 @@ app.http("chat", {
       return { status: 204, headers: corsHeaders };
     }
 
+    if (process.env.MUSICMESH_MAINTENANCE === "true") {
+      return jsonResponse(503, { error: "MusicMesh is undergoing maintenance. Please try again shortly." });
+    }
+
     let body;
     try {
       const raw = await request.text();
