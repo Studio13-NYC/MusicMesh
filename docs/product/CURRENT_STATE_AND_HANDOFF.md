@@ -4,15 +4,15 @@ Updated 2026-09-07, New York time.
 
 ## Migration state
 
-The local implementation now uses Prisma 7.10.0 and PostgreSQL. **Production has not been migrated and still uses Neo4j.** Read [NEON_MIGRATION.md](../deployment/NEON_MIGRATION.md) for project IDs, exact commands, verified data counts, backup/restore evidence, and cutover/rollback gates.
+Local and public production now use Prisma 7.10.0 and dedicated MusicMesh Neon PostgreSQL. **Cutover and public read/write verification are complete.** Read [NEON_MIGRATION.md](../deployment/NEON_MIGRATION.md) for project IDs, exact commands, verified data counts, backup/restore evidence, and cutover/rollback gates.
 
-The dedicated MusicMesh Neon Free project has an isolated validation branch with the imported live corpus (306 nodes / 493 relationships). Full property and identity comparison passed, including after a native PostgreSQL backup restoration to a separate local database. Search/detail/canonical lookup parity passed. A real local chat persisted graph updates against Neon, independently verified through the tape, runtime logs and database.
+The dedicated MusicMesh Neon Free project contains all 306 source entities and 493 relationships. Every ID, label, property, direction and endpoint matched the final Aura export, including after restoring the final PostgreSQL dump into an isolated database. Search/detail/canonical lookup comparisons passed. Source Aura and all backups are retained.
 
-The user approved a 10–15 minute maintenance window and deterministic capped traversal: nearest connections first, then stable IDs. Source ordering was undefined, so large-hub subsets can differ. Updated integration checks pass. Production cutover is in progress; do not assume it has completed until public verification is recorded.
+The user approved a 10–15 minute maintenance window and deterministic capped traversal: nearest connections first, then stable IDs. Source ordering was undefined, so large-hub subsets can differ. Chat was paused for approximately ten minutes; maintenance is now off.
 
 ## Run locally
 
-Root .env retains original application and source settings. The ignored .env.migration contains isolated Neon credentials. It must be explicitly loaded until final configuration is selected:
+Root `.env` now selects the production Neon branch. The ignored `.env.migration` selects the isolated validation branch; use it for development writes. Source credentials remain in the private local environment for export/rollback, but have been removed from Azure.
 
 ~~~powershell
 npm ci
@@ -45,11 +45,15 @@ The graph storage port preserves the public API shapes, stable imported IDs, gra
 
 ## Production and evidence
 
-Production: https://musicmesh.s13.nyc/ on Azure Static Web Apps (swa-musicmesh, rg-musicmesh, East US 2). Existing main-push GitHub Actions deployment remains active. Last verified deployed commit is 7157a79; run 25833143185 succeeded. Public homepage and Neo4j-backed graph search returned 200 before the migration work.
+Production: https://musicmesh.s13.nyc/ on unchanged Azure Static Web Apps (swa-musicmesh, rg-musicmesh, East US 2). Runtime release `5a404fa`, Actions run `34173029047`, succeeded. The existing main-push workflow now prebuilds and tests with Node 22.23.2, then deploys the verified UI and Functions bundles to Node 22.
 
 Local PostgreSQL UI proof: output/playwright/neon-validation-graph.png. Request req-6d0fab69-4ca1-43a8-8a81-e6f7875a0e81 saved five nodes and four relationships with no skipped edges. Runtime and tape evidence live under output/chat/.
 
-Never promote the test branch as the final snapshot. Freeze source writes during the user-approved cutover, export/import again into the clean root branch, verify, deploy, and verify public persistence. Keep Aura and all backups. See the migration document for rollback limitations after new PostgreSQL writes.
+Public request `req-8ea6edce-068e-470c-8f70-ff730819d957` saved five matched R.E.M. entities and four membership relationships. Direct PostgreSQL queries, blob tape, runtime completion and saved-graph reload all confirmed it. No matching request writes occurred in Aura. Evidence: `output/migration/public-write-verification.json`, `public-read-verification.json`, and `output/playwright/neon-production-graph.png`.
+
+Known pre-existing limitation: 22 older graph-update entries in the inspected blob-tape window reference IDs absent from the final Aura source. Those old graph links cannot reload; the original chat history is intact. Current IDs were preserved and the new saved graph reloads. No guessed remapping was performed.
+
+Keep Aura and all backups. Backups currently reside on this workstation; no off-machine backup automation was provisioned. After new PostgreSQL writes, rollback requires reconciliation, not only redeploying old code. See the migration document.
 
 ## Protected work
 

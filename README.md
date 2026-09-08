@@ -17,7 +17,7 @@ This is not the archived legacy system.
 Today, the repo has:
 
 - a Node bootstrap with environment validation
-- startup checks for OpenAI, Neo4j through Docker MCP, and Playwright
+- startup checks for OpenAI, Prisma/PostgreSQL, and Playwright
 - a Vite/React SPA with the operator graph workbench as the default screen
 - a local API and synced Azure Functions API bundle
 - answer-first chat backed by GPT-5.5
@@ -30,7 +30,7 @@ Important limits:
 
 - the product is still an active clean-sheet build
 - graph persistence must be verified separately from a good chat answer
-- Docker MCP must be running for `npm run check` graph connectivity checks
+- PostgreSQL must be reachable for `npm run check` graph connectivity checks
 
 ## Core Product Direction
 
@@ -71,20 +71,20 @@ Do not treat the archived clean-sheet zip as the active codebase.
 
 ## Requirements
 
-- Node.js and npm
+- Node.js 20.19+ and npm
 - a root `.env` with required credentials
-- Docker MCP available for Neo4j checks
+- a dedicated MusicMesh PostgreSQL database with the versioned Prisma schema
 - Playwright available locally
 
 Required env keys:
 
 - `OPENAI_API_KEY`
-- `NEO4J_URI`
-- `NEO4J_USERNAME`
-- `NEO4J_PASSWORD`
-- `NEO4J_DATABASE`
+- `DATABASE_URL` (pooled Neon connection, `sslmode=verify-full`)
 
 Optional env keys:
+
+- `DIRECT_URL` (direct connection for migrations and imports)
+- `MUSICMESH_MAINTENANCE` (`true` pauses chat writes with HTTP 503)
 
 - `BRAVE_API_KEY`
 - `DISCOGS_TOKEN`
@@ -97,15 +97,17 @@ Optional env keys:
 - `MUSICMESH_HTTP_USER_AGENT`
 - `MUSICMESH_BLOB_CONNECTION_STRING`
 - `MUSICMESH_BLOB_CONTAINER`
-- `AURA_INSTANCEID`
-- `AURA_INSTANCENAME`
+
+
+See [Neon migration and rollback](docs/deployment/NEON_MIGRATION.md) for the dedicated project, backup evidence, and deployment status. Neo4j is retained as a migration source/rollback target; its driver is development-only. Docker MCP is no longer required. Use `.env.migration` explicitly for isolated local test writes.
 
 ## Getting Started
 
 Install dependencies:
 
 ```powershell
-npm install
+npm ci
+npm run db:generate
 ```
 
 Run the startup verification path:
@@ -148,8 +150,7 @@ npm run tape -- 50
 
 - `npm run check`
   - validates the root `.env`
-  - verifies Docker MCP availability
-  - verifies Neo4j connectivity through Docker MCP
+  - verifies PostgreSQL connectivity and Prisma schema access
   - verifies OpenAI connectivity
   - verifies Playwright availability
 - `npm run startup`
@@ -219,7 +220,7 @@ The Workflow tab surfaces recent run-quality, tape, and runtime activity.
 
 Yes, with a precise caveat.
 
-I can certify that the system is now clean in the most important product sense: one chat-driven path, no visible proposal machinery, real domain relationships, hidden housekeeping metadata, and graph updates that can be verified through UI, logs, and Neo4j. That is a real improvement, not just a prettier surface.
+I can certify that the system is now clean in the most important product sense: one chat-driven path, no visible proposal machinery, real domain relationships, hidden housekeeping metadata, and graph updates that can be verified through UI, logs, and PostgreSQL. That is a real improvement, not just a prettier surface.
 
 I can also certify that it is flexible in the right way: the LLM is allowed to propose new real relationship types, the ontology is being widened for deeper music-production concepts, and `Other` / `Entity` are now review signals instead of quiet dumping grounds. That gives the system a path to learn and improve instead of hard-coding taste into brittle rules.
 

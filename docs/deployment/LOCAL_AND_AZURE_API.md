@@ -1,6 +1,6 @@
 # MusicMesh API: local vs Azure Static Web Apps
 
-Migration note (2026-09-07): the local code now uses Prisma/PostgreSQL; production still uses the previous Neo4j deployment. Follow [NEON_MIGRATION.md](NEON_MIGRATION.md) before changing production settings.
+Migration complete (2026-09-07): local and production runtime use Prisma/PostgreSQL. Runtime release 5a404fa passed public read/write verification. Follow [NEON_MIGRATION.md](NEON_MIGRATION.md) for project IDs, backups and rollback. The Azure workflow builds verified bundles with Node 22.23.2 and deploys them to the Node 22 API runtime.
 
 ## The problem we fixed
 

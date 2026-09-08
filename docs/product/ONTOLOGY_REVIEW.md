@@ -16,7 +16,7 @@ From the repo root:
 npm run ontology:review
 ```
 
-The report reads the active Neo4j database configured by `.env`, compares visible graph objects to the browse/filter catalog, and prints:
+The report reads the active PostgreSQL database configured by `.env`, compares visible graph objects to the browse/filter catalog, and prints:
 
 - nodes that still fall into `Other`
 - relationship types that still fall into `Other`

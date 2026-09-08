@@ -4,7 +4,7 @@ This file is for new agents entering the MusicMesh clean-sheet repo.
 
 Read this first.
 
-Migration status (2026-09-07): Prisma/PostgreSQL implementation and isolated validation are complete; the user approved the final maintenance window. Read docs/deployment/NEON_MIGRATION.md and CURRENT_STATE_AND_HANDOFF.md for the latest deployment state. Use .env.migration for isolated local validation.
+Migration status (2026-09-07): MusicMesh is deployed on dedicated Neon PostgreSQL with Prisma 7.10.0. Runtime release 5a404fa passed public read/write verification. Read docs/deployment/NEON_MIGRATION.md and CURRENT_STATE_AND_HANDOFF.md for evidence and rollback limitations. Root .env selects production; explicitly use .env.migration for isolated local writes.
 
 More specific direct user instructions take priority over this file.
 
@@ -270,8 +270,8 @@ Current optional env keys:
 
 Operational rules:
 
-- Production remains Aura until the approved Neon cutover. Local migration validation uses the dedicated MusicMesh Neon branch; never point it at Alexander.
-- Do not silently switch to local Neo4j or another graph target to make a check pass.
+- Production uses the dedicated MusicMesh Neon main branch. Local migration validation uses its isolated branch; never point either at Alexander.
+- Do not silently switch database targets to make a check pass. Aura is retained only for export/rollback.
 - If PostgreSQL, OpenAI, or Playwright is unavailable, report blocked infrastructure rather than treating it as an app bug.
 - Never print or commit secrets.
 

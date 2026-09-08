@@ -1,6 +1,6 @@
 # MusicMesh Neo4j to Neon migration
 
-Status: implementation and isolated validation completed on 2026-09-07 (New York time). Production cutover is in progress. The user approved nearest-connections-first ordering with stable ID ties and a 10–15 minute maintenance window.
+Status: **completed and publicly verified on 2026-09-07 (New York time).** Production uses dedicated MusicMesh Neon PostgreSQL. Runtime release `5a404fa`; [successful deployment run 34173029047](https://github.com/Studio13-NYC/MusicMesh/actions/runs/34173029047). The approved maintenance window lasted approximately ten minutes.
 
 ## Infrastructure
 
@@ -8,11 +8,11 @@ Status: implementation and isolated validation completed on 2026-09-07 (New York
 - Organization: Studio13, `org-bitter-night-23282516`, Free.
 - Dedicated MusicMesh project: `withered-grass-63686198`, PostgreSQL 17, AWS US East 1.
 - Neon rejected `azure-eastus2` for this organization; AWS US East 1 is near the unchanged Azure East US 2 host.
-- Root branch: `main`, `br-purple-band-auotfxz3`, schema applied; final source import pending.
+- Root branch: `main`, `br-purple-band-auotfxz3`, final source imported and fully verified.
 - Validation branch: `migration-validation`, `br-nameless-night-aujt3mbr`.
 - Database / role: `musicmesh` / `musicmesh_owner`. Credentials are project-specific and saved only in ignored environment files.
 - Azure: `swa-musicmesh`, resource group `rg-musicmesh`, East US 2, Free. Public URL: https://musicmesh.s13.nyc/.
-- Deployment remains `.github/workflows/azure-static-web-apps-green-flower-05b42040f.yml`, triggered by `main` pushes. Last verified public deployment: commit `7157a79`, Actions run `25833143185`.
+- Deployment remains `.github/workflows/azure-static-web-apps-green-flower-05b42040f.yml`, triggered by `main` pushes. It now uses Node 22.23.2 to run `npm ci`, `npm run build`, `npm test`, and `npm run build:api`, then uploads the verified bundles with `skip_app_build` / `skip_api_build`. The API runtime is explicitly Node 22. The initial migration run `34172799446` failed before deployment because Oryx npm 11.6.2 modified optional dependency resolution before the second install; no database or app release was lost. The next run `34172948661` caught a fresh-checkout ordering issue: tests imported the generated client before generation. The workflow now builds/generates before tests. [Microsoft prebuilt deployment reference](https://learn.microsoft.com/en-us/azure/static-web-apps/build-configuration#skip-building-the-api). Pre-migration deployment: commit `7157a79`, Actions run `25833143185`. The maintenance-only release `5828987`, run `34172632445`, succeeded.
 - No Alexander database or credentials were used. Its setup report and installed skills were read as references only.
 - No Neon Auth, storage, functions, gateway, or Data API was enabled. Azure Blob and OpenAI settings remain unchanged.
 
@@ -47,11 +47,13 @@ node --env-file=.env.migration src/index.js
 npm run dev
 ```
 
-`.env.migration` points only at the isolated Neon branch. Root `.env` still retains original settings and source credentials. Environment loading resolves from the application module directory, not arbitrary shell working directories. Never print connection strings. The import refuses mismatched hashes, conflicting rows, or extra destination rows; it does not overwrite or delete them. Re-running against an unchanged import resumes safely via stable IDs and verifies all values.
+`.env.migration` points only at the isolated Neon branch. Root `.env` now selects the MusicMesh production branch and retains original source credentials for the exporter. Use `.env.migration` explicitly for isolated local writes. `.env.production` contains the same production URLs for cutover tooling. Environment loading resolves from the application module directory, not arbitrary shell working directories. Never print connection strings. The import refuses mismatched hashes, conflicting rows, or extra destination rows; it does not overwrite or delete them. Re-running against an unchanged import resumes safely via stable IDs and verifies all values.
 
 ## Evidence and backups
 
-- Source export: `output/migration/source-baseline/neo4j-export.json`.
+- Final source export: `output/migration/source-final/neo4j-export.json`; manifest SHA-256 `c4b50c1fe6997b1f10b580975b4e5d1985fedbc76183598b0bdfa12b7b0f06f9`. Exported after public chat returned 503 and source transaction inspection showed only the inspection query.
+- Final native backup: `output/migration/neon-production-cutover.dump`; SHA-256 `3677611ef6a05962c625425518592295392cf459db2918aea8df1a0f92d55231`. Restored into separate `musicmesh_cutover_restore` database in the test container; full import verification passed again.
+- Baseline source export: `output/migration/source-baseline/neo4j-export.json`.
 - Manifest: `output/migration/source-baseline/manifest.json`.
 - Source SHA-256: `a75f885e390cd2b72ce9bb49e895afcb954a06374a751e994b2fe8e1da2ef428`.
 - Export code: `node scripts/exportNeo4j.js <new-output-directory>`; read-only, refuses to overwrite an export. Neo4j special values are tagged in the backup. The current corpus uses scalar strings, booleans and numbers.
@@ -83,8 +85,26 @@ The dump image lacked a CA bundle; `trusted-roots.pem` was exported from Node's 
 
 The user approved the maintenance window. A dedicated `MUSICMESH_MAINTENANCE=true` switch returns HTTP 503 before chat starts; graph read endpoints remain available. Azure SWA rejected its reserved `AzureWebJobs.chat.Disabled` setting, so the app implements the pause directly. The maintenance-only release is commit `5828987`. Verify public HTTP 503 and absence of in-flight source transactions before the final export. Existing settings are privately backed up to `output/migration/azure-settings-before.json`; original root environment to `output/migration/root-env-before.env`.
 
-Before deployment: preserve the existing Azure app settings privately, apply the versioned migration to the clean root branch via its direct URL, import the final export, and configure only MusicMesh's pooled `DATABASE_URL` on Azure. Keep old source credentials for rollback. Deploy via the existing GitHub Actions workflow and wait for its successful completion. Prove public search, graph reads, chat, background graph writes and blob tape access; a homepage response is insufficient. Reopen traffic only after successful validation.
+Before deployment: preserve the existing Azure app settings privately, apply the versioned migration to the clean root branch via its direct URL, import the final export, and configure only MusicMesh's pooled `DATABASE_URL` on Azure. Keep old source credentials in the private settings backup for rollback. Unused NEO4J_* and AURA_* keys were removed from the deployed app after PostgreSQL was proven. Deploy via the existing GitHub Actions workflow and wait for its successful completion. Prove public search, graph reads, chat, background graph writes and blob tape access; a homepage response is insufficient. Reopen traffic only after successful validation.
 
-Rollback before accepting PostgreSQL writes: redeploy the previously verified commit `7157a79` and restore the privately saved Azure settings. The original Aura database remains available. **After accepting PostgreSQL writes, rolling back the code alone would lose those new changes:** pause writes, back up PostgreSQL and reconcile those changes into the rollback target first, or repair forward. No automatic reverse migration is implemented.
+Rollback before accepting PostgreSQL writes: keep `MUSICMESH_MAINTENANCE=true` and redeploy the Neo4j maintenance commit `5828987` (or original `7157a79` only while traffic is independently paused) and restore the privately saved Azure settings. The original Aura database remains available. **After accepting PostgreSQL writes, rolling back the code alone would lose those new changes:** pause writes, back up PostgreSQL and reconcile those changes into the rollback target first, or repair forward. No automatic reverse migration is implemented.
 
-No user decisions remain. Production migration remains incomplete until final import, deployment and public persistence verification are recorded.
+No user action is required for the migration. Production cutover, restored backup verification and public read/write checks are complete.
+
+## Public verification and remaining limits
+
+- Public UI Browse search loaded Brian Eno; Inspect and Back/Forward history were exercised after the cutover.
+- Public homepage, seven search cases, eight node details, three capped subgraphs and three expansions passed against the source/query baseline or current PostgreSQL results. The read-only probe also verified Azure Blob tape access and reloading the new saved graph. Evidence: `output/migration/public-read-verification.json`.
+- Public UI request `req-8ea6edce-068e-470c-8f70-ff730819d957` saved five matched entities and four membership relationships. PostgreSQL rows, blob `graph_update`, deferred pipeline completion (`persist_graph`, no skipped relationships), and the saved graph focus independently matched. Aura had no matching writes. Evidence: `output/migration/public-write-verification.json`; screenshot `output/playwright/neon-production-graph.png`.
+- Azure settings were compared to the private pre-cutover snapshot: AI, auth, storage and all unrelated settings are unchanged. Only DATABASE_URL and the maintenance flag were added; old source credentials were removed from Azure. Root .env selects production; explicit .env.migration selects the isolated branch.
+- Historical blob tape contains 22 graph-update anchors in the inspected 1,000-entry window that already reference IDs missing from the Aura export. A direct Aura query confirmed an affected ID is absent. Old graph links return a missing-seed error; their chat text remains. This is pre-existing, not import data loss. No speculative ID remapping was made. New saved graph reload is verified.
+- PostgreSQL backup/restore was tested twice, including the final production import. Backups remain local; no off-machine backup schedule was added. Neon Free history is only six hours.
+- The existing large UI bundle warning and existing Azure dependency audit advisory remain. The migration did not include unrelated dependency upgrades.
+
+To verify the source import again, use an unchanged isolated restore target; the live database now legitimately contains new chat metadata. `node --env-file=.env.cutover-restore scripts/importNeo4j.js output/migration/source-final` verifies the final backup restore.
+
+To take a fresh production dump, choose a new filename and use the ignored `.env.pg-production-backup` file:
+
+```powershell
+docker run --rm --env-file .env.pg-production-backup --mount 'type=bind,source=D:\Studio13\Lab\Code\MusicMesh\output\migration,target=/backup' pgvector/pgvector:pg17 pg_dump -Fc --no-owner --no-acl -f /backup/NEW_UNIQUE_PRODUCTION_BACKUP.dump
+```

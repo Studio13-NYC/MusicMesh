@@ -9,7 +9,7 @@ MusicMesh has one user-facing graph creation path: chat.
 1. `POST /api/chat` receives the user's turn.
 2. `chatService.createAssistantReply` returns the direct answer with no graph tools.
 3. `graphChatOrchestrator.planGraphFromAnswer` asks the LLM whether the answer should produce graph data.
-4. `graphChatOrchestrator.groundGraphPlan` asks the LLM to resolve planned entities against Neo4j candidates.
+4. `graphChatOrchestrator.groundGraphPlan` asks the LLM to resolve planned entities against PostgreSQL-backed canon candidates.
 5. `graphDomainWriter.persistChatGraph` MERGEs domain nodes and real relationship types directly.
 6. The graph workbench loads from `graphAnchorId`, which is a real music-domain node.
 7. `runQualityAssessment` builds a compact operational packet from the prompt, assistant output, conversation tape, and runtime events, then asks the LLM to assess the completed run and writes a `run_quality_assessment` tape entry.
@@ -27,9 +27,9 @@ The Graph tab is an inspection and comparison surface for graph results created 
 
 ## Complete Graph Expansion
 
-The Complete Graph means everything in Neo4j. The canvas is only the current view or slice.
+The Complete Graph means all domain data in MusicMesh PostgreSQL. The canvas is only the current view or slice.
 
-For typed prompts and double-click expansion, the UI can show a fast provisional preview while the backend continues graph planning, Complete Graph grounding, and persistence. A preview is not proof that Neo4j changed.
+For typed prompts and double-click expansion, the UI can show a fast provisional preview while the backend continues graph planning, Complete Graph grounding, and persistence. A preview is not proof that PostgreSQL changed.
 
 The UI surfaces the lifecycle explicitly:
 
@@ -134,11 +134,11 @@ Use this report to inspect ontology review queues:
 npm run ontology:review
 ```
 
-The ontology review report flags visible graph objects that still land in `Other` plus non-housekeeping graph properties that may be hiding reusable domain concepts. It does not mutate Neo4j.
+The ontology review report flags visible graph objects that still land in `Other` plus non-housekeeping graph properties that may be hiding reusable domain concepts. It does not mutate PostgreSQL.
 
-## Fresh Headed Verification
+## Historical Neo4j verification
 
-Most recent validation was run against current code from a freshly cleared Neo4j database:
+The following is a historical pre-migration run, not a startup/reset instruction. Current PostgreSQL validation and backup evidence are in [NEON_MIGRATION.md](../deployment/NEON_MIGRATION.md). The old run used a freshly cleared Neo4j database:
 
 - reset result: previous `57` nodes and `76` relationships deleted
 - clean-start verification: `0` nodes and `0` relationships
