@@ -26,14 +26,15 @@ test(
     try {
       const groundedGraph = {
         nodes: [
-          { tempId: "a", name: marker + " A", type: "Band" },
-          { tempId: "b", name: marker + " B", type: "Person" },
+          { tempId: "a", name: marker + " A", type: "Work" },
+          { tempId: "b", name: marker + " B", type: "Recording" },
         ],
         relationships: [
           {
             sourceRef: "b",
             targetRef: "a",
-            type: "MEMBER_OF",
+            type: "PerformanceOf",
+            assertionKey: "fixture",
             properties: { year: 1980, role: "vocals" },
           },
         ],
@@ -74,7 +75,7 @@ test(
       await persistChatGraph({
         groundedGraph,
         threadId: marker,
-        turnId: "second",
+        turnId: "test",
       });
       const kept = await db.entity.findUnique({ where: { id: ids[0] } });
       assert.equal(kept.canonicalStatus, "canonical");
@@ -86,7 +87,7 @@ test(
             {
               tempId: "canon",
               name: "Do not rename canon",
-              type: "Band",
+              type: "Work",
               matchedCanonId: ids[0],
             },
           ],
@@ -104,16 +105,17 @@ test(
         persistChatGraph({
           groundedGraph: {
             nodes: [
-              { tempId: "ok", name: marker + " rollback", type: "Band" },
+              { tempId: "ok", name: marker + " rollback", type: "Work" },
               {
                 tempId: "bad",
                 name: marker + " bad",
-                type: "Band",
+                type: "Work",
                 properties: { description: { invalid: "typed text" } },
               },
             ],
           },
           threadId: marker,
+          turnId: "invalid",
         }),
       );
       assert.equal(

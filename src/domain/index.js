@@ -175,6 +175,15 @@ function getTypeDefinition(key) {
   return definition;
 }
 function getOntologyPrompt() {
-  return [`MusicMesh domain semantics ${ontology.version}`, ...ontology.rules, ...["Work", "Recording", "ReleaseGroup", "Release", "Track", "Artist", "ListeningEvent", "AcousticAnalysis", "SimilarityAssessment"].map(key => `${key}: ${ontology.entities[key].meaning}`)].join("\n");
+  const fields=definition=>Object.entries(definition.fields).map(([key,value])=>`${key}:${value.type}${value.required?' required':''}`).join(', ');
+  return [`MusicMesh domain semantics ${ontology.version}`, ...ontology.rules,
+    ...Object.values(ontology.entities).map(definition=>`${definition.key}: ${definition.meaning} Fields: ${fields(definition)}. Visibility: ${definition.visibility}.`),
+    ...Object.values(ontology.relationships).map(definition=>`${definition.key}: ${definition.sourceTypes.join('/')} -> ${definition.targetTypes.join('/')}. ${definition.meaning} Fields: ${fields(definition)}. ${definition.evidenceRule}`),
+    'Persist only the declared case-sensitive classes and relationship types. Never invent a predicate, provider ID, analysis measurement, or generic Entity fallback.',
+    'Chat may reference stored public catalog entities by matchedCanonId. Provider and acoustic relationships may only be reused with an existing matchedRelationshipId and the same directed endpoints/type. Never create MusicBrainzRelationship or RedirectsTo from model knowledge.',
+    'Personal ListeningEvent and IdentityMapping data, AcousticAnalysis and SimilarityAssessment are importer-owned. Chat cannot create or alter these records.',
+    'New chat assertions have source chat and remain distinct from provider evidence. Include each relationship assertionKey and required structural properties. Use explicit temporary IDs for endpoints; names alone do not establish identity.',
+    'When a relation has no supported class or cannot be grounded, return needs_human_input and explain the missing evidence or modeling definition. Preserve a useful direct answer without claiming a graph write.'
+  ].join("\n");
 }
 module.exports = { getOntology, getTypeDefinition, getOntologyPrompt, DomainEntity, DomainRelationship, Artist, Work, Recording, ReleaseGroup, Release, Label, Area, Place, Event, Instrument, Genre, Series, Url, Medium, Track, ArtistCredit, ListeningEvent, IdentityMapping, AcousticAnalysis, SimilarityAssessment, MusicScene, Style, RecordingSession, Project, Mix, Master, Stem, Equipment, Amplifier, EffectsPedal, Guitar, Synthesizer, Console, SignalChain, Company, Technique, Process, Format, Technology, SourceDocument, EvidenceAssertion, EditionOf, RedirectsTo, CreditsArtist, MusicBrainzRelationship, HasMedium, HasTrack, UsesRecording, CreditedAs, PerformanceOf, HasMapping, MapsToRecording, AnalysisOf, ComparesRecording, SupportedByAnalysis };

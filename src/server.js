@@ -203,6 +203,7 @@ async function handleChat(request, response) {
     });
 
     const assistantReply = await createAssistantReply({
+      graphContext,
       prompt,
       messages,
       threadId,
@@ -480,7 +481,7 @@ function normalizeGraphContext(rawContext) {
     .map((relationship) => ({
       source: stableString(relationship?.source),
       sourceLabel: stableString(relationship?.sourceLabel),
-      type: stableString(relationship?.type).toUpperCase(),
+      type: stableString(relationship?.type),
       target: stableString(relationship?.target),
       targetLabel: stableString(relationship?.targetLabel)
     }))

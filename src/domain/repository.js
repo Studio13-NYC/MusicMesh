@@ -15,11 +15,9 @@ function compare(expected,actual){
   catch {throw new Error(`Existing domain record conflict: ${expected.id}`);}
 }
 /** One atomic, repeatable batch. Never overwrite a correction or an older differing assertion. */
-async function persistDomainBatch(db,{nodes=[],relationships=[]}){
+async function persistDomainBatchInTransaction(tx,{nodes=[],relationships=[]}){
   const nodeRows=nodes.map(nodeRow),edgeRows=relationships.map(edgeRow);
   if(new Set(nodeRows.map(n=>n.id)).size!==nodeRows.length || new Set(edgeRows.map(e=>e.id)).size!==edgeRows.length)throw new Error('Duplicate identities within import batch');
-  return db.$transaction(async tx=>{
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;
     const insertedNodes=nodeRows.length?await tx.entity.createMany({data:nodeRows,skipDuplicates:true}):{count:0};
     const actualNodes=new Map((await tx.entity.findMany({where:{id:{in:nodeRows.map(n=>n.id)}}})).map(n=>[n.id,n]));
     for(const row of nodeRows)compare(row,actualNodes.get(row.id));
@@ -35,6 +33,11 @@ async function persistDomainBatch(db,{nodes=[],relationships=[]}){
     const actualEdges=new Map((await tx.relationship.findMany({where:{id:{in:edgeRows.map(e=>e.id)}}})).map(e=>[e.id,e]));
     for(const row of edgeRows)compare(row,actualEdges.get(row.id));
     return {createdNodes:insertedNodes.count,createdRelationships:insertedEdges.count,verifiedNodes:nodeRows.length,verifiedRelationships:edgeRows.length};
+}
+async function persistDomainBatch(db,batch){
+  return db.$transaction(async tx=>{
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;
+    return persistDomainBatchInTransaction(tx,batch);
   },{isolationLevel:'ReadCommitted',timeout:30000});
 }
-module.exports={persistDomainBatch,nodeRow,edgeRow};
+module.exports={persistDomainBatch,persistDomainBatchInTransaction,nodeRow,edgeRow};

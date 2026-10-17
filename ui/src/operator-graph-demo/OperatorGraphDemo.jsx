@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import * as Separator from "@radix-ui/react-separator";
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
@@ -359,6 +359,8 @@ export function OperatorGraphDemo() {
   const [activeGraphRequestIds, setActiveGraphRequestIds] = useState([]);
   const viewportRef = useRef(null);
   const composerRef = useRef(null);
+  const catalogContextRef=useRef(null);
+  const handleCatalogContextChange=useCallback(context=>{catalogContextRef.current=context;},[]);
   const activeGraphRequestIdsRef = useRef(new Set());
   const graphRunStatus = useMemo(
     () =>
@@ -517,7 +519,7 @@ export function OperatorGraphDemo() {
           clientRequestId: requestId,
           threadId: OPERATOR_THREAD_ID,
           prompt: normalizedPrompt,
-          graphContext,
+          graphContext: graphContext||catalogContextRef.current,
           messages: nextMessages.map((message) => ({
             role: message.role,
             content: message.content
@@ -729,6 +731,7 @@ export function OperatorGraphDemo() {
                     focusKey={graphFocusAnchorId}
                     graphRunStatus={graphRunStatus}
                     onRequestNodeExpansion={handleGraphNodeExpansion}
+                    onCatalogContextChange={handleCatalogContextChange}
                     threadId={OPERATOR_THREAD_ID}
                   />
                 ) : (

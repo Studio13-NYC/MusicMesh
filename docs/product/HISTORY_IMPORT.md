@@ -1,6 +1,18 @@
 # Personal history preparation and retrieval
 
-Current checkpoint: 17 October 2026. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-isolated` writes only an explicitly selected validation database. No command resubmits plays to ListenBrainz. Production replacement, chat-writer integration, linked release/work detail retrieval and AcousticBrainz analysis remain later phases of the [plan](../plans/2026-10-17-brainz.md).
+Current checkpoint: 17 October 2026. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-isolated` writes only an explicitly selected validation database. No command resubmits plays to ListenBrainz. Typed chat integration is implemented and verified on Neon validation. Production replacement, linked release/work detail retrieval and acoustic comparisons remain later phases of the [plan](../plans/2026-10-17-brainz.md).
+
+## Acoustic feature collection
+
+Coverage completed: 7,220 available recordings, 1,069 absent, zero unknown; available recordings cover 17,766 plays. The feature pass selects the earliest submission (offset 0) for each available recording. This is a baseline sample of audio analyses, not a verified match to the audio file actually scrobbled or an average of duplicate submissions. Full provider documents remain in the ignored local cache; compact entities omit submitted filename tags and preserve extractor version, units, offset, content hash and count of available submissions. Missing features stay absent. Incompatible/malformed documents are reported as unsupported rather than invented.
+
+```powershell
+node scripts/importListeningHistory.js acoustic-features --prepared output/imports/2026-10-17/prepared --coverage output/imports/2026-10-17/acousticbrainz --cache output/imports/2026-10-17/acoustic-features
+Get-Content output/imports/2026-10-17/acoustic-features/progress.json
+Get-Content output/imports/2026-10-17/acoustic-features-fetch.error.log
+```
+
+The current hidden worker was initially PID 53132; check the PID file and process before resuming. Do not run a second AcousticBrainz worker while it is active. The completed count worker is no longer needed. A stale lock may only be removed after verifying its PID is no longer alive. Repeating the command revalidates count evidence and cached responses. `--limit 25` produces a deliberately limited pilot. The final `manifest.json` hashes `analyses.ndjson`; `progress.json` distinguishes running/interrupted/limited/complete. Collection does not write the database, calculate similarity or make all 391,369 submissions part of the first pass. [Official bulk API and offset semantics](https://acousticbrainz.readthedocs.io/api.html).
 
 ## Verified inputs and reconciliation
 

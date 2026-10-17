@@ -21,6 +21,8 @@ fs.mkdirSync(contentDir, { recursive: true });
 const copies = [
   ["src/domain/catalog.js", "shared/domain/catalog.js"],
   ["src/domain/index.js", "shared/domain/index.js"],
+  ["src/domain/repository.js", "shared/domain/repository.js"],
+  ["src/domain/serialization.js", "shared/domain/serialization.js"],
   ["src/env.js", "shared/env.js"],
   ["src/postgres.js", "shared/postgres.js"],
   ["src/graphStore.js", "shared/graphStore.js"],

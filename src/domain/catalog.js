@@ -152,7 +152,7 @@ const relationshipCrosswalk = [
 for (const [names, status, guidance] of relationshipCrosswalk) for (const key of names.split(" ")) legacyRelationships[key] = { status, guidance };
 
 const ontology = deepFreeze({ version: VERSION, entities, relationships, legacyEntities, legacyRelationships,
-  implementation: { stage: "isolated-import", writerEnforced: false, historyImported: false, isolatedImportSupported: true, note: "Classes, semantic discovery, provider relationship ingestion and guarded isolated imports are implemented. Chat writer migration, complete enrichment and production history activation remain pending. Operational counts belong in import receipts, not this static catalog." },
+  implementation: { stage: "typed-chat-and-isolated-import", writerEnforced: true, historyImported: false, isolatedImportSupported: true, note: "Domain validation is enforced in chat and import writes. Shared prompts and bounded stored-catalog context are implemented. Complete enrichment and production history activation remain pending. Operational counts belong in import receipts, not this static catalog." },
   rules: [
     "Work, Recording, Track, Release and ReleaseGroup have different identities.",
     "Provider IDs are typed. Equal names are not identity evidence. Preserve submitted values and mapping uncertainty.",

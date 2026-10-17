@@ -344,7 +344,8 @@ export function GraphDemoApp({
   threadId = "",
   focusKey = "",
   graphRunStatus = null,
-  onRequestNodeExpansion = null
+  onRequestNodeExpansion = null,
+  onCatalogContextChange = null
 }) {
   const [graph, setGraph] = useState(createEmptyGraph());
   const [filters, setFilters] = useState({
@@ -382,6 +383,12 @@ export function GraphDemoApp({
   useEffect(() => {
     graphRef.current = graph;
   }, [graph]);
+
+  useEffect(() => {
+    if(graph.meta?.preview)return;
+    const selected=selectedElement?.type==='node'?graph.nodes.find(node=>node.id===selectedElement.id):null;
+    onCatalogContextChange?.({...buildGraphExpansionContext(graph,selected||graph.seedNode),intent:'prompt'});
+  },[graph,selectedElement,onCatalogContextChange]);
 
   useEffect(() => {
     let ignore = false;

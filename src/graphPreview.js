@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const {getOntology,getOntologyPrompt}=require('./domain');
 const { appendRuntimeEvent, appendTapeEntry } = require("./activityStore");
 const { validateEnv } = require("./env");
 const { recordLlmCallCompleted, recordLlmCallFailed } = require("./llmTelemetry");
@@ -8,30 +9,12 @@ const {
   resolveReasoningEffort,
   resolveVerbosity
 } = require("./reasoningConfig");
-const { ALLOWED_NODE_LABELS, sanitizeIdentifier, stableString } = require("./graphDomainWriter");
+const { ALLOWED_NODE_LABELS, stableString } = require("./graphDomainWriter");
 
-const RELATIONSHIP_EXAMPLES = [
-  "ASSOCIATED_WITH_SCENE",
-  "LOCATED_IN",
-  "FORMED_IN",
-  "ORIGINATED_IN",
-  "MEMBER_OF",
-  "RELEASED_ALBUM",
-  "COLLABORATED_WITH",
-  "RELATED_TO"
-];
+
 
 function createId(prefix) {
   return `${prefix}-${crypto.randomUUID()}`;
-}
-
-function slugify(value, fallback = "item") {
-  const slug = stableString(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  return slug || fallback;
 }
 
 function parseJsonObject(text) {
@@ -74,13 +57,13 @@ function getOutputText(payload) {
 }
 
 function normalizeKind(value) {
-  const normalized = sanitizeIdentifier(value, "Entity");
+  const normalized = stableString(value);
 
   if (ALLOWED_NODE_LABELS.has(normalized)) {
     return normalized;
   }
 
-  return "Entity";
+  return null;
 }
 
 function pickColorKey(kind) {
@@ -170,7 +153,9 @@ function normalizeRawNode(node, index, seedId) {
   }
 
   const kind = normalizeKind(node.kind || node.type || node.labels?.[0]);
-  const id = `preview-node-${slugify(node.id || label, `node-${index + 1}`)}`;
+  if(!kind)return null;
+  if(!stableString(node.id||node.tempId))return null;
+  const id = `preview-node-${encodeURIComponent(stableString(node.id||node.tempId))}`;
   const labels = Array.isArray(node.labels)
     ? node.labels.map(normalizeKind).filter(Boolean)
     : [kind];
@@ -196,17 +181,18 @@ function normalizeRawNode(node, index, seedId) {
 function normalizeRawEdge(edge, index, nodeIdByRef) {
   const sourceRef = stableString(edge?.source || edge?.sourceId || edge?.sourceRef || edge?.sourceLabel);
   const targetRef = stableString(edge?.target || edge?.targetId || edge?.targetRef || edge?.targetLabel);
-  const source = nodeIdByRef.get(sourceRef.toLowerCase());
-  const target = nodeIdByRef.get(targetRef.toLowerCase());
+  const source = nodeIdByRef.get(sourceRef);
+  const target = nodeIdByRef.get(targetRef);
 
   if (!source || !target || source === target) {
     return null;
   }
 
-  const type = sanitizeIdentifier(edge.type, "RELATED_TO").toUpperCase();
+  const type = stableString(edge.type);
+  if(!Object.hasOwn(getOntology().relationships,type))return null;
 
   return {
-    id: `preview-edge-${slugify(edge.id || `${source}-${type}-${target}`, `edge-${index + 1}`)}`,
+    id: `preview-edge-${index}-${encodeURIComponent(stableString(edge.id))}`,
     source,
     target,
     type,
@@ -260,7 +246,7 @@ function summarizeGraphContextForPreview(graphContext) {
       )
         .map((relationship) => ({
           sourceLabel: stableString(relationship?.sourceLabel),
-          type: sanitizeIdentifier(relationship?.type, "RELATED_TO").toUpperCase(),
+          type: stableString(relationship?.type),
           targetLabel: stableString(relationship?.targetLabel)
         }))
         .filter((relationship) => relationship.type && relationship.sourceLabel && relationship.targetLabel)
@@ -302,7 +288,7 @@ function normalizePreviewGraph(rawPreview, { requestId, responseId }) {
   const rawNodes = Array.isArray(rawPreview?.nodes) ? rawPreview.nodes : [];
   const rawSeed = rawPreview?.seed || rawPreview?.anchor || rawNodes[0] || null;
   const seedLabel = stableString(rawSeed?.label || rawSeed?.name);
-  const seedId = seedLabel ? `preview-node-${slugify(rawSeed.id || seedLabel, "seed")}` : "";
+  const seedId = seedLabel ? `preview-node-${encodeURIComponent(stableString(rawSeed.id||rawSeed.tempId))}` : "";
   const nodeMap = new Map();
   const nodeIdByRef = new Map();
 
@@ -317,12 +303,10 @@ function normalizePreviewGraph(rawPreview, { requestId, responseId }) {
     [
       rawNode.id,
       rawNode.tempId,
-      rawNode.label,
-      rawNode.name,
       normalized.id
     ].map(stableString)
       .filter(Boolean)
-      .forEach((ref) => nodeIdByRef.set(ref.toLowerCase(), normalized.id));
+      .forEach((ref) => nodeIdByRef.set(ref, normalized.id));
   }
 
   const nodes = [...nodeMap.values()];
@@ -375,13 +359,14 @@ async function callPreviewModel({ prompt, assistantText, graphContext = {}, tele
   }
 
   const instructions = [
+    getOntologyPrompt(),
     "Create a provisional graph preview for display only.",
     "Use only entities and relationships that are visible in the supplied user prompt and assistant answer.",
     "The Complete Graph is the full MusicMesh database. The current view is only a screen slice.",
     "When graphContext.intent is expand_node, center the preview on graphContext.selectedNode and keep preview facts connected to that node.",
     "Do not create canon, proposal, review, task, or workflow nodes.",
     `Use node kinds from this catalog when possible: ${[...ALLOWED_NODE_LABELS].join(", ")}.`,
-    `Use music-domain relationship types such as ${RELATIONSHIP_EXAMPLES.join(", ")}.`,
+    'Use only declared relationship types with their original case. A preview is not evidence of a persisted or provider-verified assertion.',
     "Prefer a compact graph centered on the main subject of the prompt.",
     "Return JSON only with this shape:",
     "{ seed: { id, label, kind, subtitle }, nodes: [{ id, label, kind, subtitle }], edges: [{ id, source, target, type }] }."

@@ -100,17 +100,47 @@ async function lookupCanonEntities(entities, options = {}) {
     return [];
   }
 
-  return Promise.all(
-    normalizedEntities.map(async (input) => ({
+  const results=[];
+  // Keep a large model plan from occupying every connection in the small runtime pool.
+  for(const input of normalizedEntities.slice(0,80))results.push({
       input,
-      matches: (await store.searchEntities(input.name, limit, [], true)).map(
+      matches: (await store.searchEntities(input.name, limit, [], true)).filter(isDomainRecord).map(
         (match) => ({
           ...normalizeCanonNode(match),
           matchRank: match.matchRank,
         }),
       ),
-    })),
-  );
+    });
+  return results;
+}
+
+// A bounded evidence projection, not the raw provider payload or browser claims.
+function isDomainRecord(record){
+  if(!record.properties?.ontologyVersion)return false;
+  try {require('./domain/serialization').entityFromGraph(record);return true;}catch{return false;}
+}
+function catalogProperties(properties={}) {
+  const keys=['externalId','description','disambiguation','artistType','durationMs','firstReleaseDate','hydrationStatus','credits','releaseId','mediumId','recordingId','position','source','evidenceBasis','providerTypeId','providerTypeName','sourceType','targetType','definitionUrl','beginDate','endDate','ended','attributes','features','extractorVersion','submissionId','audioProperties','recordingIds','analysisIds','method','methodVersion','featureFamily','cohortId','score','scoreMeaning'];
+  const projected=Object.fromEntries(keys.filter(key=>Object.hasOwn(properties,key)).map(key=>[key,properties[key]]));
+  for(const key of ['disambiguation','attributes','ended','video'])if(properties.rawProvider?.[key]!==undefined&&!Object.hasOwn(projected,key))projected[key]=properties.rawProvider[key];
+  if(properties.providerEvidence&&!Array.isArray(properties.providerEvidence))projected.providerEvidence=properties.providerEvidence;
+  return projected;
+}
+async function readCatalogContext(graphContext={}) {
+  const ids=[...new Set([graphContext?.selectedNode?.id,graphContext?.currentView?.seedNode?.id].map(stableString).filter(Boolean))];
+  if(!ids.length)return {nodes:[],relationships:[]};
+  const graph=await traverseCanonNeighborhood(ids,{depth:1,pathLimit:200,nodeLimit:80,edgeLimit:160});
+  const nodes=graph.nodes.filter(isDomainRecord).map(node=>({...node,properties:catalogProperties(node.properties)}));
+  const publicIds=new Set(nodes.map(node=>node.id));
+  return {nodes,relationships:graph.relationships.filter(edge=>publicIds.has(edge.source)&&publicIds.has(edge.target)).map(edge=>({...edge,properties:catalogProperties(edge.properties)}))};
+}
+async function lookupCanonRelationships(ids) {
+  const publicNodes=await getDatabase().entity.findMany({where:{id:{in:[...new Set(ids)].slice(0,200)},primaryLabel:{in:Object.values(getOntology().entities).filter(d=>d.visibility!=='private').map(d=>d.key)}},select:{id:true}});
+  const publicIds=publicNodes.map(node=>node.id);
+  return (await getDatabase().relationship.findMany({where:{sourceId:{in:publicIds},targetId:{in:publicIds}},orderBy:{id:'asc'},take:200})).map(row=>{
+    const edge=require('./graphProperties').relationshipRecord(row);
+    return {...edge,properties:catalogProperties(edge.properties)};
+  });
 }
 
 async function inspectSchema() {
@@ -241,6 +271,10 @@ async function traverseCanonNeighborhood(seedIds, options = {}) {
 
 module.exports = {
   inspectSchema,
+  catalogProperties,
+  isDomainRecord,
+  readCatalogContext,
+  lookupCanonRelationships,
   lookupCanonEntities,
   stableString,
   toNativeValue,

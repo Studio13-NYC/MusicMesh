@@ -239,6 +239,10 @@ Acceptance is not “all 21,415 plays matched.” Acceptance is all original eve
 
 ## Source references
 
+Implementation ruling, 17 October: the first AcousticBrainz feature pass retrieves offset 0 for each of the 7,220 available mapped recordings. Preserve the 391,369-submission count as coverage evidence; do not download or average all those submissions. Each compact AcousticAnalysis keeps its offset, content hash, extractor version, audio properties and explicitly named units. Full responses stay local. Similarity remains a subsequent version-compatible computation, not a property inferred from counts or shared names. The selected analysis may differ from the file originally scrobbled.
+
+Typed chat enforcement is now implemented and verified on isolated Neon. Ordinary chat receives selected-node context and a bounded public catalog neighborhood. Imported provider facts are read-only to chat; existing public acoustic analyses can be referenced but not fabricated. Existing incompatible legacy records do not enter matching candidates. The public production dataset has not been replaced; see the running progress report for activation state and evidence.
+
 - [MusicBrainz schema](https://musicbrainz.org/doc/MusicBrainz_Database/Schema)
 - [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API)
 - [Relationships](https://musicbrainz.org/doc/Relationships) and [relationship catalog](https://musicbrainz.org/relationships)
