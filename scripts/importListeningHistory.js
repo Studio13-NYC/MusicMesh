@@ -9,12 +9,25 @@ async function main() {
     prepared:{type:'string'},cache:{type:'string'},limit:{type:'string'},
     snapshot:{type:'string'},'replace-existing':{type:'boolean'},
   }});
-  if(values.help) { console.log('npm run brainz:import -- prepare --source <CSV> --account <Last.fm user> --output <empty directory> [--listenbrainz-export <directory/JSON/NDJSON> --listenbrainz-account <user>]\nnpm run brainz:import -- fetch-recordings --prepared <prepared directory> --cache <cache directory> [--limit <count>]\nnpm run brainz:import -- compile --prepared <directory> --cache <directory> --output <empty directory>\nnode --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot <directory> [--replace-existing]\nOnly load-isolated writes a database; its target is restricted to the configured validation hosts. No command submits listens.'); return; }
+  if(values.help) {
+    console.log([
+      'npm run brainz:import -- prepare --source <CSV> --account <Last.fm user> --output <empty directory> [--listenbrainz-export <directory/JSON/NDJSON> --listenbrainz-account <user>]',
+      'npm run brainz:import -- fetch-recordings --prepared <directory> --cache <directory> [--limit <count>]',
+      'npm run brainz:import -- acoustic-coverage --prepared <directory> --cache <directory> [--limit <count>]',
+      'npm run brainz:import -- compile --prepared <directory> --cache <directory> --output <empty directory>',
+      'node --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot <directory> [--replace-existing]',
+      'Only load-isolated writes a database; its target is restricted to the configured validation hosts. No command submits listens.'
+    ].join('\n'));return;
+  }
   if(positionals.length===1 && positionals[0]==='fetch-recordings') {
     if(!values.prepared||!values.cache)throw new Error('--prepared and --cache are required');
     const result=await fetchRecordings({preparedDir:values.prepared,cacheDir:values.cache,limit:values.limit?Number(values.limit):Infinity,
       onProgress:p=>{if(p.processed===1 || p.processed%25===0)console.log(JSON.stringify(p));}});
     console.log(JSON.stringify(result,null,2));return;
+  }
+  if(positionals.length===1 && positionals[0]==='acoustic-coverage') {
+    if(!values.prepared||!values.cache)throw new Error('--prepared and --cache are required');
+    console.log(JSON.stringify(await require('../src/import/acousticCoverage').fetchAcousticCoverage({preparedDir:values.prepared,cacheDir:values.cache,limit:values.limit?Number(values.limit):Infinity,onProgress:p=>{if(p.processed%250===0)console.log(JSON.stringify(p));}}),null,2));return;
   }
   if(positionals.length===1 && positionals[0]==='compile') {
     if(!values.prepared || !values.cache || !values.output)throw new Error('compile requires --prepared, --cache and --output');
@@ -25,7 +38,7 @@ async function main() {
     try {console.log(JSON.stringify(await require('../src/import/graphSnapshot').loadIsolatedSnapshot({directory:values.snapshot,replace:!!values['replace-existing'],onProgress:p=>console.log(JSON.stringify(p))}),null,2));}
     finally {await require('../src/postgres').closeDatabase();}return;
   }
-  if(positionals.length>1 || (positionals[0] && positionals[0]!=='prepare')) throw new Error('Unknown command; use prepare, fetch-recordings, compile or load-isolated');
+  if(positionals.length>1 || (positionals[0] && positionals[0]!=='prepare')) throw new Error('Unknown command; use prepare, fetch-recordings, acoustic-coverage, compile or load-isolated');
   for(const key of ['source','output','account']) if(!values[key]) throw new Error(`--${key} is required; use --help`);
   console.log(JSON.stringify(prepareHistory({sourcePath:values.source,outputDir:values.output,account:values.account,
     listenbrainzPath:values['listenbrainz-export'],listenbrainzAccount:values['listenbrainz-account']}),null,2));

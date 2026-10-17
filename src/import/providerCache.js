@@ -20,7 +20,9 @@ function validateRecording(body) {
   if(!body || !MBID.test(body.id || '') || typeof body.title!=='string')throw new Error('Invalid MusicBrainz recording response');
 }
 class ProviderCache {
-  constructor({dir,fetchImpl=fetch,sleep:wait=sleep,now=Date.now}={}) {
+  constructor({dir,provider='musicbrainz',fetchImpl=fetch,sleep:wait=sleep,now=Date.now}={}) {
+    if(!['musicbrainz','acousticbrainz'].includes(provider))throw new Error('Unsupported provider');
+    this.provider=provider;
     this.dir=dir;this.fetchImpl=fetchImpl;this.wait=wait;this.now=now;this.nextRequestAt=0;
     this.queue=Promise.resolve();fs.mkdirSync(dir,{recursive:true});
   }
@@ -31,7 +33,9 @@ class ProviderCache {
   }
   async request(url,validate) {
     const parsed=new URL(url);
-    if(parsed.origin!=='https://musicbrainz.org' || !parsed.pathname.startsWith('/ws/2/'))throw new Error('Unsupported provider URL');
+    const origin=this.provider==='musicbrainz'?'https://musicbrainz.org':'https://acousticbrainz.org';
+    const prefix=this.provider==='musicbrainz'?'/ws/2/':'/api/v1/';
+    if(parsed.origin!==origin || !parsed.pathname.startsWith(prefix))throw new Error('Unsupported provider URL');
     const cachePath=path.join(this.dir,sha256(url)+'.json');
     if(fs.existsSync(cachePath)) {
       const cached=JSON.parse(fs.readFileSync(cachePath,'utf8'));
@@ -40,7 +44,7 @@ class ProviderCache {
         if(sha256(JSON.stringify(cached.body))!==cached.bodyHash)throw new Error('Provider cache checksum mismatch');
         validate(cached.body);return {...cached,cachePath,cacheHit:true};
       }
-      if(cached.status==='not-found')return {...cached,cachePath,cacheHit:true};
+      if(cached.status==='not-found' && this.provider==='musicbrainz')return {...cached,cachePath,cacheHit:true};
     }
     let result;
     for(let attempt=1;attempt<=3;attempt++) {
@@ -48,6 +52,10 @@ class ProviderCache {
       this.nextRequestAt=this.now()+1100;
       try {
         const response=await this.fetchImpl(url,{headers:{'User-Agent':USER_AGENT,Accept:'application/json'},signal:AbortSignal.timeout(30000)});
+        if(response.headers.get('X-RateLimit-Remaining')==='0'){
+          const resetIn=Number(response.headers.get('X-RateLimit-Reset-In'));
+          if(Number.isFinite(resetIn) && resetIn>0)this.nextRequestAt=Math.max(this.nextRequestAt,this.now()+resetIn*1000);
+        }
         const text=await response.text();
         const base={url,fetchedAt:new Date().toISOString(),httpStatus:response.status,attempts:attempt};
         if(response.ok) {
@@ -103,4 +111,4 @@ async function fetchRecordings({preparedDir,cacheDir,limit=Infinity,onProgress=(
     progress.state='interrupted';atomicJson(path.join(cacheDir,'progress.json'),progress);throw error;
   } finally {fs.unlinkSync(lock);}
 }
-module.exports={ProviderCache,recordingUrl,validateRecording,fetchRecordings};
+module.exports={ProviderCache,recordingUrl,validateRecording,fetchRecordings,atomicJson};

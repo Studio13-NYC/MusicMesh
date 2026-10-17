@@ -80,3 +80,18 @@ The public graph projection excludes private classes from search, degree counts,
 Latest unit suite: 35 passed, four database-dependent tests skipped in the default run. The three Brainz database integration tests passed separately against the explicit Neon validation target. `npm run build` passed with the existing large-chunk warning. Three real recording lookups returned validated HTTP 200 data before the full worker started. Repeated preparation verified all artifact hashes. No production database writes were performed in this checkpoint.
 
 Sources: [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API), [rate limits](https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting), [ListenBrainz export](https://listenbrainz.readthedocs.io/en/latest/users/api/export.html), [CSV parser](https://csv.js.org/parse/api/sync/).
+
+## AcousticBrainz coverage pass
+
+```powershell
+npm run brainz:import -- acoustic-coverage --prepared output/imports/2026-10-17/prepared --cache output/imports/2026-10-17/acousticbrainz
+Get-Content output/imports/2026-10-17/acousticbrainz/progress.json
+```
+
+This read-only pass checks the 8,289 exact recording IDs mapped from the personal history in batches of 25. It reuses the checksum-verified provider cache and 1.1-second minimum request spacing; exhausted quota headers defer the next request. It runs independently of the existing MusicBrainz worker against a different service, with its own lock and cache. Do not start another AcousticBrainz worker against the same cache.
+
+The [provider API](https://acousticbrainz.readthedocs.io/api.html) omits absent recordings from successful count responses. Only a validated successful response establishes zero available submissions. Failed requests remain unknown. Successful cached batches replay without network calls; failed batches retry. Three consecutive failed batches stop the pass. An endpoint-wide 404 is a failed coverage request, not evidence that every recording is absent; unlike exact MusicBrainz lookups, AcousticBrainz 404 responses are retried on resumption.
+
+`coverage.json` contains per-recording submission counts and evidence references. `progress.json` reports available/missing/unknown recordings, total submissions, distinct-recording coverage and play-weighted coverage. The 967 unmapped plays remain in the all-play denominator. Coverage during collection is a lower bound; unknowns are reported separately. Count coverage means an analysis is listed, not that its features are usable, compatible, or correctly attributed. No feature documents, similarities or database records are created by this command. Exact mapped IDs are checked independently; MusicBrainz redirects are not silently assumed to transfer AcousticBrainz coverage.
+
+For the full pass, inspect `acousticbrainz-fetch.log`, `acousticbrainz-fetch.error.log` and `acousticbrainz-fetch.pid` under the same run directory. A limited 25-recording diagnostic found 20 with data before the full worker was started; it is not a representative coverage estimate.

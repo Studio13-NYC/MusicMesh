@@ -1,0 +1,41 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const {countUrl,validateCounts,summarizeCoverage,fetchAcousticCoverage}=require('../src/import/acousticCoverage');
+const a='bf7c0045-d389-4ef9-9df4-0a375000076c',b='2f6ba60a-5ebb-4856-a4bb-3d31adae806c';
+test('AcousticBrainz count requests enforce 25 IDs and distinguish invalid responses from absence',()=>{
+  assert.equal(new URL(countUrl([a,b])).searchParams.get('recording_ids'),a+';'+b);
+  assert.throws(()=>countUrl(Array(26).fill(a)),/25/);
+  assert.throws(()=>countUrl(['not-an-id']),/MBID/);
+  validateCounts({[a]:{count:27}},[a,b]);
+  assert.throws(()=>validateCounts({[a]:{count:-1}},[a]),/count/);
+  assert.throws(()=>validateCounts({error:'unavailable'},[a]),/response/);
+  assert.throws(()=>validateCounts({[b]:{count:1}},[a]),/unexpected/i);
+});
+test('coverage weights distinct recordings by plays without converting unknowns into missing data',()=>{
+  const weights=new Map([[a,3],[b,1]]);
+  const summary=summarizeCoverage([{id:a,status:'available',count:27},{id:b,status:'error',count:null}],weights,5);
+  assert.equal(summary.availableRecordings,1);assert.equal(summary.availablePlays,3);
+  assert.equal(summary.unknownRecordings,1);assert.equal(summary.unresolvedPlays,1);
+  assert.equal(summary.missingRecordings,0);assert.equal(summary.totalSubmissions,27);
+  assert.equal(summary.distinctCoverage,0.5);assert.equal(summary.allPlayCoverage,0.6);
+});
+test('coverage resumes cached requests, preserves unknown failures, and verifies prepared hashes',async t=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const {prepareHistory}=require('../src/import/history'),{ProviderCache}=require('../src/import/providerCache');
+  const root=path.join(__dirname,'..','output','tests');fs.mkdirSync(root,{recursive:true});
+  const dir=fs.mkdtempSync(path.join(root,'acoustic-'));t.after(()=>fs.rmSync(dir,{recursive:true}));
+  const csv=path.join(dir,'source.csv'),exp=path.join(dir,'export.json'),preparedDir=path.join(dir,'prepared'),cacheDir=path.join(dir,'cache');
+  fs.writeFileSync(csv,'uts,artist,album,track\n1700000000,A,B,C\n1700000001,A,B,C\n1700000002,A,B,D\n');
+  fs.writeFileSync(exp,JSON.stringify([1700000000,1700000001].map(listened_at=>({listened_at,track_metadata:{artist_name:'A',release_name:'B',track_name:'C',mbid_mapping:{recording_mbid:a}}}))));
+  prepareHistory({sourcePath:csv,account:'source',outputDir:preparedDir,listenbrainzPath:exp,listenbrainzAccount:'target'});
+  let calls=0,status=503;
+  const client=new ProviderCache({dir:path.join(cacheDir,'responses'),provider:'acousticbrainz',sleep:async()=>{},fetchImpl:async()=>{calls++;return new Response(JSON.stringify({[a]:{count:27}}),{status});}});
+  const failed=await fetchAcousticCoverage({preparedDir,cacheDir,client});
+  assert.equal(failed.state,'incomplete');assert.equal(failed.unknownRecordings,1);assert.equal(failed.missingRecordings,0);
+  status=200;const recovered=await fetchAcousticCoverage({preparedDir,cacheDir,client});
+  assert.equal(recovered.state,'complete');assert.equal(recovered.availablePlays,2);assert.equal(recovered.unresolvedPlays,1);
+  const before=calls;const replay=await fetchAcousticCoverage({preparedDir,cacheDir,client});
+  assert.equal(replay.availableRecordings,1);assert.equal(calls,before);
+  fs.appendFileSync(path.join(preparedDir,'mappings.ndjson'),'broken');
+  await assert.rejects(()=>fetchAcousticCoverage({preparedDir,cacheDir,client}),/checksum/);
+});
