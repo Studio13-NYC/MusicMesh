@@ -134,3 +134,8 @@ Fresh review also found catalog compilation could use stale recording evidence a
 
 
 Validation for this phase: 59 default tests passed, nine database tests skipped by default; all 13 targeted tests passed on explicit Neon validation. Build and Azure bundle verification passed with the existing chunk-size and Functions test-mode warnings. Release graph compilation is proven with fixtures and checked domain endpoints; actual provider release retrieval/workbench display awaits the queued collector. Remaining enrichment audit must also account for recording relation categories not requested by the original recording pass (such as place/event/instrument relationships); this checkpoint does not claim exhaustive recording metadata.
+
+
+Commit `eb66a7d` deployed successfully in Azure run `39078487463`. Public `/api/ontology` returned HTTP 200 and exactly matched semantic catalog 1.2.0 (41 entity classes, 15 relationship classes) at 23:19 UTC. Production read-only counts remained 312 entities, 505 relationships, zero listens. Receipt: `catalog-deployment.json`. The local validation API was restarted on current code (PID 6052); its ontology also returned version 1.2.0. The stored validation pilot was not replaced.
+
+Storage preflight: the isolated database currently occupies 288,669,696 bytes including indexes. The live Neon project API now reports `branch_logical_size_limit_bytes=1073741824` (1 GiB), unlike September's 512 MiB record. No plan or limit was changed. Check capacity again against the complete catalog before importing it. Evidence: `validation-storage-size.json` and the read-only project response. This does not establish the final enriched catalog's size.

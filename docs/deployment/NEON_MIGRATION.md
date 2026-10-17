@@ -16,7 +16,9 @@ Status: **completed and publicly verified on 2026-09-07 (New York time).** Produ
 - No Alexander database or credentials were used. Its setup report and installed skills were read as references only.
 - No Neon Auth, storage, functions, gateway, or Data API was enabled. Azure Blob and OpenAI settings remain unchanged.
 
-Current Free-plan documentation lists 0.5 GB per project, 100 CU-hours/month, 5 GB egress/month, and six hours of history. Computes suspend after five idle minutes; queries wake them. The project API confirms a 512 MiB storage limit and `history_retention_seconds=21600`. Do not rely on this short restore window instead of durable exports. [Pricing](https://neon.com/pricing.md), [scale to zero](https://neon.com/docs/introduction/scale-to-zero.md), [restore](https://neon.com/docs/introduction/branch-restore.md).
+September 2026 Free-plan documentation listed 0.5 GB per project, 100 CU-hours/month, 5 GB egress/month, and six hours of history. Computes suspend after five idle minutes; queries wake them. The September project API confirmed a 512 MiB storage limit and `history_retention_seconds=21600`. Do not rely on this short restore window instead of durable exports. [Pricing](https://neon.com/pricing.md), [scale to zero](https://neon.com/docs/introduction/scale-to-zero.md), [restore](https://neon.com/docs/introduction/branch-restore.md).
+
+17 October 2026 capacity recheck: the live MusicMesh project API reports a 1 GiB branch logical-size limit (`1073741824` bytes), with owner subscription `free_v3`. No billing or settings were changed. The isolated validation database occupies 288,669,696 bytes including indexes. Recheck capacity before the complete Brainz import; this measurement is for the partial pilot, not the final catalog.
 
 ## Source inventory and mapping
 
