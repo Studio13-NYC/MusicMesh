@@ -12,6 +12,10 @@ The current repo is intentionally narrow:
 
 This is not the archived legacy system.
 
+## Brainz transition
+
+MusicBrainz-aligned domain classes, shared agent semantics, and enrichment of the user's listening history are in progress. Start with the [standalone design](docs/research/2026-10-17-music-data-standards/MODEL_AND_IMPORT_DESIGN.md), [implementation plan](docs/plans/2026-10-17-brainz.md), and [running progress report](docs/product/BRAINZ_PROGRESS.md). `prebrainz` identifies the previous successful deployed build; `withBrainz` identifies the preparation checkpoint, not a completed import.
+
 ## What Is Real Right Now
 
 Today, the repo has:

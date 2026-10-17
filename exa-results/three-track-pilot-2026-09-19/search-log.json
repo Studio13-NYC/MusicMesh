@@ -1,0 +1,857 @@
+{
+  "date": "2026-09-19",
+  "method": "Three seed investigations: identity/credits, session/technical evidence, adaptive contributor and influence branches. Direct original pages fetched after screening.",
+  "tool": "Exa Search skill",
+  "counts": {
+    "search_calls": 18,
+    "sources_reviewed": 90,
+    "sources_reviewed_definition": "Skill counter: sum of requested result slots. Not unique sources, independent corroborations, or full pages read.",
+    "returned_candidate_entries": 90,
+    "unique_candidate_urls": 67,
+    "fetch_calls": 8,
+    "distinct_pages_requested_for_fetch": 21
+  },
+  "queries": [
+    {
+      "sequence": 1,
+      "key": "heavy-credits",
+      "query": "The Heavy Heavy Miles and Miles Single Version Life and Life Only official recording credits Will Turner producer Georgie Fuller studio 2022",
+      "objective": "Find label or artist release pages, track credit listings and firsthand recording accounts. Establish exact single version vs EP version, songwriters, performers, production, mixing, mastering and studio. Prefer original credits and direct interviews, exclude generic reviews and lyrics.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Life and Life Only - ATO RECORDS",
+          "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "BIO",
+          "url": "https://www.theheavyheavy.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Miles and Miles - Single Version | Chartmetric",
+          "url": "https://app.chartmetric.com/track/83396061",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Heavy Heavy Releases EP and New \"Miles and Miles\" Music Video - ATO RECORDS",
+          "url": "https://atorecords.com/featured/the-heavy-heavy-releases-ep-and-new-miles-and-miles-music-video/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Life and Life Only | The Heavy Heavy",
+          "url": "https://theheavyheavy.bandcamp.com/album/life-and-life-only-2",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 2,
+      "key": "maggie-credits",
+      "query": "Maggie Rogers In The Living Room 2024 single recording credits Ian Fitchuk Shawn Everett studio musicians",
+      "objective": "Find official release credits, artist announcement and direct producer engineer accounts for this exact single, not general Don't Forget Me album credits. Extract release date, writing production performance engineering mixing mastering and studio.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Maggie Rogers: In the Living ... Tracks & Reviews | AllMusic",
+          "url": "https://www.allmusic.com/album/in-the-living-room-mw0004393361",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "In the Living Room Lyrics — Maggie Rogers | Dork",
+          "url": "https://readdork.com/lyrics/maggie-rogers-in-the-living-room-2024",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Maggie Rogers - In the Living Room (Single) - Reviews - Album of The Year",
+          "url": "https://www.albumoftheyear.org/album/1093071-maggie-rogers-in-the-living-room.php",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Universal Music Canada",
+          "url": "https://www.universalmusic.ca/2024/10/08/maggie-rogers-unveils-new-single-in-the-living-room-today/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "In the Living Room - Maggie Rogers | Raygum",
+          "url": "https://raygum.com/releases/-jl2JXxREEBB/in-the-living-room",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 3,
+      "key": "gambino-credits",
+      "query": "Childish Gambino Running Around Foushee Bando Stone and the New World official track credits producer guitar drummer studio",
+      "objective": "Find original label or DSP track credits and participant accounts for Running Around. Identify producers session musicians recording mixing mastering and song-specific studio. Do not assume album-wide credits apply to the track.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Childish Gambino: Running Around Tracks & Reviews | AllMusic",
+          "url": "https://www.allmusic.com/album/running-around-mw0004339931",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Bando Stone and The New World, Childish Gambino - Qobuz",
+          "url": "https://www.qobuz.com/ca-en/album/bando-stone-and-the-new-world-childish-gambino/buzikcn8shlqb",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Childish Gambino – Bando Stone And The New World – 17 x File (24-bit / 48-kHz, Explicit, WAV, Album, Stereo), 2024 [r31464443] | Discogs",
+          "url": "https://www.discogs.com/release/31464443-Childish-Gambino-Bando-Stone-And-The-New-World",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Release “Bando Stone and the New World” by Childish Gambino - MusicBrainz",
+          "url": "https://musicbrainz.org/release/a34e7ae0-9355-469b-ad32-9564b851623c",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Bando Stone and the New World (2024) Songwriting Credits | Childish Gambino - SongSuey",
+          "url": "https://songsuey.com/artist/childish-gambino/bando-stone-and-the-new-world/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 4,
+      "key": "heavy-session",
+      "query": "Interview Will Turner Georgie Fuller recording Life and Life Only Miles and Miles home studio guitars tape effects producer mixing mastering",
+      "objective": "Prioritize firsthand interviews with The Heavy Heavy about making debut EP and Miles and Miles. Find precise studio room gear models signal chain personnel influences and distinguish 2020/2022 debut from 2024 One of a Kind sessions.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "A Conversation With The Heavy Heavy - Magnet Magazine",
+          "url": "https://magnetmagazine.com/2022/10/06/a-conversation-with-the-heavy-heavy/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Self Portrait Gospel",
+          "url": "https://www.theselfportraitgospel.com/interviews/the-heavy-heavy-interview",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "How The Heavy Heavy bottled rock ’n’ roll guitar soul | Guitar World",
+          "url": "https://www.guitarworld.com/artists/bands/the-heavy-heavy-one-of-a-kind",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Interview: The Heavy Heavy’s Georgie Fuller and Will Turner discuss real music – Americana UK",
+          "url": "https://americana-uk.com/interview-the-heavy-heavys-georgie-fuller-and-will-turner-discuss-real-music",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Heavy Heavy | WFUV",
+          "url": "https://wfuv.org/content/the-heavy-heavy-2022",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 5,
+      "key": "maggie-session",
+      "query": "Maggie Rogers Ian Fitchuk In the Living Room March 2023 recording Sam Evian Jonathan Low Konrad Snyder studio interview",
+      "objective": "Find track-specific production story and recording locations; interviews with Ian Fitchuk or Maggie Rogers on this song and contemporaneous album sessions. Separate era context from track-specific evidence.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Maggie Rogers: In the Living ... Tracks & Reviews | AllMusic",
+          "url": "https://www.allmusic.com/album/in-the-living-room-mw0004393361",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Maggie Rogers: ‘In fiction, you can tell some of the greatest truths about your life’",
+          "url": "https://www.rollingstone.co.uk/music/maggie-rogers-dont-forget-me-interview-38583/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Inside Track: Ian Fitchuk",
+          "url": "https://www.soundonsound.com/techniques/inside-track-ian-fitchuk",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "In The Living Room — out now this song was written ... - Instagram",
+          "url": "https://www.instagram.com/reel/DA3wAGpPb9G/?hl=en",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "In The Living Room - Song by Maggie Rogers - Apple Music",
+          "url": "https://music.apple.com/us/song/in-the-living-room/1769529132",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 6,
+      "key": "gambino-session",
+      "query": "Riley Mackin interview Running Around Childish Gambino Foushee Aaron Steele Emi Trevena guitar Bando Stone recording studio",
+      "objective": "Find firsthand technical/session account specifically naming Running Around or the 2024 Bando Stone sessions. Prioritize interviews with credited participants, session musicians' own credits and equipment accounts; avoid lyrics and generic reviews.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Childish Gambino: Running Around Tracks & Reviews | AllMusic",
+          "url": "https://www.allmusic.com/album/running-around-mw0004339931",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Childish Gambino - Running Around (Audio) ft. Fousheé",
+          "url": "https://www.youtube.com/watch?v=7g9jOmWhN30",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Genelec 8341A Smart Active Monitors™ Are “The Ones” for Engineer Riley Mackin on Sessions for Childish Gambino in the Studio and on the Road - Mixonline",
+          "url": "https://www.mixonline.com/the-wire/genelec-riley-mackin",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Running Around by Childish Gambino feat. Fousheé: Listen on Audiomack",
+          "url": "https://audiomack.com/childish-gambino/song/running-around-0632129",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Bando Stone and The New World by Childish Gambino - Genius",
+          "url": "https://genius.com/albums/Childish-gambino/Bando-stone-and-the-new-world",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 7,
+      "key": "heavy-exact-track",
+      "query": "The Heavy Heavy Miles and Miles Single Version original credits Will Turner producer mastering engineer Ben Baptie 2022",
+      "objective": "Find track-specific original distributor or artist credits for single edit Miles And Miles released 2022. Seek performer roles instruments mix mastering writer duration ISRC. Avoid transferring 2024 album credits.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Miles and Miles - Single Version | Chartmetric",
+          "url": "https://app.chartmetric.com/track/83396061",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Life and Life Only - ATO RECORDS",
+          "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Heavy Heavy Releases EP and New \"Miles and Miles\" Music Video - ATO RECORDS",
+          "url": "https://atorecords.com/featured/the-heavy-heavy-releases-ep-and-new-miles-and-miles-music-video/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Life and Life Only | The Heavy Heavy",
+          "url": "https://theheavyheavy.bandcamp.com/album/life-and-life-only-2",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Heavy Heavy - Miles And Miles (Official Video)",
+          "url": "https://www.youtube.com/watch?v=w1Q07rusb4w",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 8,
+      "key": "maggie-studio-gear",
+      "query": "Maggie Rogers In The Living Room Ian Fitchuk Sam Evian Konrad Snyder March 2023 studio Jonathan Low production guitar",
+      "objective": "Seek firsthand participant technical account or studio client credits explicitly identifying In The Living Room recording room instruments signal chain mix. Exclude lyrics and general reviews; distinguish 2024 standalone single from Don't Forget Me album.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Maggie Rogers: In the Living ... Tracks & Reviews | AllMusic",
+          "url": "https://www.allmusic.com/album/in-the-living-room-mw0004393361",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Maggie Rogers – In the Living Room Lyrics",
+          "url": "https://genius.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Release “In the Living Room” by Maggie Rogers",
+          "url": "https://musicbrainz.org/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Universal Music Canada",
+          "url": "https://www.universalmusic.ca/2024/10/08/maggie-rogers-unveils-new-single-in-the-living-room-today/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Maggie Rogers – In the Living Room (2024) | Track profile | Dork",
+          "url": "https://readdork.com/track/maggie-rogers-in-the-living-room-2024",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 9,
+      "key": "gambino-steele-career",
+      "query": "Aaron Steele Childish Gambino Running Around Emi Trevena interview recording drums guitar studio musical influences bands",
+      "objective": "Find the credited musicians' own discographies portfolios and firsthand interviews confirming Running Around performance and revealing prior-band musical connections. Include instrument brands models only when era and recording can be established.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Childish Gambino: Running Around Tracks & Reviews | AllMusic",
+          "url": "https://www.allmusic.com/album/running-around-mw0004339931",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "486 - Aaron Steele: Taking the good with the bad - Drummer's Resource: Conversations with the world's greatest drummers and music industry pros.",
+          "url": "https://www.drummersresource.com/aaron-steele-interview/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Emi Trevena — Biography, Discography, Albums & Expert Reviews | AllMusic",
+          "url": "https://www.allmusic.com/artist/emi-trevena-mn0004414845",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Bando Stone & the New World ::: Open WIKI",
+          "url": "https://www.owiki.org/wiki/Bando_Stone_%26_the_New_World",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "148: Aaron Steele (Chrome Sparks, Portugal The Man, Alice Smith)  »  The Trap Set » with Joe Wong",
+          "url": "https://www.thetrapset.net/148-aaron-steele-chrome-sparks-portugal-the-man-alice-smith/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 10,
+      "key": "heavy-dsp",
+      "query": "Qobuz Miles And Miles Single Version The Heavy Heavy Will Turner composer producer Life Life Only 2022 credits",
+      "objective": "Prioritize Qobuz Apple Music and official label-supplied credits for the single version, not music-video crew, to identify exact duration publisher producer mixing and mastering.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Life And Life Only (Expanded Edition), The Heavy Heavy - Qobuz",
+          "url": "https://www.qobuz.com/ie-en/album/life-and-life-only-the-heavy-heavy/op7en8azxjkdc",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Life and Life Only - ATO RECORDS",
+          "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Miles and Miles - Single Version | Chartmetric",
+          "url": "https://app.chartmetric.com/track/83396061",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Life And Life Only (Expanded Edition) - ATO RECORDS",
+          "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only-expanded-edition/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Life And Life Only (Expanded Edition), The Heavy Heavy - Qobuz",
+          "url": "https://www.qobuz.com/lu-fr/album/life-and-life-only-the-heavy-heavy/op7en8azxjkdc",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 11,
+      "key": "sam-evian-career",
+      "query": "Sam Evian In the Living Room Maggie Rogers credits Flying Cloud studio Celestial Shore Big Thief Palehound recording interview",
+      "objective": "Find first-person interview or Sam Evian official biography explaining prior band Celestial Shore and studio engineering work. Prioritize actual collaborator credits and song or album names for branching from his Maggie Rogers guitar credit.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Sam Evian — Biography, Discography, Albums & Expert ...",
+          "url": "https://www.allmusic.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Release “In the Living Room” by Maggie Rogers",
+          "url": "https://musicbrainz.org/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Turning inwards with Sam Evian | The Line of Best Fit",
+          "url": "https://www.thelineofbestfit.com/features/interviews/turning-inwards-sam-evian",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Sam Evian on Glyn Johns, the Catskills, Community, and Other Inspirations Behind His New Album 'Plunge' - Our Culture",
+          "url": "https://ourculturemag.com/2024/03/25/sam-evian-plunge-interview/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "“Cold plunging is challenging to do. This record is like we’re diving in together and putting it down on tape while it’s fresh”: Cold water therapy inspired Sam Evian’s new album – which has so many guest guitarists, he wound up playing bass | GuitarPlayer",
+          "url": "https://www.guitarplayer.com/players/sam-evian-plunge",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 12,
+      "key": "gambino-tech",
+      "query": "Stuart White Riley Mackin Michael Uzowuru Bando Stone New World Running Around recording mixing 2024 interview console studio",
+      "objective": "Find firsthand album or exact song production accounts with studio rooms recording timeline mixer gear effects arrangement. Prefer engineer interviews or own portfolios. Distinguish Running Around from other Bando Stone tracks and prior albums.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Stuart White Mixing Childish Gambino\\'s Album, Видео",
+          "url": "https://salda.ws/video/?id=4cdc7b16cea5ae1c1241f382f2a6544a",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Bando Stone & the New World",
+          "url": "https://en.wikipedia.org/wiki/Bando_Stone_%26_the_New_World",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Childish Gambino – Bando Stone And The New World",
+          "url": "https://www.discogs.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "N/A",
+          "url": "https://podscan.fm/podcasts/tape-op-podcast/episodes/episode-115-stuart-white",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Bando Stone and The New World by Childish Gambino",
+          "url": "https://genius.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 13,
+      "key": "maggie-dsp",
+      "query": "Maggie Rogers In The Living Room Qobuz 2024 Capitol Ian Fitchuk Sam Evian Jonathan Low credits",
+      "objective": "Find exact standalone single distributor credit page with individual instrumental roles, recording engineers assistants producer mixer mastering. Also surface official studio or musician portfolio for song if present.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Maggie Rogers: In the Living ... Tracks & Reviews | AllMusic",
+          "url": "https://www.allmusic.com/album/in-the-living-room-mw0004393361",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "In The Living Room – Song by Maggie Rogers",
+          "url": "https://music.apple.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Release “In the Living Room” by Maggie Rogers",
+          "url": "https://musicbrainz.org/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "‎In The Living Room - Single - Album by Maggie Rogers - Apple Music",
+          "url": "https://music.apple.com/us/album/in-the-living-room-single/1769529130",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "In The Living Room",
+          "url": "https://www.deezer.com/en/album/650643421",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 14,
+      "key": "white-original",
+      "query": "Stuart White mixing Childish Gambino Bando Stone New World interview Running Around Mix With The Masters 0KhkOzu-bNc",
+      "objective": "Find original producer interview source, course or transcript, not scraped or reuploaded clips. Establish whether track-specific mixing breakdown exists, what exact track it treats, any public details on room gear and effects.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Stuart White Mixing Childish Gambino\\'s Album, Видео",
+          "url": "https://salda.ws/video/?id=4cdc7b16cea5ae1c1241f382f2a6544a",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Stuart White - Mix with the Masters",
+          "url": "https://mixwiththemasters.com/masters/stuart-white",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Bando Stone & the New World",
+          "url": "https://en.wikipedia.org/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Stuart White (sound engineer)",
+          "url": "https://en.wikipedia.org/wiki/Stuart_White_(sound_engineer)",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Stuart White",
+          "url": "https://mixwiththemasters.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 15,
+      "key": "heavy-single-isrc",
+      "query": "The Heavy Heavy Miles And Miles Single Version 3:22 credits ISRC Will Turner 2022 ATO",
+      "objective": "Find the exact single-edit recording on Shazam or a streaming service with duration and credits; distinguish the 4:03 album version and the 3:23 music video. Do not infer the exact edit's mix or master from the album.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Miles and Miles - Single Version | Chartmetric",
+          "url": "https://app.chartmetric.com/track/83396061",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Life and Life Only - ATO RECORDS",
+          "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Heavy Heavy - Miles And Miles (Official Video)",
+          "url": "https://www.youtube.com/watch?v=w1Q07rusb4w",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Heavy Heavy - Miles And Miles (Single Version)",
+          "url": "https://www.deezer.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "The Heavy Heavy Releases EP and New \"Miles and Miles\" Music Video - ATO RECORDS",
+          "url": "https://atorecords.com/featured/the-heavy-heavy-releases-ep-and-new-miles-and-miles-music-video/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 16,
+      "key": "maggie-influences",
+      "query": "Maggie Rogers Don't Forget Me In The Living Room 2024 interview hometown Maryland influences Sheryl Crow Bonnie Raitt Carole King Ian Fitchuk",
+      "objective": "Find direct artist interview about musical influences and background in this recording era, plus session process. Separate artist's own stated influences from journalist soundalike comparisons and from exact single-specific claims.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Maggie Rogers on 'Don't Forget Me,' the album she wrote for a Sunday drive | AP News",
+          "url": "https://apnews.com/article/maggie-rogers-interview-dont-forget-me-20aa39823a76f3a419c792d47a673ed4",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "How Maggie Rogers made her new album in just five days : World Cafe : World Cafe Words and Music Podcast : NPR",
+          "url": "https://www.npr.org/2024/04/16/1198910684/maggie-rogers-album-dont-forget-me",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Maggie Rogers Misses a Past-Tense Lover on 'In the Living Room'",
+          "url": "https://www.rollingstone.com/music/music-news/maggie-rogers-in-the-living-room-song-video-1235129055/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Maggie Rogers: ‘In fiction, you can tell some of the greatest truths about your life’",
+          "url": "https://www.rollingstone.co.uk/music/maggie-rogers-dont-forget-me-interview-38583/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Maggie Rogers on her new album, songwriting, and religious studies : NPR",
+          "url": "https://www.npr.org/2024/04/14/1244683928/maggie-rogers-on-her-new-album-songwriting-and-religious-studies",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 17,
+      "key": "aaron-specific-path",
+      "query": "Aaron Steele drummer official discography Running Around Childish Gambino Hayley Williams Petals for Armor Crystal Clear drums",
+      "objective": "Follow drummer credited on Running Around to a specific other recording with credited performance, using musician own portfolio label liner notes or distributor track credits. Prefer verifiable track-level path over list of associated artists.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Aaron Steele — Biography, Discography, Albums & Expert Reviews | AllMusic",
+          "url": "https://www.allmusic.com/artist/aaron-steele-mn0002698898",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Hayley Williams – Petals For Armor",
+          "url": "https://www.discogs.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Aaron Steele",
+          "url": "https://connselmer.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Aaron Gilbert Steele - Musician | LANDR Network",
+          "url": "https://network.landr.com/users/aaron-gilbert-steele",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Aaron Steele - MusicBrainz",
+          "url": "https://musicbrainz.org/artist/0c9b11f8-3934-4862-ac6c-7eeefb508bb4",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        }
+      ]
+    },
+    {
+      "sequence": 18,
+      "key": "steele-simmer-credit",
+      "query": "Hayley Williams Simmer official audio credits Aaron Steele drums percussion Taylor York",
+      "objective": "Find primary release or label-supplied recording credits confirming Aaron Steele plays drums on Simmer, to validate a track-to-track bridge from Running Around. Prefer official audio description or Qobuz detailed track credits over association-only lists.",
+      "numResults": 5,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "results": [
+        {
+          "title": "Simmer (song)",
+          "url": "https://en.wikipedia.org/wiki/Simmer_(song)",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "‎Simmer - Song by Hayley Williams",
+          "url": "https://music.apple.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Hayley Williams - Simmer - Song Ratings - Album of the Year",
+          "url": "https://www.albumoftheyear.org/song/4650-simmer/",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Hayley Williams - Simmer [Official Music Video]",
+          "url": "https://www.youtube.com/watch?v=8lSj5k2K7w0",
+          "obvious_homepage": false,
+          "review_level": "search_result_screening"
+        },
+        {
+          "title": "Hayley Williams – Simmer (2020) | Track profile",
+          "url": "https://readdork.com/",
+          "obvious_homepage": true,
+          "review_level": "search_result_screening"
+        }
+      ]
+    }
+  ],
+  "fetches": [
+    {
+      "key": "primary-announcements",
+      "urls": [
+        "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only/",
+        "https://atorecords.com/featured/the-heavy-heavy-releases-ep-and-new-miles-and-miles-music-video/",
+        "https://www.universalmusic.ca/2024/10/08/maggie-rogers-unveils-new-single-in-the-living-room-today/"
+      ],
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 9615
+    },
+    {
+      "key": "heavy-primary-interviews",
+      "urls": [
+        "https://theheavyheavy.bandcamp.com/album/life-and-life-only-2",
+        "https://magnetmagazine.com/2022/10/06/a-conversation-with-the-heavy-heavy/",
+        "https://www.theselfportraitgospel.com/interviews/the-heavy-heavy-interview"
+      ],
+      "maxCharacters": 42000,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 18696
+    },
+    {
+      "key": "maggie-gambino-primary-credits",
+      "urls": [
+        "https://www.instagram.com/reel/DA3wAGpPb9G/?hl=en",
+        "https://www.qobuz.com/ca-en/album/bando-stone-and-the-new-world-childish-gambino/buzikcn8shlqb",
+        "https://audiomack.com/childish-gambino/song/running-around-0632129"
+      ],
+      "maxCharacters": 40000,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 28882
+    },
+    {
+      "key": "heavy-gear-context",
+      "urls": [
+        "https://www.guitarworld.com/artists/bands/the-heavy-heavy-one-of-a-kind",
+        "https://www.qobuz.com/ie-en/album/life-and-life-only-the-heavy-heavy/op7en8azxjkdc"
+      ],
+      "maxCharacters": 32000,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 12816
+    },
+    {
+      "key": "sam-guitar-context",
+      "urls": [
+        "https://www.guitarplayer.com/players/sam-evian-plunge",
+        "https://ourculturemag.com/2024/03/25/sam-evian-plunge-interview/"
+      ],
+      "maxCharacters": 32000,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 34597
+    },
+    {
+      "key": "steele-and-white",
+      "urls": [
+        "https://www.thetrapset.net/148-aaron-steele-chrome-sparks-portugal-the-man-alice-smith/",
+        "https://www.youtube.com/watch?v=0KhkOzu-bNc"
+      ],
+      "maxCharacters": 26000,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 12495
+    },
+    {
+      "key": "final-identity-and-branches",
+      "urls": [
+        "https://app.chartmetric.com/track/83396061",
+        "https://www.allmusic.com/album/in-the-living-room-mw0004393361",
+        "https://network.landr.com/users/aaron-gilbert-steele",
+        "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only-expanded-edition/"
+      ],
+      "maxCharacters": 22000,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 5487
+    },
+    {
+      "key": "maggie-influence-primary",
+      "urls": [
+        "https://apnews.com/article/maggie-rogers-interview-dont-forget-me-20aa39823a76f3a419c792d47a673ed4",
+        "https://www.rollingstone.co.uk/music/maggie-rogers-dont-forget-me-interview-38583/"
+      ],
+      "maxCharacters": 24000,
+      "tool_status": "fulfilled",
+      "tool_is_error": false,
+      "extracted_character_count": 12724
+    }
+  ],
+  "quality_notes": [
+    "Exact URL deduplication is not provenance deduplication.",
+    "Homepage redirects were rejected as irrelevant; no claims drawn from their unrelated content.",
+    "AP page extraction partial, excluded from substantive synthesis.",
+    "Automatic YouTube transcript text, not listened audio; misspelled names and lyrics not used as technical facts.",
+    "Search-only leads are marked in evidence.json.",
+    "No audio downloaded or listened to; no closed-service access bypassed."
+  ],
+  "stopping_reason": "Sufficient contrasting documentary results to evaluate strategy; repeat credit results and other-release gear accounts did not resolve exact recording gaps. Next actions need matched audio, original liner/session records, or new source types."
+}

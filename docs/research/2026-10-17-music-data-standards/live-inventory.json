@@ -1,0 +1,214 @@
+{
+  "generatedAt": "2026-10-17T18:39:17.812Z",
+  "entities": 312,
+  "relationships": 505,
+  "labels": {
+    "Person": 70,
+    "Band": 55,
+    "Album": 43,
+    "Genre": 27,
+    "Song": 17,
+    "Track": 14,
+    "Place": 13,
+    "Technique": 13,
+    "RecordLabel": 10,
+    "Scene": 8,
+    "Studio": 8,
+    "Instrument": 7,
+    "Entity": 6,
+    "Guitar": 5,
+    "MusicScene": 5,
+    "Style": 4,
+    "Venue": 4,
+    "Country": 2,
+    "Release": 1
+  },
+  "relationshipTypes": {
+    "MEMBER_OF": 79,
+    "RELEASED_ALBUM": 46,
+    "ASSOCIATED_WITH_SCENE": 45,
+    "ASSOCIATED_WITH_GENRE": 42,
+    "COLLABORATED_WITH": 27,
+    "PRODUCED_BY": 18,
+    "IS_A_TRACK_ON": 17,
+    "INFLUENCED": 16,
+    "RELEASED_ON_LABEL": 13,
+    "LOCATED_IN": 12,
+    "PEER_OF": 12,
+    "PERFORMED_ON": 12,
+    "PERFORMED_AT": 10,
+    "USES_TECHNIQUE": 10,
+    "RECORDED_SONG": 9,
+    "HAS_SUBGENRE": 9,
+    "RECORDED_AT": 9,
+    "FEATURED_INSTRUMENT": 8,
+    "CONTRIBUTED_TO": 7,
+    "PLAYED_INSTRUMENT": 7,
+    "ASSOCIATED_WITH_PLACE": 7,
+    "FORMED_IN": 6,
+    "USES_INSTRUMENT": 6,
+    "ASSOCIATED_WITH_TECHNIQUE": 6,
+    "WROTE": 6,
+    "RELATED_TO": 5,
+    "RECORDED_BY": 5,
+    "DERIVED_FROM": 5,
+    "RELEASED_BY": 4,
+    "RELEASED_MUSIC_BY": 4,
+    "FOUNDED_BY": 4,
+    "USED_AMPLIFIER": 4,
+    "ASSOCIATED_WITH_VENUE": 3,
+    "PLAYED_WITH": 3,
+    "RECORDED_TRACK": 3,
+    "COVERED_SONG": 2,
+    "MANUFACTURED": 2,
+    "BORN_IN": 2,
+    "RELEASED_IN": 2,
+    "ENGINEERED_BY": 2,
+    "WORKED_AT": 1,
+    "PLAYED_FIRST_SHOW_AT": 1,
+    "ORIGINALLY_PERFORMED_BY": 1,
+    "SIGNED_TO": 1,
+    "HIRED": 1,
+    "PRODUCED_FOR": 1,
+    "INFLUENCED_BY": 1,
+    "RECORDED_FOR": 1,
+    "BREAKTHROUGH_RECORDING_FOR_SCENE": 1,
+    "RELATED_SCENE": 1,
+    "MANAGED_BY": 1,
+    "RELEASED_RECORDING": 1,
+    "HAS_B_SIDE": 1,
+    "BASED_IN": 1,
+    "HEADQUARTERED_AT": 1,
+    "ASSOCIATED_WITH_STUDIO": 1
+  },
+  "entityExtraKeys": {},
+  "relationshipExtraKeys": {},
+  "genericEntities": [
+    {
+      "name": "Fender Twin Reverb",
+      "extra": {}
+    },
+    {
+      "name": "Fender Deluxe Reverb",
+      "extra": {}
+    },
+    {
+      "name": "Marshall amplifiers",
+      "extra": {}
+    },
+    {
+      "name": "Roland Jazz Chorus",
+      "extra": {}
+    },
+    {
+      "name": "Roland Corporation",
+      "extra": {}
+    },
+    {
+      "name": "Roland GR guitar synthesizer systems",
+      "extra": {}
+    }
+  ],
+  "sourceCounts": {
+    "chat": 312
+  },
+  "mbidExamples": [],
+  "examples": [
+    {
+      "name": "Graceland",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-graceland",
+      "extra": {}
+    },
+    {
+      "name": "Stranded",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-stranded",
+      "extra": {}
+    },
+    {
+      "name": "Roxy Music",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-roxy-music",
+      "extra": {}
+    },
+    {
+      "name": "For Your Pleasure",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-for-your-pleasure",
+      "extra": {}
+    },
+    {
+      "name": "Country Life",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-country-life",
+      "extra": {}
+    },
+    {
+      "name": "Siren",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-siren",
+      "extra": {}
+    },
+    {
+      "name": "Avalon",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-avalon",
+      "extra": {}
+    },
+    {
+      "name": "Manifesto",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-manifesto",
+      "extra": {}
+    },
+    {
+      "name": "These Foolish Things",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-these-foolish-things",
+      "extra": {}
+    },
+    {
+      "name": "Another Time, Another Place",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-another-time-another-place",
+      "extra": {}
+    },
+    {
+      "name": "The Bride Stripped Bare",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-the-bride-stripped-bare",
+      "extra": {}
+    },
+    {
+      "name": "Boys and Girls",
+      "labels": [
+        "Album"
+      ],
+      "domainId": "chat-album-boys-and-girls",
+      "extra": {}
+    }
+  ]
+}

@@ -1,0 +1,1216 @@
+{
+  "title": "MusicMesh three-track documentary research pilot",
+  "version": 1,
+  "date": "2026-09-19",
+  "purpose": "Research snapshot for evaluating an exploration method; not an application schema, graph import or approved canonical truth.",
+  "status": {
+    "documentary_pass": "complete_as_bounded_first_pass",
+    "recording_identity": "partial",
+    "audible_analysis": "not_performed",
+    "user_preferences": "not_calibrated",
+    "application_changes": false,
+    "database_writes": false
+  },
+  "tracks": [
+    {
+      "id": "T1",
+      "artist": "The Heavy Heavy",
+      "title": "Miles and Miles",
+      "version": "Single Version",
+      "sampling_role": "band",
+      "identity_status": "Named edit confirmed; user's playback item not matched to audio/ISRC",
+      "isrc": null,
+      "audio_access": "none",
+      "duration_candidates": [
+        {
+          "value": "3:40",
+          "source": "S09",
+          "scope": "single metadata"
+        },
+        {
+          "value": "4:03",
+          "source": "S06",
+          "scope": "longer related version"
+        },
+        {
+          "value": "3:23",
+          "source": "S23",
+          "scope": "music video metadata; not proof of single duration"
+        }
+      ]
+    },
+    {
+      "id": "T2",
+      "artist": "Maggie Rogers",
+      "title": "In the Living Room",
+      "version": "2024 standalone single",
+      "sampling_role": "female solo artist",
+      "identity_status": "Release identified; user's playback master not matched",
+      "isrc": null,
+      "audio_access": "none",
+      "duration_candidates": [
+        {
+          "value": "4:21",
+          "source": "S12",
+          "scope": "track row"
+        },
+        {
+          "value": "4:24",
+          "source": "S12",
+          "scope": "page summary discrepancy"
+        }
+      ]
+    },
+    {
+      "id": "T3",
+      "artist": "Childish Gambino",
+      "title": "Running Around",
+      "featured_artist": "Fousheé",
+      "version": "Bando Stone and the New World track 14",
+      "sampling_role": "male solo artist with featured collaborator",
+      "identity_status": "Distributor track identified; user's playback master not matched",
+      "isrc": null,
+      "audio_access": "none",
+      "duration_candidates": [
+        {
+          "value": "2:34",
+          "source": "S16",
+          "scope": "track 14"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "S01",
+      "title": "ATO: Life and Life Only",
+      "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only/",
+      "kind": "label_release",
+      "published_date": "2022-06-07",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-label-copy",
+      "provenance_note": "Track list includes single version separately.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S02",
+      "title": "ATO: EP and Miles and Miles video announcement",
+      "url": "https://atorecords.com/featured/the-heavy-heavy-releases-ep-and-new-miles-and-miles-music-video/",
+      "kind": "label_announcement",
+      "published_date": "2022-06-01",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-label-copy",
+      "provenance_note": "Confirms single edit, remastered EP and expansion to five players.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S03",
+      "title": "Artist Bandcamp: Life and Life Only",
+      "url": "https://theheavyheavy.bandcamp.com/album/life-and-life-only-2",
+      "kind": "artist_release",
+      "published_date": "2022-06-01",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-label-copy",
+      "provenance_note": "Longer recording listed; sparse credits, not single identity.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S04",
+      "title": "MAGNET: Conversation with The Heavy Heavy",
+      "url": "https://magnetmagazine.com/2022/10/06/a-conversation-with-the-heavy-heavy/",
+      "kind": "participant_interview",
+      "published_date": "2022-10-06",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-magnet-interview",
+      "provenance_note": "Direct Turner/Fuller answers; EP-era studio method.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S05",
+      "title": "The Self Portrait Gospel: The Heavy Heavy interview",
+      "url": "https://www.theselfportraitgospel.com/interviews/the-heavy-heavy-interview",
+      "kind": "participant_interview",
+      "published_date": "2023-04-25",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-q-and-a",
+      "provenance_note": "Intro explicitly copies band biography; Q&A is a separate interview.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S06",
+      "title": "Qobuz: Life and Life Only Expanded Edition",
+      "url": "https://www.qobuz.com/ie-en/album/life-and-life-only-the-heavy-heavy/op7en8azxjkdc",
+      "kind": "distributor_credit",
+      "published_date": null,
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-distributor",
+      "provenance_note": "Track 4 is 4:03, not matched single. Header 2022 date conflicts with 2023 rights/reissue context.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S07",
+      "title": "Guitar World: The Heavy Heavy One of a Kind",
+      "url": "https://www.guitarworld.com/artists/bands/the-heavy-heavy-one-of-a-kind",
+      "kind": "participant_interview",
+      "published_date": "2024-12-19",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-gw-interview",
+      "provenance_note": "Later-album gear only; must not inherit onto 2022 single.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S08",
+      "title": "ATO: Life and Life Only Expanded Edition",
+      "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only-expanded-edition/",
+      "kind": "label_release",
+      "published_date": "2023-03-22",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-label-copy",
+      "provenance_note": "Named cover-song relationships; not guest credits.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S09",
+      "title": "Chartmetric: Miles and Miles Single Version",
+      "url": "https://app.chartmetric.com/track/83396061",
+      "kind": "secondary_metadata",
+      "published_date": null,
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "heavy-chartmetric",
+      "provenance_note": "Lists 3:40; no underlying audio or ISRC verified.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S10",
+      "title": "Universal Music Canada: In the Living Room announcement",
+      "url": "https://www.universalmusic.ca/2024/10/08/maggie-rogers-unveils-new-single-in-the-living-room-today/",
+      "kind": "label_announcement",
+      "published_date": "2024-10-08",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "maggie-release-announcement",
+      "provenance_note": "Track-specific creation/release; artist quote and label biography.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S11",
+      "title": "Maggie Rogers: release post and credits",
+      "url": "https://www.instagram.com/reel/DA3wAGpPb9G/?hl=en",
+      "kind": "artist_credit",
+      "published_date": null,
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "maggie-release-announcement",
+      "provenance_note": "Public post text extracted; audio and video roles separated.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S12",
+      "title": "AllMusic: In the Living Room credits",
+      "url": "https://www.allmusic.com/album/in-the-living-room-mw0004393361",
+      "kind": "secondary_credit",
+      "published_date": null,
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "maggie-metadata-upstream-unknown",
+      "provenance_note": "Detailed instrument roles; duration summary 4:24 but track 4:21.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S13",
+      "title": "Rolling Stone UK: Maggie Rogers interview",
+      "url": "https://www.rollingstone.co.uk/music/maggie-rogers-dont-forget-me-interview-38583/",
+      "kind": "participant_interview",
+      "published_date": "2024-04-11",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "maggie-rs-interview",
+      "provenance_note": "Don't Forget Me sessions and intention, not explicit single studio identity.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S14",
+      "title": "Guitar Player: Sam Evian Plunge interview",
+      "url": "https://www.guitarplayer.com/players/sam-evian-plunge",
+      "kind": "participant_interview",
+      "published_date": "2024-08-30",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "sam-gp-interview",
+      "provenance_note": "Detailed Plunge equipment and methods; no transfer to Maggie single.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S15",
+      "title": "Our Culture: Sam Evian Plunge inspirations",
+      "url": "https://ourculturemag.com/2024/03/25/sam-evian-plunge-interview/",
+      "kind": "participant_interview",
+      "published_date": "2024-03-25",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "sam-oc-interview",
+      "provenance_note": "Glyn Johns influence, session method and community; album scope.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S16",
+      "title": "Qobuz: Bando Stone and the New World",
+      "url": "https://www.qobuz.com/ca-en/album/bando-stone-and-the-new-world-childish-gambino/buzikcn8shlqb",
+      "kind": "distributor_credit",
+      "published_date": "2024-07-19",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "gambino-distributor-possibly-shared",
+      "provenance_note": "Use only track 14 for Running Around roles.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S17",
+      "title": "Audiomack: artist Running Around release",
+      "url": "https://audiomack.com/childish-gambino/song/running-around-0632129",
+      "kind": "artist_distributor_release",
+      "published_date": "2024-07-19",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "gambino-distributor-possibly-shared",
+      "provenance_note": "Five producers match Qobuz; shared upstream source possible.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S18",
+      "title": "Aaron Gilbert Steele: LANDR portfolio",
+      "url": "https://network.landr.com/users/aaron-gilbert-steele",
+      "kind": "participant_portfolio",
+      "published_date": null,
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "steele-self",
+      "provenance_note": "Self-described collaborations and demo selections; not detailed per-song liner notes.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S19",
+      "title": "The Trap Set: Aaron Steele episode 148",
+      "url": "https://www.thetrapset.net/148-aaron-steele-chrome-sparks-portugal-the-man-alice-smith/",
+      "kind": "interview_publisher_summary",
+      "published_date": "2017-11-22",
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "steele-trapset",
+      "provenance_note": "Episode page read, not podcast heard; paraphrases of background/influences.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S20",
+      "title": "Audiopunks: Mixing Childish Gambino's album with Stuart White",
+      "url": "https://www.youtube.com/watch?v=0KhkOzu-bNc",
+      "kind": "participant_video_transcript",
+      "published_date": null,
+      "accessed_date": "2026-09-19",
+      "access": "fetched_text",
+      "provenance_group": "white-audiopunks",
+      "provenance_note": "Text transcript accessed, not video/audio heard. Names contain transcription errors; examples identify other tracks.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S21",
+      "title": "AP: Maggie Rogers album interview",
+      "url": "https://apnews.com/article/maggie-rogers-interview-dont-forget-me-20aa39823a76f3a419c792d47a673ed4",
+      "kind": "participant_interview",
+      "published_date": "2024-04-12",
+      "accessed_date": "2026-09-19",
+      "access": "partial_page_text",
+      "provenance_group": "maggie-ap",
+      "provenance_note": "Partial extraction ended mid-paragraph; excluded from substantive synthesis.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S22",
+      "title": "Mixonline: Genelec with Riley Mackin",
+      "url": "https://www.mixonline.com/the-wire/genelec-riley-mackin",
+      "kind": "manufacturer_pr",
+      "published_date": "2019-01-09",
+      "accessed_date": "2026-09-19",
+      "access": "search_highlights_only",
+      "provenance_group": "mackin-manufacturer-pr",
+      "provenance_note": "Search-only lead, predates Bando; not used as track gear evidence.",
+      "independence": "Not inferred from distinct URL alone."
+    },
+    {
+      "id": "S23",
+      "title": "TheHeavyHeavyVEVO: Miles And Miles official video",
+      "url": "https://www.youtube.com/watch?v=w1Q07rusb4w",
+      "kind": "official_video_metadata",
+      "published_date": null,
+      "accessed_date": "2026-09-19",
+      "access": "search_highlights_only",
+      "provenance_group": "heavy-official-video",
+      "provenance_note": "Search metadata reports 3:23; audio not heard; video is not automatically single master.",
+      "independence": "Not inferred from distinct URL alone."
+    }
+  ],
+  "claims": [
+    {
+      "id": "C01",
+      "investigation_id": "T1",
+      "statement": "ATO lists a single version separately and describes a single edit in the June 2022 release.",
+      "evidence_type": "documented",
+      "scope": "release",
+      "status": "supported",
+      "source_ids": [
+        "S01",
+        "S02"
+      ],
+      "locator": "track list; expanded-EP announcement",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Primary label names the edit; audio match remains open."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C02",
+      "investigation_id": "T1",
+      "statement": "Will Turner is credited as composer, producer and mixer on the 4:03 Miles And Miles.",
+      "evidence_type": "documented",
+      "scope": "related_longer_recording",
+      "status": "supported",
+      "source_ids": [
+        "S06"
+      ],
+      "locator": "track 4 credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Cannot inherit edit or mastering responsibilities without single-specific evidence."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C03",
+      "investigation_id": "T1",
+      "statement": "The EP recordings were made in a London flat.",
+      "evidence_type": "participant_account",
+      "scope": "parent_EP_sessions",
+      "status": "supported",
+      "source_ids": [
+        "S04",
+        "S05"
+      ],
+      "locator": "London-flat questions and answers",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Direct participant statements; not an identified commercial studio."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C04",
+      "investigation_id": "T1",
+      "statement": "Turner describes deliberately working with eight tracks and both old and new gear.",
+      "evidence_type": "participant_account",
+      "scope": "parent_EP_sessions",
+      "status": "supported",
+      "source_ids": [
+        "S04"
+      ],
+      "locator": "retro-sound question",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Does not identify tape format or machine."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C05",
+      "investigation_id": "T1",
+      "statement": "Turner previously played in The White Feather Collective.",
+      "evidence_type": "participant_account",
+      "scope": "artist_background",
+      "status": "supported",
+      "source_ids": [
+        "S05"
+      ],
+      "locator": "prior-groups question",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Earlier band connection, not a shared session credit."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C06",
+      "investigation_id": "T1",
+      "statement": "Turner grew up in Malvern; Fuller grew up near Brighton.",
+      "evidence_type": "participant_account",
+      "scope": "artist_background",
+      "status": "supported",
+      "source_ids": [
+        "S05"
+      ],
+      "locator": "birth and upbringing questions",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Origin, band base and recording location must remain distinct."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C07",
+      "investigation_id": "T1",
+      "statement": "Turner connects Miles and Miles to imagined American travel.",
+      "evidence_type": "participant_account",
+      "scope": "song_inspiration",
+      "status": "supported",
+      "source_ids": [
+        "S05"
+      ],
+      "locator": "recording and song-backstory answer",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Author's account of inspiration, not an audible finding."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C08",
+      "investigation_id": "T1",
+      "statement": "The expanded EP covers Real Love Baby, Desert Raven and Guinnevere.",
+      "evidence_type": "documented",
+      "scope": "other_recordings_repertoire",
+      "status": "supported",
+      "source_ids": [
+        "S08"
+      ],
+      "locator": "expanded-release description",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Cover relationship is not artist collaboration."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C09",
+      "investigation_id": "T1",
+      "statement": "Turner names Princeton/Marshall amplification, a 1981 Les Paul Standard and Danelectro spring reverb while discussing One of a Kind.",
+      "evidence_type": "participant_account",
+      "scope": "different_album_2024",
+      "status": "context_only",
+      "source_ids": [
+        "S07"
+      ],
+      "locator": "tone, guitar/amp and effects questions",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Cannot attach this rig to the seed track."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C10",
+      "investigation_id": "T1",
+      "statement": "The later expansion to five members does not establish all five played on the original EP.",
+      "evidence_type": "analytical_inference",
+      "scope": "personnel_scope",
+      "status": "inference",
+      "source_ids": [
+        "S02",
+        "S04",
+        "S05"
+      ],
+      "locator": "formation chronology",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Conservative interpretation; full track roster unresolved."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C11",
+      "investigation_id": "T2",
+      "statement": "Rogers and Ian Fitchuk wrote and produced the single, written March 2023 and released October 8 2024.",
+      "evidence_type": "documented",
+      "scope": "exact_single",
+      "status": "supported",
+      "source_ids": [
+        "S10",
+        "S11"
+      ],
+      "locator": "release text and artist credit block",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Artist and label accounts may share announcement provenance."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C12",
+      "investigation_id": "T2",
+      "statement": "The artist credits Konrad Snyder for engineering, Fitchuk and Sam Evian for instrumentation, Jonathan Low for mixing and Emily Lazar for mastering.",
+      "evidence_type": "documented",
+      "scope": "exact_single",
+      "status": "supported",
+      "source_ids": [
+        "S11"
+      ],
+      "locator": "audio credits before video credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Artist's own explicit roles."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C13",
+      "investigation_id": "T2",
+      "statement": "AllMusic assigns bass, drums, acoustic/electric guitar and keyboards to Fitchuk; electric guitar and engineering to Evian.",
+      "evidence_type": "documented",
+      "scope": "exact_single",
+      "status": "secondary_source_only",
+      "source_ids": [
+        "S12"
+      ],
+      "locator": "credits table",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Granular roles exceed the artist post; retain secondary attribution."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C14",
+      "investigation_id": "T2",
+      "statement": "AllMusic lists Lauren Marquez and Michael Deano as assistant engineers.",
+      "evidence_type": "documented",
+      "scope": "exact_single",
+      "status": "secondary_source_only",
+      "source_ids": [
+        "S12"
+      ],
+      "locator": "credits table",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Original detailed liner credits not yet obtained."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C15",
+      "investigation_id": "T2",
+      "statement": "Electric Lady is documented for the early Don't Forget Me sessions.",
+      "evidence_type": "participant_account",
+      "scope": "related_album_sessions",
+      "status": "context_only",
+      "source_ids": [
+        "S13"
+      ],
+      "locator": "December 2022 and January sessions",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Does not explicitly establish the March single's room."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C16",
+      "investigation_id": "T2",
+      "statement": "Rogers' attraction to Fitchuk's work on Kacey Musgraves' Golden Hour is described in her album interview.",
+      "evidence_type": "documented",
+      "scope": "artist_collaboration_context",
+      "status": "context_only",
+      "source_ids": [
+        "S13"
+      ],
+      "locator": "opening collaboration discussion",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Not a claimed specific song template."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C17",
+      "investigation_id": "T2",
+      "statement": "Evian performed as Sam Owens in Celestial Shore and worked at Figure 8 Recording before his Catskills studio.",
+      "evidence_type": "documented",
+      "scope": "contributor_career",
+      "status": "supported",
+      "source_ids": [
+        "S14"
+      ],
+      "locator": "career and studio background",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Biographical content in a participant interview, not Maggie session location."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C18",
+      "investigation_id": "T2",
+      "statement": "Evian cites Glyn Johns and the Get Back sessions as inspiration for Plunge's workflow.",
+      "evidence_type": "participant_account",
+      "scope": "contributor_different_album",
+      "status": "supported",
+      "source_ids": [
+        "S15"
+      ],
+      "locator": "Glyn Johns section",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Direct self-attributed influence, not inferred resemblance."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C19",
+      "investigation_id": "T2",
+      "statement": "Evian describes live room recording without click/headphones and early takes for Plunge.",
+      "evidence_type": "participant_account",
+      "scope": "contributor_different_album",
+      "status": "supported",
+      "source_ids": [
+        "S14",
+        "S15"
+      ],
+      "locator": "Plunge recording process",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Do not transfer this method to In the Living Room."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C20",
+      "investigation_id": "T2",
+      "statement": "The Plunge interview identifies a Warmoth-based custom guitar, Lollar gold-foil pickups, Cali76, Tumnus, Warped Vinyl, Twilighter and M 160 into a Neve preamp.",
+      "evidence_type": "participant_account",
+      "scope": "contributor_different_album",
+      "status": "supported",
+      "source_ids": [
+        "S14"
+      ],
+      "locator": "guitar and effects paragraphs",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Pedal order, settings and Neve model not established."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C21",
+      "investigation_id": "T2",
+      "statement": "Evian describes recording Plunge on a Tascam 48 and transferring to an MCI 16-track two-inch machine.",
+      "evidence_type": "participant_account",
+      "scope": "contributor_different_album",
+      "status": "supported",
+      "source_ids": [
+        "S14"
+      ],
+      "locator": "tape-machine discussion",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "MCI model not specified; not Maggie track evidence."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C22",
+      "investigation_id": "T2",
+      "statement": "The Plunge interviews identify a collaborator circle including Adrianne Lenker, El Kempner and Liam Kazar.",
+      "evidence_type": "documented",
+      "scope": "contributor_different_album",
+      "status": "supported",
+      "source_ids": [
+        "S14",
+        "S15"
+      ],
+      "locator": "collaborator and community sections",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Does not establish those musicians on the Maggie single."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C23",
+      "investigation_id": "T2",
+      "statement": "The label biography establishes Maryland as Rogers' origin.",
+      "evidence_type": "documented",
+      "scope": "artist_background",
+      "status": "supported",
+      "source_ids": [
+        "S10"
+      ],
+      "locator": "About Maggie Rogers",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "No exact hometown established in this pass."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C24",
+      "investigation_id": "T3",
+      "statement": "Running Around is listed as track 14, duration 2:34, with a July 19 2024 album release and RCA/mcDJ rights line.",
+      "evidence_type": "documented",
+      "scope": "exact_album_track",
+      "status": "supported",
+      "source_ids": [
+        "S16",
+        "S17"
+      ],
+      "locator": "track 14; release and rights metadata",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Not a file-level master match."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C25",
+      "investigation_id": "T3",
+      "statement": "Producer credits name Donald Glover, Michael Uzowuru, Riley Mackin, Tyler Johnson and Willow Smith.",
+      "evidence_type": "documented",
+      "scope": "exact_album_track",
+      "status": "supported",
+      "source_ids": [
+        "S16",
+        "S17"
+      ],
+      "locator": "track 14 credits; artist release producer field",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Both distributors may have common upstream metadata."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C26",
+      "investigation_id": "T3",
+      "statement": "Riley Mackin, Tyler Johnson and Emi Trevena are credited on guitar; Aaron Steele on drums.",
+      "evidence_type": "documented",
+      "scope": "exact_album_track",
+      "status": "supported",
+      "source_ids": [
+        "S16"
+      ],
+      "locator": "track 14 credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Instrument roles known; models, part assignment and session location unknown."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C27",
+      "investigation_id": "T3",
+      "statement": "Fousheé is the featured artist and Willow Smith is credited for background vocal.",
+      "evidence_type": "documented",
+      "scope": "exact_album_track",
+      "status": "supported",
+      "source_ids": [
+        "S16"
+      ],
+      "locator": "track 14 credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Featured vs background roles preserved."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C28",
+      "investigation_id": "T3",
+      "statement": "Riley Mackin, Brittney Orinda and Zachary Brown receive recording-engineer credits.",
+      "evidence_type": "documented",
+      "scope": "exact_album_track",
+      "status": "supported",
+      "source_ids": [
+        "S16"
+      ],
+      "locator": "track 14 credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "No implication they worked together in one room."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C29",
+      "investigation_id": "T3",
+      "statement": "Stuart White is credited with mixing and Colin Leonard with mastering.",
+      "evidence_type": "documented",
+      "scope": "exact_album_track",
+      "status": "supported",
+      "source_ids": [
+        "S16"
+      ],
+      "locator": "track 14 credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Studio/console/effects not provided."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C30",
+      "investigation_id": "T3",
+      "statement": "Patrick Gardner, Conner McFarland and Matheus Braz receive assistant-engineer credits.",
+      "evidence_type": "documented",
+      "scope": "exact_album_track",
+      "status": "supported",
+      "source_ids": [
+        "S16"
+      ],
+      "locator": "track 14 credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Retain distributor spelling; AllMusic search result differed on Conner/Connor."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C31",
+      "investigation_id": "T3",
+      "statement": "Steele's portfolio lists collaborations across several artists and includes Simmer and Sudden Desire as demos.",
+      "evidence_type": "participant_portfolio",
+      "scope": "contributor_career",
+      "status": "supported",
+      "source_ids": [
+        "S18"
+      ],
+      "locator": "About and Demos sections",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Demo listing is a branch candidate, not full verified song-role documentation."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C32",
+      "investigation_id": "T3",
+      "statement": "The Trap Set's episode summary describes Steele's New York upbringing and Bill Withers/At the Drive-In background.",
+      "evidence_type": "documented",
+      "scope": "contributor_background",
+      "status": "supported",
+      "source_ids": [
+        "S19"
+      ],
+      "locator": "episode description",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Publisher summary, not a podcast listened to in this run; not track inspiration."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C33",
+      "investigation_id": "T3",
+      "statement": "White's original interview explains mixes from the album using Hearts Were Meant to Fly and We Are God as named examples.",
+      "evidence_type": "participant_account",
+      "scope": "same_album_other_tracks",
+      "status": "context_only",
+      "source_ids": [
+        "S20"
+      ],
+      "locator": "named examples in extracted transcript",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "No explicit Running Around breakdown identified. Automatic names not validated by listening."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C34",
+      "investigation_id": "cross-pilot",
+      "statement": "Turner's EP constraint and Evian's Plunge process suggest comparing deliberate recording limitations.",
+      "evidence_type": "analytical_inference",
+      "scope": "cross_project_method_comparison",
+      "status": "inference",
+      "source_ids": [
+        "S04",
+        "S14",
+        "S15"
+      ],
+      "locator": "eight-track and commitment accounts",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "No direct historical link, shared machine or sonic match established."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C35",
+      "investigation_id": "cross-pilot",
+      "statement": "Headline band/solo categories do not describe the full recording team.",
+      "evidence_type": "analytical_inference",
+      "scope": "pilot_synthesis",
+      "status": "inference",
+      "source_ids": [
+        "S02",
+        "S11",
+        "S16"
+      ],
+      "locator": "formation and exact-track credits",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Explains research design; gender is not treated as a sonic cause."
+      },
+      "user_review": "not_reviewed"
+    },
+    {
+      "id": "C36",
+      "investigation_id": "cross-pilot",
+      "statement": "No shared producer, room or gear has been established across all three seeds in this search set.",
+      "evidence_type": "research_observation",
+      "scope": "bounded_search_coverage",
+      "status": "not_established",
+      "source_ids": [],
+      "locator": "this investigation only",
+      "assessment": {
+        "by": "Codex",
+        "date": "2026-09-19",
+        "rationale": "Not proof that no connection exists."
+      },
+      "user_review": "not_reviewed"
+    }
+  ],
+  "unknowns": [
+    {
+      "id": "U01",
+      "track": "T1",
+      "field": "Exact single audio, ISRC, edit/mastering credits",
+      "status": "unresolved",
+      "next_action": "Match user's Roon release/version and licensed audio to original single metadata.",
+      "priority": 1
+    },
+    {
+      "id": "U02",
+      "track": "T1",
+      "field": "Track-specific instrument roster and 2022 signal chain",
+      "status": "not_found_in_searched_sources",
+      "next_action": "Seek EP liner notes or a participant account explicitly naming this recording.",
+      "priority": 2
+    },
+    {
+      "id": "U03",
+      "track": "T2",
+      "field": "Exact single recording studio/room and Evian's overdub location",
+      "status": "not_found_in_searched_sources",
+      "next_action": "Inspect original single credits or participant/studio archive.",
+      "priority": 2
+    },
+    {
+      "id": "U04",
+      "track": "T2",
+      "field": "Guitar model, effects, console and mic/preamp on single",
+      "status": "not_found_in_searched_sources",
+      "next_action": "Start with identifying the audible guitar part, then pursue track-specific session evidence.",
+      "priority": 3
+    },
+    {
+      "id": "U05",
+      "track": "T3",
+      "field": "Recording rooms, instrument models/setups, console, signal chains/settings",
+      "status": "not_found_in_searched_sources",
+      "next_action": "Follow credited recording engineers and musicians, not generic artist gear lists.",
+      "priority": 2
+    },
+    {
+      "id": "U06",
+      "track": "T3",
+      "field": "Precise division of guitar/production work",
+      "status": "unresolved",
+      "next_action": "Locate session or participant explanation for this exact song.",
+      "priority": 2
+    },
+    {
+      "id": "U07",
+      "track": "T3",
+      "field": "Original detailed Simmer performance credit",
+      "status": "lead_only",
+      "next_action": "Verify original credits before asserting a shared-drummer track-to-track connection.",
+      "priority": 3
+    },
+    {
+      "id": "U08",
+      "track": "T2",
+      "field": "Exact hometown and pre-solo group history",
+      "status": "not_systematically_researched",
+      "next_action": "Research if geography or career pathway becomes a promising musical lead.",
+      "priority": 4
+    },
+    {
+      "id": "U09",
+      "track": "T3",
+      "field": "Lead artist hometown and earlier-group history",
+      "status": "not_researched",
+      "next_action": "Research if relevant to a selected exploratory branch.",
+      "priority": 4
+    },
+    {
+      "id": "U10",
+      "track": "all",
+      "field": "Firsthand audible analysis and exact source audio",
+      "status": "not_performed",
+      "next_action": "Obtain the matched recordings or timestamped listener notes; analyze perception, interpretation and alternatives separately.",
+      "priority": 1
+    },
+    {
+      "id": "U11",
+      "track": "all",
+      "field": "Nick's track/passage preference and session fit",
+      "status": "not_collected_for_pilot",
+      "next_action": "Ask separately about the song, performance/production trait and present listening context.",
+      "priority": 1
+    }
+  ],
+  "exclusions": [
+    {
+      "candidate": "The Heavy Heavy five-person live lineup",
+      "reason": "Not a verified EP track roster.",
+      "sources": [
+        "S02",
+        "S04"
+      ]
+    },
+    {
+      "candidate": "2024 Heavy Heavy guitar rig as Miles and Miles equipment",
+      "reason": "Different album/era.",
+      "sources": [
+        "S07"
+      ]
+    },
+    {
+      "candidate": "Qobuz longer-version credit treated as single mastering",
+      "reason": "Different catalog version and role.",
+      "sources": [
+        "S01",
+        "S06"
+      ]
+    },
+    {
+      "candidate": "Electric Lady or Flying Cloud assigned to In the Living Room",
+      "reason": "Studio associations do not establish this recording's location.",
+      "sources": [
+        "S13",
+        "S14"
+      ]
+    },
+    {
+      "candidate": "Plunge effects assigned to Maggie's guitar",
+      "reason": "Same person, different project.",
+      "sources": [
+        "S11",
+        "S14"
+      ]
+    },
+    {
+      "candidate": "2019 Mackin gear assigned to Running Around",
+      "reason": "Old manufacturer PR, not 2024 track evidence.",
+      "sources": [
+        "S22"
+      ]
+    },
+    {
+      "candidate": "White's effects examples assigned to Running Around",
+      "reason": "Named examples cover other album tracks.",
+      "sources": [
+        "S20"
+      ]
+    },
+    {
+      "candidate": "Reposted label biographies counted as independent confirmations",
+      "reason": "Common underlying promotional copy.",
+      "sources": [
+        "S01",
+        "S02",
+        "S03",
+        "S05"
+      ]
+    },
+    {
+      "candidate": "Published sound descriptions labeled firsthand audible analysis",
+      "reason": "No audio heard in this run.",
+      "sources": []
+    }
+  ],
+  "audio_observations": [],
+  "hypotheses": [
+    {
+      "id": "H01",
+      "statement": "A contributor-led path may produce worthwhile listening candidates across headline-artist categories.",
+      "status": "untested_preference_hypothesis",
+      "supporting_claims": [
+        "C12",
+        "C22",
+        "C26",
+        "C31"
+      ],
+      "test": "Blind/level-conscious listening comparison and user feedback, allowing rejection."
+    },
+    {
+      "id": "H02",
+      "statement": "Deliberate track limits may be a useful exploratory axis between Turner and Evian's projects.",
+      "status": "untested_sonic_hypothesis",
+      "supporting_claims": [
+        "C04",
+        "C19",
+        "C21"
+      ],
+      "test": "Compare matched audio; seek alternative causes; do not infer shared hardware."
+    }
+  ],
+  "revision_history": [
+    {
+      "version": 1,
+      "date": "2026-09-19",
+      "actor": "Codex",
+      "change": "Initial documentary pilot; no firsthand audio or user validation."
+    }
+  ]
+}

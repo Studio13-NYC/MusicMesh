@@ -1,0 +1,112 @@
+{
+  "date": "2026-09-19",
+  "scope": "Local audio measurements plus a bounded documentary follow-up; no audio uploaded, no application/database writes.",
+  "searches": [
+    {
+      "query": "Childish Gambino Running Around official audio ending spoken dialogue outro 2:24 2:35 Bando Stone Foushee",
+      "requested_result_slots": 5,
+      "result_urls": [
+        "https://www.youtube.com/watch?v=7g9jOmWhN30",
+        "https://open.spotify.com/track/7ltvxs2OBCccy0p7Ka4PIj",
+        "https://music.apple.com/us/album/bando-stone-and-the-new-world/1757678472",
+        "https://beatsug.com/running-around-lyrics-feat-foushee-childish-gambino",
+        "https://www.allmusic.com/album/running-around-mw0004339931"
+      ]
+    },
+    {
+      "query": "The Heavy Heavy Miles and Miles Will Turner Georgie Fuller interview recording eight tracks London flat production Life and Life Only",
+      "requested_result_slots": 5,
+      "result_urls": [
+        "https://magnetmagazine.com/2022/10/06/a-conversation-with-the-heavy-heavy/",
+        "https://www.highroadtouring.com/a-conversation-with-the-heavy-heavy/",
+        "https://relix.com/articles/detail/spotlight-the-heavy-heavy/",
+        "https://wfuv.org/content/the-heavy-heavy-2022",
+        "https://kutkutx.studio/austin-music-minute/miles-and-miles"
+      ]
+    },
+    {
+      "query": "Maggie Rogers In the Living Room single Sam Evian Ian Fitchuk Jonathan Low credits October 2024 recording March 2023",
+      "requested_result_slots": 5,
+      "result_urls": [
+        "https://www.allmusic.com/album/in-the-living-room-mw0004393361",
+        "https://www.universalmusic.ca/2024/10/08/maggie-rogers-unveils-new-single-in-the-living-room-today/",
+        "https://genius.com/Maggie-rogers-in-the-living-room-lyrics",
+        "https://exclaim.ca/music/article/maggie-rogers-shares-video-for-new-single-in-the-living-room",
+        "https://www.albumoftheyear.org/album/1093071-maggie-rogers-in-the-living-room.php"
+      ]
+    }
+  ],
+  "fetched_sources": [
+    {
+      "url": "https://magnetmagazine.com/2022/10/06/a-conversation-with-the-heavy-heavy/",
+      "quality": "Original interview; Turner and Fuller describe EP recording. Separate their answers from the writer's sonic descriptions.",
+      "scope": "EP process, recording location, reported formative artists"
+    },
+    {
+      "url": "https://relix.com/articles/detail/spotlight-the-heavy-heavy/",
+      "quality": "Original interview with retrospective first-person accounts; distinguishes early partnership and later album.",
+      "scope": "Early vocal-chain categories only; no exact song-specific model/settings"
+    },
+    {
+      "url": "https://www.universalmusic.ca/2024/10/08/maggie-rogers-unveils-new-single-in-the-living-room-today/",
+      "quality": "Label announcement with artist statement; promotional context.",
+      "scope": "Single authorship/production and writing date"
+    },
+    {
+      "url": "https://www.qobuz.com/ca-en/album/bando-stone-and-the-new-world-childish-gambino/buzikcn8shlqb",
+      "quality": "Distributor-supplied track credits; not an independent session witness.",
+      "scope": "Track 14 Running Around credits and duration; fetched twice to reach complete track listing"
+    },
+    {
+      "url": "https://www.guitarplayer.com/players/sam-evian-plunge",
+      "quality": "Original participant interview; direct process/equipment account. Writer's listening descriptions are not assistant observations.",
+      "scope": "Plunge only; not Maggie Rogers' session equipment"
+    },
+    {
+      "url": "https://atorecords.com/releases/the-heavy-heavy-life-and-life-only-expanded-edition/",
+      "quality": "Artist's label release listing.",
+      "scope": "Named covers and original artists"
+    },
+    {
+      "url": "https://network.landr.com/users/aaron-gilbert-steele",
+      "quality": "Musician's self-reported portfolio and demo selections; detailed part credits need separate confirmation.",
+      "scope": "Contributor-led comparison candidates; advertised gear not assigned to Running Around"
+    },
+    {
+      "url": "https://www.instagram.com/reel/DA3wAGpPb9G/?hl=en",
+      "quality": "Maggie Rogers' own release-credit announcement.",
+      "scope": "Exact single's production, instrumentation, recording, mixing, mastering"
+    },
+    {
+      "url": "https://wfuv.org/content/the-heavy-heavy-2022",
+      "quality": "First-party interview host describes artist statements; live session credits distinct from studio release.",
+      "scope": "Reported influences; live session personnel not used for EP credits"
+    }
+  ],
+  "counts": {
+    "searches": 3,
+    "requested_result_slots": 15,
+    "distinct_search_result_urls": 15,
+    "distinct_fetched_urls": 9
+  },
+  "identity_note": "Heavy Heavy test excerpt matched locally by energy envelope. Sections B/C artist mapping remains provisional pending user confirmation.",
+  "exclusions": [
+    "Search-only lyric page is not used to quote lyrics or establish technical credits.",
+    "No artist instrument, processor, console, studio or exact production setting inferred from signal metrics.",
+    "Highroad is a republication of MAGNET, not independent corroboration."
+  ],
+  "independent_measurement_checks": [
+    {
+      "region": "A",
+      "output": "\r\n[Parsed_astats_1 @ 00000224f3d5f600] Peak level dB: -1.696269\r\n[Parsed_astats_1 @ 00000224f3d5f600] RMS level dB: -14.288986\r\n[Parsed_astats_1 @ 00000224f3d5f600] Peak level dB: -1.575941\r\n[Parsed_astats_1 @ 00000224f3d5f600] RMS level dB: -14.021636\r\n[Parsed_astats_1 @ 00000224f3d5f600] Overall\r\n[Parsed_astats_1 @ 00000224f3d5f600] Peak level dB: -1.575941\r\n[Parsed_astats_1 @ 00000224f3d5f600] RMS level dB: -14.153254\r\n[Parsed_astats_1 @ 00000224f3d5f600] Number of samples: 9702000\r\n\r\n"
+    },
+    {
+      "region": "B",
+      "output": "\r\n[Parsed_astats_1 @ 000002a089c108c0] Peak level dB: -1.450676\r\n[Parsed_astats_1 @ 000002a089c108c0] RMS level dB: -12.299720\r\n[Parsed_astats_1 @ 000002a089c108c0] Peak level dB: -1.490552\r\n[Parsed_astats_1 @ 000002a089c108c0] RMS level dB: -12.278325\r\n[Parsed_astats_1 @ 000002a089c108c0] Overall\r\n[Parsed_astats_1 @ 000002a089c108c0] Peak level dB: -1.450676\r\n[Parsed_astats_1 @ 000002a089c108c0] RMS level dB: -12.289009\r\n[Parsed_astats_1 @ 000002a089c108c0] Number of samples: 6218100\r\n\r\n"
+    },
+    {
+      "region": "C",
+      "output": "\r\n[Parsed_astats_1 @ 00000253a7d9de80] Peak level dB: -2.081054\r\n[Parsed_astats_1 @ 00000253a7d9de80] RMS level dB: -11.796078\r\n[Parsed_astats_1 @ 00000253a7d9de80] Peak level dB: -2.069945\r\n[Parsed_astats_1 @ 00000253a7d9de80] RMS level dB: -10.842827\r\n[Parsed_astats_1 @ 00000253a7d9de80] Overall\r\n[Parsed_astats_1 @ 00000253a7d9de80] Peak level dB: -2.069945\r\n[Parsed_astats_1 @ 00000253a7d9de80] RMS level dB: -11.293351\r\n[Parsed_astats_1 @ 00000253a7d9de80] Number of samples: 11113200\r\n\r\n"
+    }
+  ]
+}

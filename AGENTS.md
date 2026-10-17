@@ -8,6 +8,12 @@ Migration status (2026-09-07): MusicMesh is deployed on dedicated Neon PostgreSQ
 
 More specific direct user instructions take priority over this file.
 
+## Brainz transition — 2026-10-17
+
+Read `docs/product/BRAINZ_PROGRESS.md`, `docs/plans/2026-10-17-brainz.md`, and the standalone design at `docs/research/2026-10-17-music-data-standards/MODEL_AND_IMPORT_DESIGN.md` before model/import work. The user approved beginning this work and declared previous generated database content disposable. Do not use it as enrichment evidence. Preserve the original Last.fm CSV as input; it has already been submitted to ListenBrainz and must not be submitted again.
+
+Domain semantics will live in `src/domain/` and be exposed to code and runtime agents. The progress report must distinguish implemented/tested functionality from planned work and completed imports. The existing Prisma entity/relationship graph, Neon hosting, and chat/workbench stay in place. No global MusicBrainz mirror is required.
+
 ## Always Check Current Status
 
 The MusicMesh UI and operator workflow are being actively refined.

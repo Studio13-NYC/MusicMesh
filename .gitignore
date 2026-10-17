@@ -17,3 +17,15 @@ _CLEAN_SHEET_ARCHIVE_2026-04-20.zip
 *.log
 *.code-workspace
 ui-dist/
+
+# Private listening inputs and generated receipts; keep importer/docs in Git.
+data-lastfm/*.csv
+data-lastfm/*.json
+data-lastfm/*.png
+data-lastfm/*.zip
+__pycache__/
+*.pyc
+
+# Research audio is local source material, not application source.
+exa-results/**/captures/
+.superpowers/

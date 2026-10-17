@@ -1,8 +1,18 @@
 # Current State And Handoff
 
-Updated 2026-09-07, New York time.
+Updated 2026-10-17, New York time.
 
-## Migration state
+## Brainz work in progress — 17 October 2026
+
+The user approved the [standalone model and personal-history import design](../research/2026-10-17-music-data-standards/MODEL_AND_IMPORT_DESIGN.md) and instructed repository cleanup, GitHub synchronization, and implementation. Follow the [implementation plan](../plans/2026-10-17-brainz.md) and [running progress report](BRAINZ_PROGRESS.md). The [repository audit](../research/2026-10-17-music-data-standards/REPOSITORY_AUDIT.md) records deletion and retention decisions.
+
+The old generated database content is disposable: it is not an identity or evidence source for the new catalog. The new source is the 21,415-play Last.fm history already imported into ListenBrainz, plus available MusicBrainz and AcousticBrainz metadata. Keep Prisma/PostgreSQL and the existing graph architecture; introduce explicit domain classes and shared semantics. The approved scope is the user's listened catalog and relevant connected entities, not a global mirror.
+
+`prebrainz` marks the last successful deployed runtime, `5a404fa` (Actions run `34173029047`). `withBrainz` will mark the documentation/cleanup checkpoint before implementation; it does not mean the history import is complete. The later implementation commits and their verification belong in the progress report.
+
+Current live counts at the start of this work were 312 entities and 505 relationships, all entities sourced from chat. The September counts below are historical migration evidence. Root `.env` still selects production. No production reset or new import has happened at this checkpoint.
+
+## Historical migration state — September 2026
 
 Local and public production now use Prisma 7.10.0 and dedicated MusicMesh Neon PostgreSQL. **Cutover and public read/write verification are complete.** Read [NEON_MIGRATION.md](../deployment/NEON_MIGRATION.md) for project IDs, exact commands, verified data counts, backup/restore evidence, and cutover/rollback gates.
 
@@ -55,6 +65,6 @@ Known pre-existing limitation: 22 older graph-update entries in the inspected bl
 
 Keep Aura and all backups. Backups currently reside on this workstation; no off-machine backup automation was provisioned. After new PostgreSQL writes, rollback requires reconciliation, not only redeploying old code. See the migration document.
 
-## Protected work
+## Protected work and cleanup
 
-STAY/ and the clean-sheet archive remain protected. The pre-existing untracked Neo4J-snapshot-export/ folder was not altered. No unrelated user changes were reverted.
+STAY/ and the clean-sheet archive remain protected. The October cleanup removes the obsolete July Neo4j snapshot under the user's instruction that previous generated data is no longer needed. Private source history and captured audio remain locally available and explicitly ignored. See the repository audit for the exact scope.

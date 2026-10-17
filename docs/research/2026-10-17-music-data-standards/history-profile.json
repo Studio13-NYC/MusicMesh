@@ -1,0 +1,29 @@
+{
+  "observed_date": "2026-10-17",
+  "source_csv": "data-lastfm/recenttracks-bobdobbsnyc-1792084706.csv",
+  "source_account": "bobdobbsnyc",
+  "listenbrainz_account": "nickknyc",
+  "rows": 21415,
+  "distinct_artist_strings": 1014,
+  "distinct_artist_track_string_pairs": 9264,
+  "distinct_artist_album_string_pairs": 2428,
+  "blank_album_rows": 0,
+  "artist_mbid": {"nonblank_rows": 17806, "distinct_nonblank_values": 800},
+  "album_mbid": {"nonblank_rows": 16326, "distinct_nonblank_values": 1544},
+  "track_mbid": {"nonblank_rows": 16655, "distinct_nonblank_values": 7009},
+  "first_play_utc": "2016-08-17T19:36:52Z",
+  "last_play_utc": "2026-10-15T17:18:26Z",
+  "listenbrainz_live_count": 21415,
+  "listenbrainz_recent_sample": {
+    "sample_size": 100,
+    "recording_mbid_present": 100,
+    "release_mbid_present": 100,
+    "release_group_mbid_present": 100,
+    "artist_mbids_present": 100,
+    "caa_id_present": 100,
+    "sampling_method": "100 most recent plays; not a random or full-history audit",
+    "mapping_correctness_verified": false
+  },
+  "musicmesh_database_size_bytes": 8519680,
+  "limits": "String-pair counts are not resolved catalog-identity counts. Identifier presence is not proof of a valid or correctly typed MBID."
+}
