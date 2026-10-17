@@ -11,7 +11,7 @@ function checkedFile(dir,manifest,name){
   if(sha256(bytes)!==manifest.files[name])throw new Error(`Snapshot checksum mismatch: ${name}`);
   return bytes;
 }
-function compileSnapshot({preparedDir,cacheDir,outputDir}){
+function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir}){
   const prepared=JSON.parse(fs.readFileSync(path.join(preparedDir,'manifest.json')));
   const events=readLines(checkedFile(preparedDir,prepared,'events.ndjson')).map(entityFromGraph);
   const mappings=readLines(checkedFile(preparedDir,prepared,'mappings.ndjson')).map(entityFromGraph);
@@ -54,6 +54,8 @@ function compileSnapshot({preparedDir,cacheDir,outputDir}){
       addEdge(new domain.RedirectsTo({source,target,assertionKey:'musicbrainz-redirect',properties:{requestUrl:url,source:'musicbrainz',evidenceBasis:'provider',responseHash:response.bodyHash}}));recordingLookups.redirects++;
     }
   }
+  let acoustic=null;
+  if(acousticDir){const graph=require('./acousticSimilarity').readAcousticGraph(acousticDir,nodes,prepared);graph.nodes.forEach(addNode);graph.relationships.forEach(addEdge);acoustic=graph.receipt;}
   fs.mkdirSync(outputDir,{recursive:true});
   if(fs.readdirSync(outputDir).length)throw new Error('Snapshot output must be empty');
   const files={};
@@ -62,7 +64,7 @@ function compileSnapshot({preparedDir,cacheDir,outputDir}){
   }
   const counts={};for(const node of nodes.values())counts[node.type]=(counts[node.type]||0)+1;
   const manifest={version:1,ontologyVersion:domain.getOntology().version,createdAt:new Date().toISOString(),sourceInput:prepared.input,
-    databaseWritten:false,counts,nodes:nodes.size,relationships:edges.size,recordingLookups,files};
+    databaseWritten:false,counts,nodes:nodes.size,relationships:edges.size,recordingLookups,acoustic,files};
   fs.writeFileSync(path.join(outputDir,'manifest.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});
   return manifest;
 }

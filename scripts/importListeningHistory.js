@@ -6,8 +6,8 @@ async function main() {
   const {values,positionals}=parseArgs({allowPositionals:true,options:{
     source:{type:'string'},output:{type:'string'},account:{type:'string'},
     'listenbrainz-export':{type:'string'},'listenbrainz-account':{type:'string'},help:{type:'boolean'},
-    prepared:{type:'string'},cache:{type:'string'},coverage:{type:'string'},limit:{type:'string'},
-    snapshot:{type:'string'},'replace-existing':{type:'boolean'},
+    prepared:{type:'string'},cache:{type:'string'},coverage:{type:'string'},features:{type:'string'},neighbors:{type:'string'},limit:{type:'string'},
+    snapshot:{type:'string'},acoustic:{type:'string'},'replace-existing':{type:'boolean'},
   }});
   if(values.help) {
     console.log([
@@ -15,7 +15,8 @@ async function main() {
       'npm run brainz:import -- fetch-recordings --prepared <directory> --cache <directory> [--limit <count>]',
       'npm run brainz:import -- acoustic-coverage --prepared <directory> --cache <directory> [--limit <count>]',
       'npm run brainz:import -- acoustic-features --prepared <directory> --coverage <complete coverage directory> --cache <directory> [--limit <count>]',
-      'npm run brainz:import -- compile --prepared <directory> --cache <directory> --output <empty directory>',
+      'npm run brainz:import -- acoustic-compare --features <feature directory> --output <empty directory> [--neighbors 3]',
+      'npm run brainz:import -- compile --prepared <directory> --cache <directory> --output <empty directory> [--acoustic <comparison directory>]',
       'node --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot <directory> [--replace-existing]',
       'Only load-isolated writes a database; its target is restricted to the configured validation hosts. No command submits listens.'
     ].join('\n'));return;
@@ -36,7 +37,11 @@ async function main() {
   }
   if(positionals.length===1 && positionals[0]==='compile') {
     if(!values.prepared || !values.cache || !values.output)throw new Error('compile requires --prepared, --cache and --output');
-    console.log(JSON.stringify(require('../src/import/graphSnapshot').compileSnapshot({preparedDir:values.prepared,cacheDir:values.cache,outputDir:values.output}),null,2));return;
+    console.log(JSON.stringify(require('../src/import/graphSnapshot').compileSnapshot({preparedDir:values.prepared,cacheDir:values.cache,outputDir:values.output,acousticDir:values.acoustic}),null,2));return;
+  }
+  if(positionals.length===1 && positionals[0]==='acoustic-compare') {
+    if(!values.features||!values.output)throw new Error('--features and --output are required');
+    console.log(JSON.stringify(require('../src/import/acousticSimilarity').writeComparisons({featuresDir:values.features,outputDir:values.output,neighbors:values.neighbors?Number(values.neighbors):3}),null,2));return;
   }
   if(positionals.length===1 && positionals[0]==='load-isolated') {
     if(!values.snapshot)throw new Error('load-isolated requires --snapshot');

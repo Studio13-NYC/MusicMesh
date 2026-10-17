@@ -1,6 +1,6 @@
 # Personal history preparation and retrieval
 
-Current checkpoint: 17 October 2026. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-isolated` writes only an explicitly selected validation database. No command resubmits plays to ListenBrainz. Typed chat integration is implemented and verified on Neon validation. Production replacement, linked release/work detail retrieval and acoustic comparisons remain later phases of the [plan](../plans/2026-10-17-brainz.md).
+Current checkpoint: 17 October 2026. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-isolated` writes only an explicitly selected validation database. No command resubmits plays to ListenBrainz. Typed chat integration is implemented and verified on Neon validation. A limited acoustic comparison pilot is also validated. Production replacement, linked release/work detail retrieval and full acoustic collection remain later phases of the [plan](../plans/2026-10-17-brainz.md).
 
 ## Acoustic feature collection
 
@@ -89,7 +89,7 @@ The public graph projection excludes private classes from search, degree counts,
 
 ## Validation
 
-Latest unit suite: 35 passed, four database-dependent tests skipped in the default run. The three Brainz database integration tests passed separately against the explicit Neon validation target. `npm run build` passed with the existing large-chunk warning. Three real recording lookups returned validated HTTP 200 data before the full worker started. Repeated preparation verified all artifact hashes. No production database writes were performed in this checkpoint.
+Latest comparison checkpoint: 52 default tests passed, eight database-dependent tests skipped; all 12 targeted Brainz/chat integration tests passed against explicit Neon validation. Build and Azure bundle loading passed with existing warnings. Actual workbench explanation and before/after database counts were verified. No production history replacement has occurred. See the running progress report for fixed snapshot counts and receipts.
 
 Sources: [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API), [rate limits](https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting), [ListenBrainz export](https://listenbrainz.readthedocs.io/en/latest/users/api/export.html), [CSV parser](https://csv.js.org/parse/api/sync/).
 
@@ -107,3 +107,22 @@ The [provider API](https://acousticbrainz.readthedocs.io/api.html) omits absent 
 `coverage.json` contains per-recording submission counts and evidence references. `progress.json` reports available/missing/unknown recordings, total submissions, distinct-recording coverage and play-weighted coverage. The 967 unmapped plays remain in the all-play denominator. Coverage during collection is a lower bound; unknowns are reported separately. Count coverage means an analysis is listed, not that its features are usable, compatible, or correctly attributed. No feature documents, similarities or database records are created by this command. Exact mapped IDs are checked independently; MusicBrainz redirects are not silently assumed to transfer AcousticBrainz coverage.
 
 For the full pass, inspect `acousticbrainz-fetch.log`, `acousticbrainz-fetch.error.log` and `acousticbrainz-fetch.pid` under the same run directory. A limited 25-recording diagnostic found 20 with data before the full worker was started; it is not a representative coverage estimate.
+
+
+## Explainable acoustic comparisons
+
+```powershell
+npm run brainz:import -- acoustic-compare --features output/imports/2026-10-17/acoustic-features --output output/imports/2026-10-17/acoustic-comparisons-pilot-v2 --neighbors 3
+npm run brainz:import -- compile --prepared output/imports/2026-10-17/prepared --cache output/imports/2026-10-17/musicbrainz --acoustic output/imports/2026-10-17/acoustic-comparisons-pilot-v2 --output output/imports/2026-10-17/validation-snapshot-3
+node --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot output/imports/2026-10-17/validation-snapshot-3 --replace-existing
+```
+
+These example output directories already exist: use fresh directories for another checkpoint. `acoustic-compare` consumes the completed feature manifest, not the running worker's in-memory results. During a full run, `progress.json` may describe more analyses than the last completed manifest. Inspect `featureCollectionState` in the comparison receipt: this pilot is `limited`, not full coverage.
+
+Comparisons use separate rhythm and timbre families, exact extractor/audio compatibility cohorts, population z-score normalization and RMS Euclidean distance. Units are checked; missing values are never filled. Constant dimensions are excluded; fewer than three compatible recordings yields no comparison. Multiple submissions for a recording require an explicit selection before comparison. `--neighbors` accepts 1 through 10 (default 3); it limits each recording's selections, not the final undirected degree. A pair selected by either endpoint appears once.
+
+The output stores checksummed `analyses.ndjson`, `comparisons.ndjson`, `cohorts.json` and `exclusions.json`. Cohort files contain normalization statistics and selected dimensions. Pair objects contain supporting analysis IDs and per-feature differences. Cohort membership and measurements determine cohort identity; changing the population changes scores and assessment IDs. Never compare distances across different cohorts as a universal similarity scale.
+
+Optional `compile --acoustic` validates source-history identity, hashes, classes and endpoints before adding AnalysisOf, ComparesRecording and SupportedByAnalysis relationships. No additional listens are submitted. The default anonymous graph still hides ListeningEvent and IdentityMapping. Selected public analysis/comparison evidence is available to chat through the bounded catalog projection.
+
+The current isolated snapshot has 68,264 entities and 88,481 relationships, including 25 analyses and 51 comparisons. Earlier pilot/snapshot files are historical local checkpoints, not production data. Collection still needs to finish, retry recorded failures, and generate a full comparison snapshot before production activation.

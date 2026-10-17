@@ -11,7 +11,7 @@ const {assertIsolatedTarget}=require('../src/import/graphSnapshot');
 test.after(closeDatabase);
 test('catalog evidence retains acoustic interpretation and excludes incompatible legacy identity',()=>{
   const {catalogProperties,isDomainRecord}=require('../src/graphCanonRepository');
-  const properties={features:{bpm:{value:120,unit:'beats/minute'}},extractorVersion:'music 1.0',score:0.8,scoreMeaning:'similarity',method:'cosine',methodVersion:'1',featureFamily:'rhythm',rawProvider:{huge:'payload'}};
+  const properties={features:{bpm:{value:120,unit:'beats/minute'}},extractorVersion:'music 1.0',score:0.8,scoreMeaning:'similarity',method:'cosine',methodVersion:'1',featureFamily:'rhythm',explanation:[{feature:'bpm',difference:1}],cohortSize:3,interpretation:'Relative candidate',selectionPolicy:'first-submission-v1',selectionLimitation:'Audio match unverified',rawProvider:{huge:'payload'}};
   assert.deepEqual(catalogProperties(properties),Object.fromEntries(Object.entries(properties).filter(([key])=>key!=='rawProvider')));
   assert.equal(isDomainRecord({id:'legacy-storage-id',labels:['Genre'],properties:{id:'genre:rock',name:'Rock'}}),false);
 });

@@ -253,3 +253,10 @@ Typed chat enforcement is now implemented and verified on isolated Neon. Ordinar
 - [ListenBrainz submitted data and mapping semantics](https://listenbrainz.readthedocs.io/en/latest/users/json.html)
 
 The implementation and operational choices in this document are MusicMesh design recommendations, not requirements imposed by these providers.
+
+
+### Implemented acoustic comparison checkpoint (17 October)
+
+The first-submission pilot now produces separate rhythm and timbre comparisons, using exactly compatible extractor/audio cohorts and population z-scores. Each SimilarityAssessment retains metric/version, cohort identity, supporting analysis IDs and measured feature differences. Missing features and small cohorts are reported as exclusions. Neighbor selection is recorded in the run receipt; pair evidence is independent of the number of neighbors requested. Full collection will produce a new cohort snapshot, not silently reuse pilot scores.
+
+The 25-analysis pilot and 51 assessments are loaded only in Neon validation. MusicMesh's actual workbench explained a comparison from stored measurements and stated the small-cohort and first-submission limits. This establishes the comparison path, not full acoustic coverage or production activation. Exact commands and receipts are in HISTORY_IMPORT.md and BRAINZ_PROGRESS.md.
