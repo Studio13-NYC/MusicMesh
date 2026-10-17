@@ -4,7 +4,7 @@
 
 Execution amendment: the user approved repository cleanup, tagging, commit/push, and beginning implementation. They reaffirmed that the previous generated database data is not needed. The replacement process may delete it; permanent preservation or dataset partitioning is not required. The replacement procedure below supersedes the earlier proposal to retain inactive datasets. See the [implementation plan](../../plans/2026-10-17-brainz.md) and [running progress report](../../product/BRAINZ_PROGRESS.md) for actual completion state.
 
-This updates the scope of [the research report](REPORT.md). The objective is a catalog grounded in Nick's listening history, with explicit domain classes, MusicBrainz semantics, and acoustic connections. It is not a full MusicBrainz mirror. No application code, schema, or production records have been changed by this design work.
+This updates the scope of [the research report](REPORT.md). The objective is a catalog grounded in Nick's listening history, with explicit domain classes, MusicBrainz semantics, and acoustic connections. It is not a full MusicBrainz mirror. Implementation has since begun; the running progress report distinguishes implemented code, isolated imports and pending production activation.
 
 ## Intended outcome
 
@@ -260,3 +260,10 @@ The implementation and operational choices in this document are MusicMesh design
 The first-submission pilot now produces separate rhythm and timbre comparisons, using exactly compatible extractor/audio cohorts and population z-scores. Each SimilarityAssessment retains metric/version, cohort identity, supporting analysis IDs and measured feature differences. Missing features and small cohorts are reported as exclusions. Neighbor selection is recorded in the run receipt; pair evidence is independent of the number of neighbors requested. Full collection will produce a new cohort snapshot, not silently reuse pilot scores.
 
 The 25-analysis pilot and 51 assessments are loaded only in Neon validation. MusicMesh's actual workbench explained a comparison from stored measurements and stated the small-cohort and first-submission limits. This establishes the comparison path, not full acoustic coverage or production activation. Exact commands and receipts are in HISTORY_IMPORT.md and BRAINZ_PROGRESS.md.
+
+
+### Selected-release closure ruling (17 October)
+
+The baseline export supplies 2,655 release IDs. Fetch those exact editions, preserving them as provider-selected context rather than verified editions heard. Fetch direct listened-recording artists/works, edition groups/billing artists, then one layer of referenced context. Do not expand into artist discographies or every release-group edition. These exact lookups require no browse pagination; validate complete tracklists against counts. ReleaseLabel stores label-info/catalog-number semantics without inventing a provider relationship UUID. Native area fields remain raw provider references with typed context identities where present.
+
+Catalog receipts bind to the seed recording responses and prepared history. Retrying a previously failed recording can change closure, so compilation rejects a stale closure manifest until recollected. Adaptive AcousticBrainz splitting preserves rate limits, successful caches and the consecutive-failure stop. Both paths remain explicit about limited/incomplete data and do not activate production automatically.

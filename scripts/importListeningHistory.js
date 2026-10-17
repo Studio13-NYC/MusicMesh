@@ -7,16 +7,17 @@ async function main() {
     source:{type:'string'},output:{type:'string'},account:{type:'string'},
     'listenbrainz-export':{type:'string'},'listenbrainz-account':{type:'string'},help:{type:'boolean'},
     prepared:{type:'string'},cache:{type:'string'},coverage:{type:'string'},features:{type:'string'},neighbors:{type:'string'},limit:{type:'string'},
-    snapshot:{type:'string'},acoustic:{type:'string'},'replace-existing':{type:'boolean'},
+    snapshot:{type:'string'},acoustic:{type:'string'},'replace-existing':{type:'boolean'},'include-catalog':{type:'boolean'},'wait-for-lock':{type:'boolean'},
   }});
   if(values.help) {
     console.log([
       'npm run brainz:import -- prepare --source <CSV> --account <Last.fm user> --output <empty directory> [--listenbrainz-export <directory/JSON/NDJSON> --listenbrainz-account <user>]',
       'npm run brainz:import -- fetch-recordings --prepared <directory> --cache <directory> [--limit <count>]',
+      'npm run brainz:import -- fetch-catalog --prepared <directory> --cache <same MusicBrainz directory> [--wait-for-lock] [--limit <count>]',
       'npm run brainz:import -- acoustic-coverage --prepared <directory> --cache <directory> [--limit <count>]',
       'npm run brainz:import -- acoustic-features --prepared <directory> --coverage <complete coverage directory> --cache <directory> [--limit <count>]',
       'npm run brainz:import -- acoustic-compare --features <feature directory> --output <empty directory> [--neighbors 3]',
-      'npm run brainz:import -- compile --prepared <directory> --cache <directory> --output <empty directory> [--acoustic <comparison directory>]',
+      'npm run brainz:import -- compile --prepared <directory> --cache <directory> --output <empty directory> [--include-catalog] [--acoustic <comparison directory>]',
       'node --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot <directory> [--replace-existing]',
       'Only load-isolated writes a database; its target is restricted to the configured validation hosts. No command submits listens.'
     ].join('\n'));return;
@@ -26,6 +27,11 @@ async function main() {
     const result=await fetchRecordings({preparedDir:values.prepared,cacheDir:values.cache,limit:values.limit?Number(values.limit):Infinity,
       onProgress:p=>{if(p.processed===1 || p.processed%25===0)console.log(JSON.stringify(p));}});
     console.log(JSON.stringify(result,null,2));return;
+  }
+  if(positionals.length===1 && positionals[0]==='fetch-catalog') {
+    if(!values.prepared||!values.cache)throw new Error('--prepared and --cache are required');
+    const result=await require('../src/import/catalogClosure').collectCatalog({preparedDir:values.prepared,cacheDir:values.cache,waitForLock:!!values['wait-for-lock'],limit:values.limit?Number(values.limit):Infinity,onProgress:p=>{if(p.state!=='running'||p.requested%100===0)console.log(JSON.stringify(p));}});
+    const {requests,recordingEvidence,...summary}=result;console.log(JSON.stringify(summary,null,2));return;
   }
   if(positionals.length===1 && positionals[0]==='acoustic-coverage') {
     if(!values.prepared||!values.cache)throw new Error('--prepared and --cache are required');
@@ -37,7 +43,7 @@ async function main() {
   }
   if(positionals.length===1 && positionals[0]==='compile') {
     if(!values.prepared || !values.cache || !values.output)throw new Error('compile requires --prepared, --cache and --output');
-    console.log(JSON.stringify(require('../src/import/graphSnapshot').compileSnapshot({preparedDir:values.prepared,cacheDir:values.cache,outputDir:values.output,acousticDir:values.acoustic}),null,2));return;
+    console.log(JSON.stringify(require('../src/import/graphSnapshot').compileSnapshot({preparedDir:values.prepared,cacheDir:values.cache,outputDir:values.output,acousticDir:values.acoustic,includeCatalog:!!values['include-catalog']}),null,2));return;
   }
   if(positionals.length===1 && positionals[0]==='acoustic-compare') {
     if(!values.features||!values.output)throw new Error('--features and --output are required');

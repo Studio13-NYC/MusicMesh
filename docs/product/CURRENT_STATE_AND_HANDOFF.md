@@ -18,6 +18,8 @@ The isolated Neon validation database now holds `validation-snapshot-3`: 68,264 
 
 AcousticBrainz count coverage completed at 22:13 UTC: 7,220 available recordings, 1,069 absent, zero unknown; those available recordings cover 17,766 of 21,415 plays. Feature collection now fetches the earliest submission for each available recording, preserving versions/units and raw responses locally. This is a first-submission baseline, not all 391,369 submissions or a verified match to each scrobbled audio file.
 
+The next collector is implemented and queued behind the recording worker: selected ListenBrainz release editions, direct artists/works and bounded context. Semantic catalog 1.2.0 adds ReleaseLabel and same-type provider redirects; the isolated dataset above is still the older 1.1 pilot. Recompile into a fresh snapshot before another load. No new release data has been imported yet. Acoustic timeout splitting recovered 150 failed analyses; inspect current logs and PIDs in HISTORY_IMPORT.md. Runtime/source verification for this phase is recorded in BRAINZ_PROGRESS.md.
+
 ## Historical migration state — September 2026
 
 Local and public production now use Prisma 7.10.0 and dedicated MusicMesh Neon PostgreSQL. **Cutover and public read/write verification are complete.** Read [NEON_MIGRATION.md](../deployment/NEON_MIGRATION.md) for project IDs, exact commands, verified data counts, backup/restore evidence, and cutover/rollback gates.

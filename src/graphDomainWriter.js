@@ -7,7 +7,7 @@ const {persistDomainBatchInTransaction}=require('./domain/repository');
 
 const IMPORT_ONLY=new Set(['ListeningEvent','IdentityMapping','AcousticAnalysis','SimilarityAssessment']);
 const ALLOWED_NODE_LABELS=new Set(Object.values(domain.getOntology().entities).filter(type=>type.visibility!=='private').map(type=>type.key));
-const IMPORT_ONLY_RELATIONSHIPS=new Set(['MusicBrainzRelationship','RedirectsTo','HasMapping','MapsToRecording','AnalysisOf','ComparesRecording','SupportedByAnalysis']);
+const IMPORT_ONLY_RELATIONSHIPS=new Set(['MusicBrainzRelationship','ReleaseLabel','RedirectsTo','HasMapping','MapsToRecording','AnalysisOf','ComparesRecording','SupportedByAnalysis']);
 function stableString(value){return typeof value==='string'?value.trim():typeof value==='number'||typeof value==='boolean'?String(value):'';}
 function sanitizeIdentifier(value,fallback){return stableString(value).replace(/[^A-Za-z0-9_]/g,'_').replace(/^([^A-Za-z_])/,'_$1')||fallback;}
 function chatIdentity(threadId,turnId,tempId){return 'musicmesh:chat:'+createHash('sha256').update(JSON.stringify([threadId,turnId,tempId])).digest('hex');}

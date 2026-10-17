@@ -1,6 +1,6 @@
 # Personal history preparation and retrieval
 
-Current checkpoint: 17 October 2026. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-isolated` writes only an explicitly selected validation database. No command resubmits plays to ListenBrainz. Typed chat integration is implemented and verified on Neon validation. A limited acoustic comparison pilot is also validated. Production replacement, linked release/work detail retrieval and full acoustic collection remain later phases of the [plan](../plans/2026-10-17-brainz.md).
+Current checkpoint: 17 October 2026. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-isolated` writes only an explicitly selected validation database. No command resubmits plays to ListenBrainz. Typed chat integration is implemented and verified on Neon validation. A limited acoustic comparison pilot is also validated. The linked catalog collector is queued; live release import, production replacement and full acoustic collection remain pending phases of the [plan](../plans/2026-10-17-brainz.md).
 
 ## Acoustic feature collection
 
@@ -9,10 +9,10 @@ Coverage completed: 7,220 available recordings, 1,069 absent, zero unknown; avai
 ```powershell
 node scripts/importListeningHistory.js acoustic-features --prepared output/imports/2026-10-17/prepared --coverage output/imports/2026-10-17/acousticbrainz --cache output/imports/2026-10-17/acoustic-features
 Get-Content output/imports/2026-10-17/acoustic-features/progress.json
-Get-Content output/imports/2026-10-17/acoustic-features-fetch.error.log
+Get-Content output/imports/2026-10-17/acoustic-features-resume-2.error.log
 ```
 
-The current hidden worker was initially PID 53132; check the PID file and process before resuming. Do not run a second AcousticBrainz worker while it is active. The completed count worker is no longer needed. A stale lock may only be removed after verifying its PID is no longer alive. Repeating the command revalidates count evidence and cached responses. `--limit 25` produces a deliberately limited pilot. The final `manifest.json` hashes `analyses.ndjson`; `progress.json` distinguishes running/interrupted/limited/complete. Collection does not write the database, calculate similarity or make all 391,369 submissions part of the first pass. [Official bulk API and offset semantics](https://acousticbrainz.readthedocs.io/api.html).
+The original feature worker (PID 53132) stopped after timeouts. The current resumed worker was started as PID 46252; check the PID file and process before resuming. Do not run a second AcousticBrainz worker while it is active. The completed count worker is no longer needed. A stale lock may only be removed after verifying its PID is no longer alive. Repeating the command revalidates count evidence and cached responses. `--limit 25` produces a deliberately limited pilot. The final `manifest.json` hashes `analyses.ndjson`; `progress.json` distinguishes running/interrupted/limited/complete. Collection does not write the database, calculate similarity or make all 391,369 submissions part of the first pass. [Official bulk API and offset semantics](https://acousticbrainz.readthedocs.io/api.html).
 
 ## Verified inputs and reconciliation
 
@@ -67,7 +67,7 @@ node --env-file=.env.migration scripts/importListeningHistory.js load-isolated -
 node --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot output/imports/2026-10-17/validation-snapshot-1
 ```
 
-The compile destination must be empty; the example snapshot already exists. Use a new directory for a later collection checkpoint. Compilation records retrieved, pending, missing and failed lookups separately. It preserves mapped recording placeholders and unresolved listens; related embedded entities are explicitly marked as incomplete. Redirects retain the original provider mapping and add a typed `RedirectsTo` assertion.
+The compile destination must be empty; the example snapshot already exists and uses the historical 1.1 ontology. With current 1.2 code, recompile into a new directory before loading. Do not run the historical load commands unchanged. Use a new directory for a later collection checkpoint. Compilation records retrieved, pending, missing and failed lookups separately. It preserves mapped recording placeholders and unresolved listens; related embedded entities are explicitly marked as incomplete. Redirects retain the original provider mapping and add a typed `RedirectsTo` assertion.
 
 `load-isolated` rejects the production host and arbitrary targets before connecting. Allowed targets are the existing `ep-flat-glitter-au4xn3l9` Neon validation endpoint (pooled or direct, database `musicmesh`, TLS `verify-full`) and the local restore database at `127.0.0.1:55433/musicmesh_restore`. The local restore service was unavailable during this run; Neon validation was explicitly selected. Cached clients reject a changed connection target. `--replace-existing` deletes relationships, entities and import-batch receipts in that isolated database. It is not a production cutover command.
 
@@ -126,3 +126,27 @@ The output stores checksummed `analyses.ndjson`, `comparisons.ndjson`, `cohorts.
 Optional `compile --acoustic` validates source-history identity, hashes, classes and endpoints before adding AnalysisOf, ComparesRecording and SupportedByAnalysis relationships. No additional listens are submitted. The default anonymous graph still hides ListeningEvent and IdentityMapping. Selected public analysis/comparison evidence is available to chat through the bounded catalog projection.
 
 The current isolated snapshot has 68,264 entities and 88,481 relationships, including 25 analyses and 51 comparisons. Earlier pilot/snapshot files are historical local checkpoints, not production data. Collection still needs to finish, retry recorded failures, and generate a full comparison snapshot before production activation.
+
+
+## Selected releases and directly linked catalog
+
+```powershell
+node scripts/importListeningHistory.js fetch-catalog --prepared output/imports/2026-10-17/prepared --cache output/imports/2026-10-17/musicbrainz --wait-for-lock
+Get-Content output/imports/2026-10-17/musicbrainz/catalog-progress.json
+Get-Content output/imports/2026-10-17/catalog-fetch.error.log
+# Once the catalog pass has finished, compile into a fresh directory:
+node scripts/importListeningHistory.js compile --prepared output/imports/2026-10-17/prepared --cache output/imports/2026-10-17/musicbrainz --include-catalog --output output/imports/2026-10-17/catalog-snapshot-next
+```
+
+A worker is already queued: inspect `catalog-fetch.pid` and its live process before running another command. It waits for the original MusicBrainz recording lock. After handoff it retains serialized requests and at least 1.1-second spacing. Stale locks fail explicitly. `--limit N` creates a deliberately limited diagnostic manifest; repeating without the limit reuses cached successful responses and expands the full finite selection.
+
+Selection: 2,655 release IDs supplied in reconciled ListenBrainz mapping evidence; artists and works directly attached to listened recordings; release groups/billing artists from those editions; one layer of referenced non-discography context. Exact release lookups include ordered media/tracks and label entries. Artist lookups do not request full recording/release/work lists. Related outside artists/works remain embedded context. A selected release is not a verified listening edition. Sibling tracks do not add plays.
+
+The pass records requested/retrieved/missing/error results and explicit excluded categories in `musicbrainz/catalog-manifest.json`. `catalog-progress.json` is live; a prior completed manifest may lag it. Compilation with `--include-catalog` verifies the source history, recording seed status/content hashes, and every successful catalog response. Changed seed evidence requires recollection. A snapshot retains catalog completeness separately from recording and acoustic coverage. Unknown or failed requests are not evidence of absence.
+
+These are exact lookups, so there is no capped list to paginate. Release track counts are checked; incomplete tracklists fail rather than silently dropping tracks. Future entity browsing must follow [MusicBrainz pagination](https://musicbrainz.org/doc/MusicBrainz_API#Paging), including variable-sized release pages. Native area fields are preserved in raw provider payloads and typed context nodes; they are not converted into guessed relationship UUIDs.
+
+Timed-out AcousticBrainz batches now split into smaller serial requests (down to one recording if needed). Cached successful parent/child requests replay; HTTP failures are not automatically split, and three consecutive failed yielded responses stop collection. This is bounded retry recovery, not a guarantee that the service will complete. The first resumed pass recovered 150 timeout-affected analyses; the current full run remains in progress.
+
+
+Remaining boundary: the original recording lookup includes artist/work/recording/URL relationships. The queued closure does not retroactively fetch recording-place/event/instrument categories. Those categories need a further request/audit before claiming exhaustive recording metadata. Live release response compatibility and display are also pending; fixture checks alone do not establish them.

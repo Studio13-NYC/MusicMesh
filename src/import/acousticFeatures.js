@@ -71,6 +71,19 @@ function readCoverage(preparedDir,coverageDir){
   }
   return {manifest,records:ids.map(id=>records.get(id))};
 }
+async function* fetchFeatureBatch(client,batch){
+  const ids=batch.map(r=>r.id),url=lowLevelUrl(ids);
+  // An exhausted bulk timeout is evidence to try smaller requests, not absent audio.
+  let previous;
+  if(client.dir){const file=path.join(client.dir,sha256(url)+'.json');if(fs.existsSync(file)){previous=JSON.parse(fs.readFileSync(file));if(previous.url!==url)throw new Error('Feature cache URL mismatch');}}
+  const response=ids.length>1&&previous?.status==='error'&&previous.reason==='request-timeout'?previous:await client.get(url,body=>validateBulk(body,ids));
+  if(response.status==='error'&&response.reason==='request-timeout'&&ids.length>1){
+    const size=Math.min(5,Math.ceil(ids.length/2));
+    for(let i=0;i<batch.length;i+=size)yield* fetchFeatureBatch(client,batch.slice(i,i+size));
+    return;
+  }
+  yield {batch,response};
+}
 /** First submitted audio per available recording; full responses stay in the resumable local cache. */
 async function fetchAcousticFeatures({preparedDir,coverageDir,cacheDir,limit=Infinity,client:providedClient,onProgress=()=>{}}){
   if(limit!==Infinity&&(!Number.isSafeInteger(limit)||limit<1))throw new Error('limit must be a positive integer');
@@ -84,7 +97,7 @@ async function fetchAcousticFeatures({preparedDir,coverageDir,cacheDir,limit=Inf
   let failures=0;
   try{
     for(let i=0;i<selected.length;i+=25){
-      const batch=selected.slice(i,i+25),ids=batch.map(r=>r.id),response=await client.get(lowLevelUrl(ids),body=>validateBulk(body,ids));
+      for await(const {batch,response} of fetchFeatureBatch(client,selected.slice(i,i+25))){
       for(const record of batch){
         const document=response.body?.[record.id]?.['0'];let status=response.status!=='ok'?'error':document?'collected':'missing',reason;
         if(status==='collected')try{analyses.push(analysisFromDocument(record.id,0,document,{url:response.url,responseHash:response.bodyHash,retrievedAt:response.fetchedAt},record.count));}
@@ -93,6 +106,7 @@ async function fetchAcousticFeatures({preparedDir,coverageDir,cacheDir,limit=Inf
       }
       save();failures=response.status==='ok'?0:failures+1;
       if(failures>=3||(response.httpStatus>=400&&response.httpStatus<500&&response.httpStatus!==429))throw new Error('Acoustic feature requests interrupted; resume uses the verified cache');
+      }
     }
     progress.state=progress.processed<progress.total?'limited':progress.errors?'incomplete':'complete';
     const bytes=analyses.map(a=>JSON.stringify(a.toGraphNode())).join('\n')+(analyses.length?'\n':'');
@@ -102,4 +116,4 @@ async function fetchAcousticFeatures({preparedDir,coverageDir,cacheDir,limit=Inf
   }catch(error){progress.state='interrupted';save();throw error;}
   finally{fs.unlinkSync(lock);}
 }
-module.exports={lowLevelUrl,validateBulk,analysisFromDocument,readCoverage,fetchAcousticFeatures};
+module.exports={lowLevelUrl,validateBulk,analysisFromDocument,readCoverage,fetchAcousticFeatures,fetchFeatureBatch};

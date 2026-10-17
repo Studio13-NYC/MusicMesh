@@ -60,7 +60,7 @@
   "relationshipGroups": [
     { "id": "musicbrainz", "label": "MusicBrainz relationships", "types": ["MusicBrainzRelationship"] },
     { "id": "billing", "label": "Artist billing", "types": ["CreditedAs", "CreditsArtist"] },
-    { "id": "structure", "label": "Catalog structure", "types": ["EditionOf", "HasMedium", "HasTrack", "UsesRecording", "PerformanceOf", "RedirectsTo"] },
+    { "id": "structure", "label": "Catalog structure", "types": ["EditionOf", "ReleaseLabel", "HasMedium", "HasTrack", "UsesRecording", "PerformanceOf", "RedirectsTo"] },
     { "id": "acoustics", "label": "Acoustic evidence", "types": ["AnalysisOf", "ComparesRecording", "SupportedByAnalysis"] },
     { "id": "membership", "label": "Membership", "types": ["MEMBER_OF", "HAS_MEMBER"] },
     {

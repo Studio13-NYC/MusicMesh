@@ -11,7 +11,7 @@ function checkedFile(dir,manifest,name){
   if(sha256(bytes)!==manifest.files[name])throw new Error(`Snapshot checksum mismatch: ${name}`);
   return bytes;
 }
-function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir}){
+function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCatalog=false}){
   const prepared=JSON.parse(fs.readFileSync(path.join(preparedDir,'manifest.json')));
   const events=readLines(checkedFile(preparedDir,prepared,'events.ndjson')).map(entityFromGraph);
   const mappings=readLines(checkedFile(preparedDir,prepared,'mappings.ndjson')).map(entityFromGraph);
@@ -54,6 +54,18 @@ function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir}){
       addEdge(new domain.RedirectsTo({source,target,assertionKey:'musicbrainz-redirect',properties:{requestUrl:url,source:'musicbrainz',evidenceBasis:'provider',responseHash:response.bodyHash}}));recordingLookups.redirects++;
     }
   }
+  let catalog=null;
+  if(includeCatalog){
+    const {manifest,responses}=require('./catalogClosure').readCatalogResponses(cacheDir,prepared,recordingIds);
+    for(const {type,requestedId,response} of responses){
+      const graph=require('./catalogGraph').catalogGraph(type,response);graph.nodes.forEach(addNode);graph.relationships.forEach(addEdge);
+      if(requestedId!==response.body.id){
+        const original=require('./catalogGraph').providerEntity(type,{id:requestedId,title:`Redirected ${type} (${requestedId})`},{url:response.url,retrievedAt:response.fetchedAt,responseHash:response.bodyHash});addNode(original);
+        addEdge(new domain.RedirectsTo({source:original,target:nodes.get(`musicbrainz:${type}:${response.body.id}`),assertionKey:'musicbrainz-redirect',properties:{requestUrl:response.url,source:'musicbrainz',responseHash:response.bodyHash}}));
+      }
+    }
+    catalog={state:manifest.state,requested:manifest.requested,retrieved:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,selection:manifest.selection,excluded:manifest.excluded,pagination:manifest.pagination,manifestHash:sha256(JSON.stringify(manifest))};
+  }
   let acoustic=null;
   if(acousticDir){const graph=require('./acousticSimilarity').readAcousticGraph(acousticDir,nodes,prepared);graph.nodes.forEach(addNode);graph.relationships.forEach(addEdge);acoustic=graph.receipt;}
   fs.mkdirSync(outputDir,{recursive:true});
@@ -64,7 +76,7 @@ function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir}){
   }
   const counts={};for(const node of nodes.values())counts[node.type]=(counts[node.type]||0)+1;
   const manifest={version:1,ontologyVersion:domain.getOntology().version,createdAt:new Date().toISOString(),sourceInput:prepared.input,
-    databaseWritten:false,counts,nodes:nodes.size,relationships:edges.size,recordingLookups,acoustic,files};
+    databaseWritten:false,counts,nodes:nodes.size,relationships:edges.size,recordingLookups,catalog,acoustic,files};
   fs.writeFileSync(path.join(outputDir,'manifest.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});
   return manifest;
 }

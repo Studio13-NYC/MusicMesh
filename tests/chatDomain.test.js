@@ -14,6 +14,17 @@ test('chat vocabulary uses declared classes without generic or legacy label fall
   assert.equal(ALLOWED_NODE_LABELS.has('ReleaseGroup'),true);
   assert.equal(ALLOWED_NODE_LABELS.has('ListeningEvent'),false);
 });
+test('chat can reuse label catalog evidence but cannot invent a provider label entry',{skip:!enabled},async()=>{
+  assertIsolatedTarget(process.env.DATABASE_URL);const db=getDatabase(),threadId='release-label-test:'+randomUUID();
+  const release=new domain.Release({id:threadId+':release',name:'Edition',properties:{threadId}}),label=new domain.Label({id:threadId+':label',name:'Label',properties:{threadId}});
+  const edge=new domain.ReleaseLabel({source:release,target:label,assertionKey:'provider-label-entry',properties:{threadId,source:'musicbrainz',catalogNumber:'ABC-001'}});
+  const graph={nodes:[{tempId:'r',type:'Release',matchedCanonId:release.id},{tempId:'l',type:'Label',matchedCanonId:label.id}],relationships:[{sourceRef:'r',targetRef:'l',type:'ReleaseLabel'}]};
+  try{await persistDomainBatch(db,{nodes:[release,label],relationships:[edge]});
+    await assert.rejects(()=>persistChatGraph({groundedGraph:graph,threadId,turnId:'invent'}),/verified relationship/);
+    graph.relationships[0].matchedRelationshipId=edge.id;
+    assert.equal((await persistChatGraph({groundedGraph:graph,threadId,turnId:'reuse'})).persistedRelationships[0].elementId,edge.id);
+  }finally{await db.relationship.deleteMany({where:{threadId}});await db.entity.deleteMany({where:{threadId}});}
+});
 test('typed chat writes preserve same-name identities, parallel assertions, and atomic rejection',{skip:!enabled},async()=>{
   assertIsolatedTarget(process.env.DATABASE_URL);const db=getDatabase(),threadId='chat-domain-test:'+randomUUID(),turnId='first';
   const graph={anchor:{tempId:'r1'},nodes:[{tempId:'r1',name:threadId,type:'Recording'},{tempId:'r2',name:threadId,type:'Recording'},{tempId:'w',name:threadId,type:'Work'}],relationships:[{sourceRef:'r1',targetRef:'w',type:'PerformanceOf',assertionKey:'episode-a',properties:{beginDate:'1997'}},{sourceRef:'r1',targetRef:'w',type:'PerformanceOf',assertionKey:'episode-b',properties:{beginDate:'1998'}}]};

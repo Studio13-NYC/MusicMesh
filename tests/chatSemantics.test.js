@@ -14,6 +14,7 @@ test('catalog evidence retains acoustic interpretation and excludes incompatible
   const properties={features:{bpm:{value:120,unit:'beats/minute'}},extractorVersion:'music 1.0',score:0.8,scoreMeaning:'similarity',method:'cosine',methodVersion:'1',featureFamily:'rhythm',explanation:[{feature:'bpm',difference:1}],cohortSize:3,interpretation:'Relative candidate',selectionPolicy:'first-submission-v1',selectionLimitation:'Audio match unverified',rawProvider:{huge:'payload'}};
   assert.deepEqual(catalogProperties(properties),Object.fromEntries(Object.entries(properties).filter(([key])=>key!=='rawProvider')));
   assert.equal(isDomainRecord({id:'legacy-storage-id',labels:['Genre'],properties:{id:'genre:rock',name:'Rock'}}),false);
+  assert.deepEqual(catalogProperties({catalogNumber:'ABC-001',date:'1999',barcode:'00123',format:'CD',number:'A1'}),{catalogNumber:'ABC-001',date:'1999',barcode:'00123',format:'CD',number:'A1'});
 });
 function fakeModel(t,reply){
   const requests=[];t.mock.method(globalThis,'fetch',async(url,options)=>{

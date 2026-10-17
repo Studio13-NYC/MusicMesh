@@ -1,7 +1,21 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {lowLevelUrl,validateBulk,analysisFromDocument}=require('../src/import/acousticFeatures');
+const collect=async stream=>{const result=[];for await(const item of await stream)result.push(item);return result;};
 const a='bf7c0045-d389-4ef9-9df4-0a375000076c',b='2f6ba60a-5ebb-4856-a4bb-3d31adae806c';
 const document=()=>({metadata:{version:{extractor:'music 1.0',essentia:'2.1-beta2'},audio_properties:{analysis_sample_rate:44100,length:200,downmix:'mix',equal_loudness:0},tags:{file_name:'never publish this'}},rhythm:{bpm:120,onset_rate:3,danceability:1.4},lowlevel:{mfcc:{mean:Array.from({length:13},(_,i)=>i)}},tonal:{key_key:'A',key_scale:'minor',key_strength:0.8}});
+test('timed-out bulk feature requests split while service failures retain their error status',async()=>{
+ const {fetchFeatureBatch}=require('../src/import/acousticFeatures');const calls=[];
+ const client={get:async(url)=>{const ids=new URL(url).searchParams.get('recording_ids').split(';').map(x=>x.split(':')[0]);calls.push(ids);return ids.length>1?{status:'error',reason:'request-timeout'}:{status:'ok',url,body:{[ids[0]]:{'0':document()}}};}};
+ const result=await collect(fetchFeatureBatch(client,[{id:a},{id:b}]));assert.equal(result.length,2);assert.ok(result.every(r=>r.response.status==='ok'));assert.equal(calls.length,3);
+ const service=await collect(fetchFeatureBatch({get:async()=>({status:'error',reason:'HTTP 503'})},[{id:a},{id:b}]));assert.equal(service.length,1);assert.equal(service[0].response.status,'error');
+});
+test('split batches stop issuing requests when three yielded failures trip the circuit breaker',async()=>{
+ const {fetchFeatureBatch}=require('../src/import/acousticFeatures');let singles=0,calls=0;
+ const client={get:async(url)=>{calls++;const ids=new URL(url).searchParams.get('recording_ids').split(';');if(ids.length===1){singles++;return {status:'error',reason:'HTTP 503'};}return {status:'error',reason:'request-timeout'};}};
+ const batch=Array.from({length:25},(_,i)=>({id:'00000000-0000-4000-8000-'+String(i).padStart(12,'0')}));let failures=0;
+ for await(const {response} of await fetchFeatureBatch(client,batch)){if(response.status==='error'&&++failures===3)break;}
+ assert.equal(singles,3);assert.ok(calls<15);
+});
 test('bulk acoustic requests preserve offsets and reject unexpected identities',()=>{
   assert.equal(new URL(lowLevelUrl([a,b],0)).searchParams.get('recording_ids'),a+':0;'+b+':0');
   assert.throws(()=>lowLevelUrl(Array(26).fill(a)),/25/);

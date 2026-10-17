@@ -22,6 +22,12 @@ test("structural Track identity requires medium, position, and recording", () =>
   assert.equal(t.toGraphNode().labels[0], "Track");
   assert.throws(() => new domain.Medium({ name: "Disc", externalId }), /external.*type|external.*identity/i);
 });
+test("redirects retain provider type and label entries do not imply artist contracts",()=>{
+ const a=new domain.Release({id:'r1',name:'Old'}),b=new domain.Release({id:'r2',name:'Current'}),artist=new domain.Artist({id:'a',name:'Artist'}),label=new domain.Label({id:'l',name:'Label'});
+ assert.doesNotThrow(()=>new domain.RedirectsTo({source:a,target:b,assertionKey:'redirect',properties:{requestUrl:'https://musicbrainz.org/ws/2/release/test'}}));
+ assert.throws(()=>new domain.RedirectsTo({source:a,target:artist,assertionKey:'redirect',properties:{requestUrl:'https://musicbrainz.org/ws/2/release/test'}}),/same entity type/);
+ assert.throws(()=>new domain.ReleaseLabel({source:artist,target:label,assertionKey:'label'}),/endpoint/);
+});
 
 test("relationships validate endpoint types and keep parallel context identity", () => {
   const r = recording();
