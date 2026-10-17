@@ -30,7 +30,7 @@ export function getNodeFilterGroupId(kind) {
 export function getRelationshipFilterGroupId(type) {
   const normalized = String(type || "").toUpperCase();
   const exactGroup = RELATIONSHIP_FILTER_GROUPS.find(
-    (group) => group.id !== "other" && group.types.includes(normalized)
+    (group) => group.id !== "other" && group.types.some(value => value.toUpperCase() === normalized)
   );
 
   if (exactGroup) {

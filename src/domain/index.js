@@ -31,6 +31,7 @@ function validateFields(definition, properties) {
     let valid = true;
     switch (field.type) {
       case "string": valid = typeof value === "string" && (!required || nonempty(value)); break;
+      case "mbid": valid = typeof value === "string" && MBID.test(value); break;
       case "positiveInteger": valid = Number.isSafeInteger(value) && value > 0; break;
       case "nonNegativeInteger": valid = Number.isSafeInteger(value) && value >= 0; break;
       case "finite": valid = typeof value === "number" && Number.isFinite(value); break;
@@ -139,6 +140,8 @@ class DomainRelationship {
     if (!properties || typeof properties !== "object" || Array.isArray(properties)) throw new Error("properties must be an object");
     for (const key of ["assertionKey", "ontologyVersion"]) if (Object.hasOwn(properties, key)) throw new Error(`Reserved property ${key}`);
     validateFields(definition, properties);
+    if (definition.key === "CreditsArtist" && source.properties.credits[properties.position]?.artistId !== target.id) throw new Error("CreditsArtist: endpoint contradicts ordered credit position");
+    if (definition.key === "MusicBrainzRelationship" && (properties.sourceType !== source.type || properties.targetType !== target.type)) throw new Error("MusicBrainzRelationship: endpoint type mismatch");
     this.id = `relationship:${createHash("sha256").update(JSON.stringify([definition.key, source.id, target.id, assertionKey])).digest("hex")}`;
     this.type = definition.key;
     this.source = source.id;
@@ -152,6 +155,9 @@ class DomainRelationship {
   }
 }
 class EditionOf extends DomainRelationship { static type = "EditionOf"; }
+class RedirectsTo extends DomainRelationship { static type = "RedirectsTo"; }
+class CreditsArtist extends DomainRelationship { static type = "CreditsArtist"; }
+class MusicBrainzRelationship extends DomainRelationship { static type = "MusicBrainzRelationship"; }
 class HasMedium extends DomainRelationship { static type = "HasMedium"; }
 class HasTrack extends DomainRelationship { static type = "HasTrack"; }
 class UsesRecording extends DomainRelationship { static type = "UsesRecording"; }
@@ -171,4 +177,4 @@ function getTypeDefinition(key) {
 function getOntologyPrompt() {
   return [`MusicMesh domain semantics ${ontology.version}`, ...ontology.rules, ...["Work", "Recording", "ReleaseGroup", "Release", "Track", "Artist", "ListeningEvent", "AcousticAnalysis", "SimilarityAssessment"].map(key => `${key}: ${ontology.entities[key].meaning}`)].join("\n");
 }
-module.exports = { getOntology, getTypeDefinition, getOntologyPrompt, DomainEntity, DomainRelationship, Artist, Work, Recording, ReleaseGroup, Release, Label, Area, Place, Event, Instrument, Genre, Series, Url, Medium, Track, ArtistCredit, ListeningEvent, IdentityMapping, AcousticAnalysis, SimilarityAssessment, MusicScene, Style, RecordingSession, Project, Mix, Master, Stem, Equipment, Amplifier, EffectsPedal, Guitar, Synthesizer, Console, SignalChain, Company, Technique, Process, Format, Technology, SourceDocument, EvidenceAssertion, EditionOf, HasMedium, HasTrack, UsesRecording, CreditedAs, PerformanceOf, HasMapping, MapsToRecording, AnalysisOf, ComparesRecording, SupportedByAnalysis };
+module.exports = { getOntology, getTypeDefinition, getOntologyPrompt, DomainEntity, DomainRelationship, Artist, Work, Recording, ReleaseGroup, Release, Label, Area, Place, Event, Instrument, Genre, Series, Url, Medium, Track, ArtistCredit, ListeningEvent, IdentityMapping, AcousticAnalysis, SimilarityAssessment, MusicScene, Style, RecordingSession, Project, Mix, Master, Stem, Equipment, Amplifier, EffectsPedal, Guitar, Synthesizer, Console, SignalChain, Company, Technique, Process, Format, Technology, SourceDocument, EvidenceAssertion, EditionOf, RedirectsTo, CreditsArtist, MusicBrainzRelationship, HasMedium, HasTrack, UsesRecording, CreditedAs, PerformanceOf, HasMapping, MapsToRecording, AnalysisOf, ComparesRecording, SupportedByAnalysis };

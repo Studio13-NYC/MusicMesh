@@ -65,27 +65,6 @@ function stableString(value) {
   return "";
 }
 
-function stableValueFingerprint(value) {
-  const nativeValue = toNativeValue(value);
-
-  if (nativeValue === null || nativeValue === undefined) {
-    return "null";
-  }
-
-  if (Array.isArray(nativeValue)) {
-    return `[${nativeValue.map((entry) => stableValueFingerprint(entry)).join(",")}]`;
-  }
-
-  if (typeof nativeValue === "object") {
-    return `{${Object.keys(nativeValue)
-      .sort((left, right) => left.localeCompare(right))
-      .map((key) => `${key}:${stableValueFingerprint(nativeValue[key])}`)
-      .join(",")}}`;
-  }
-
-  return String(nativeValue);
-}
-
 function pickNodeLabel(properties, id) {
   const keys = [
     "name",
@@ -107,10 +86,6 @@ function pickNodeLabel(properties, id) {
   }
 
   return id;
-}
-
-function normalizeDuplicateKeyPart(value) {
-  return stableString(value).toLocaleLowerCase();
 }
 
 function parseJsonProperty(value, fallback) {
@@ -421,15 +396,18 @@ function normalizeNodeRecord(record, { seedId, positionsById }) {
 
 function normalizeRelationshipRecord(record) {
   const type = stableString(record.type) || "RELATED_TO";
+  const properties = record.properties || {};
 
   return {
     id: stableString(record.id),
     source: stableString(record.source),
     target: stableString(record.target),
     type,
+    label: type === "MusicBrainzRelationship" ? stableString(properties.providerTypeName) || type : type,
     styleKey: pickRelationshipStyle(type),
     summary: {
-      propertyCount: Object.keys(visibleProperties(record.properties || {})).length
+      propertyCount: Object.keys(visibleProperties(properties)).length,
+      ...(type === "MusicBrainzRelationship" ? {providerTypeId:properties.providerTypeId, definitionUrl:properties.definitionUrl} : {})
     }
   };
 }
@@ -444,154 +422,15 @@ function shouldHideRelationshipRecord(record) {
   return HIDDEN_GRAPH_RELATIONSHIP_TYPES.includes(type);
 }
 
-function countMeaningfulProperties(properties) {
-  return Object.values(toNativeValue(properties || {})).reduce((total, value) => {
-    const normalized = toNativeValue(value);
-
-    if (normalized === null || normalized === undefined) {
-      return total;
-    }
-
-    if (typeof normalized === "string") {
-      return normalized.trim() ? total + 1 : total;
-    }
-
-    if (Array.isArray(normalized)) {
-      return normalized.length > 0 ? total + 1 : total;
-    }
-
-    if (typeof normalized === "object") {
-      return Object.keys(normalized).length > 0 ? total + 1 : total;
-    }
-
-    return total + 1;
-  }, 0);
-}
-
-function compareDuplicateCandidates(left, right, context) {
-  const leftId = stableString(left.id);
-  const rightId = stableString(right.id);
-  const leftProperties = toNativeValue(left.properties || {});
-  const rightProperties = toNativeValue(right.properties || {});
-  const leftDegree = context.degreeById.get(leftId) || 0;
-  const rightDegree = context.degreeById.get(rightId) || 0;
-  const leftPropertyCount = countMeaningfulProperties(leftProperties);
-  const rightPropertyCount = countMeaningfulProperties(rightProperties);
-
-  if (leftId === context.seedId && rightId !== context.seedId) {
-    return -1;
-  }
-
-  if (rightId === context.seedId && leftId !== context.seedId) {
-    return 1;
-  }
-
-  if (leftDegree !== rightDegree) {
-    return rightDegree - leftDegree;
-  }
-
-  if (leftPropertyCount !== rightPropertyCount) {
-    return rightPropertyCount - leftPropertyCount;
-  }
-
-  return leftId.localeCompare(rightId);
-}
-
-function collapseExactLabelDuplicates(seedRecord, rawNodes, rawRelationships) {
-  const seedId = stableString(seedRecord.id);
-  const degreeById = new Map();
-
-  for (const relationship of rawRelationships || []) {
-    const sourceId = stableString(relationship.source);
-    const targetId = stableString(relationship.target);
-
-    degreeById.set(sourceId, (degreeById.get(sourceId) || 0) + 1);
-    degreeById.set(targetId, (degreeById.get(targetId) || 0) + 1);
-  }
-
-  const duplicateGroups = new Map();
-
-  for (const node of rawNodes || []) {
-    const id = stableString(node.id);
-    const properties = toNativeValue(node.properties || {});
-    const label = pickNodeLabel(properties, id);
-    const kind = pickNodeKind(node.labels, properties);
-    const duplicateKey = `${normalizeDuplicateKeyPart(kind)}|||${normalizeDuplicateKeyPart(label)}`;
-
-    if (!duplicateGroups.has(duplicateKey)) {
-      duplicateGroups.set(duplicateKey, []);
-    }
-
-    duplicateGroups.get(duplicateKey).push(node);
-  }
-
-  const replacementById = new Map();
-  let duplicateNodeCount = 0;
-  let duplicateGroupCount = 0;
-
-  for (const nodes of duplicateGroups.values()) {
-    if (nodes.length < 2) {
-      continue;
-    }
-
-    duplicateGroupCount += 1;
-    const sortedNodes = nodes
-      .slice()
-      .sort((left, right) => compareDuplicateCandidates(left, right, { degreeById, seedId }));
-    const canonicalNode = sortedNodes[0];
-    const canonicalId = stableString(canonicalNode.id);
-
-    for (const duplicateNode of sortedNodes.slice(1)) {
-      replacementById.set(stableString(duplicateNode.id), canonicalId);
-      duplicateNodeCount += 1;
-    }
-  }
-
-  const dedupedNodes = (rawNodes || []).filter(
-    (node) => !replacementById.has(stableString(node.id))
-  );
-  const seenRelationships = new Set();
-  const dedupedRelationships = [];
-
-  for (const relationship of rawRelationships || []) {
-    const sourceId = replacementById.get(stableString(relationship.source)) || stableString(relationship.source);
-    const targetId = replacementById.get(stableString(relationship.target)) || stableString(relationship.target);
-
-    if (!sourceId || !targetId || sourceId === targetId) {
-      continue;
-    }
-
-    const dedupeKey = [
-      sourceId,
-      targetId,
-      stableString(relationship.type),
-      stableValueFingerprint(relationship.properties || {})
-    ].join("|||");
-
-    if (seenRelationships.has(dedupeKey)) {
-      continue;
-    }
-
-    seenRelationships.add(dedupeKey);
-    dedupedRelationships.push({
-      ...relationship,
-      source: sourceId,
-      target: targetId
-    });
-  }
-
-  const nextSeedId = replacementById.get(seedId) || seedId;
-  const nextSeedRecord =
-    dedupedNodes.find((node) => stableString(node.id) === nextSeedId) || seedRecord;
-
+// A shared title is not shared identity. Preserve provider IDs and parallel assertions.
+function deduplicateGraphIdentities(seedRecord, rawNodes, rawRelationships) {
+  const nodes = [...new Map((rawNodes || []).map(node => [node.id, node])).values()];
+  const edges = [...new Map((rawRelationships || []).map(edge => [edge.id, edge])).values()];
   return {
-    seedRecord: nextSeedRecord,
-    rawNodes: dedupedNodes,
-    rawRelationships: dedupedRelationships,
-    diagnostics: {
-      exactLabelDuplicateGroupCount: duplicateGroupCount,
-      exactLabelDuplicateNodeCount: duplicateNodeCount
-    }
+    seedRecord,
+    rawNodes: nodes,
+    rawRelationships: edges,
+    diagnostics: { exactLabelDuplicateGroupCount: 0, exactLabelDuplicateNodeCount: 0 }
   };
 }
 
@@ -721,7 +560,7 @@ function transformGraphRecords(seedRecord, rawNodes, rawRelationships, diagnosti
       visibleNodeIds.has(stableString(relationship.source)) &&
       visibleNodeIds.has(stableString(relationship.target))
   );
-  const collapsedGraph = collapseExactLabelDuplicates(
+  const collapsedGraph = deduplicateGraphIdentities(
     seedRecord,
     visibleRawNodes,
     visibleRawRelationships
@@ -791,37 +630,7 @@ async function searchGraphSeeds(query, limit = DEFAULT_SEARCH_LIMIT) {
       properties
     };
   });
-  const groupedResults = new Map();
-
-  for (const result of mappedResults) {
-    const duplicateKey = `${normalizeDuplicateKeyPart(result.kind)}|||${normalizeDuplicateKeyPart(result.label)}`;
-
-    if (!groupedResults.has(duplicateKey)) {
-      groupedResults.set(duplicateKey, []);
-    }
-
-    groupedResults.get(duplicateKey).push(result);
-  }
-
-  return [...groupedResults.values()]
-    .map((results) =>
-      results
-        .slice()
-        .sort((left, right) => {
-          if (left.degree !== right.degree) {
-            return right.degree - left.degree;
-          }
-
-          const leftPropertyCount = countMeaningfulProperties(left.properties);
-          const rightPropertyCount = countMeaningfulProperties(right.properties);
-
-          if (leftPropertyCount !== rightPropertyCount) {
-            return rightPropertyCount - leftPropertyCount;
-          }
-
-          return left.id.localeCompare(right.id);
-        })[0]
-    )
+  return mappedResults
     .map(({ labels, properties, ...result }) => result)
     .sort((left, right) => {
       if (left.degree !== right.degree) {
@@ -913,7 +722,9 @@ async function getNodeDetail(nodeId) {
   const payload = await store.detail(normalizedNodeId, HIDDEN_GRAPH_NODE_LABELS, HIDDEN_GRAPH_RELATIONSHIP_TYPES, DEFAULT_DETAIL_RELATIONSHIP_TYPE_LIMIT);
 
   if (!payload) {
-    throw new Error(`No graph node exists for id ${normalizedNodeId}.`);
+    const error = new Error("Graph node not found.");
+    error.code = "GRAPH_NODE_NOT_FOUND";
+    throw error;
   }
 
   const properties = toNativeValue(payload.node.properties || {});

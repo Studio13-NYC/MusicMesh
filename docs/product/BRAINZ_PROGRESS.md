@@ -19,12 +19,12 @@ Use the [standalone design](../research/2026-10-17-music-data-standards/MODEL_AN
 | Work | State | Evidence / limitation |
 |---|---|---|
 | Repository cleanup and preparation | Complete and pushed | `c960400`; both annotated tags verified on origin. Azure run `39067600782` succeeded. Private/generated files ignored; no untracked leftovers at checkpoint. |
-| Domain classes and semantic catalog | Implemented and deployed | 41 concrete entity classes, 11 structural relationship classes; 58 legacy labels and 56 predicates classified. Generated [reference](DOMAIN_MODEL.md); public ontology matches local catalog. |
+| Domain classes and semantic catalog | Implemented and deployed | 41 concrete entity classes, 14 relationship classes in semantic version 1.1.0; 58 legacy labels and 56 predicates classified. Generated [reference](DOMAIN_MODEL.md); public ontology matches local catalog. |
 | Agent/API access to semantics | Discovery implemented; prompt integration pending | `src/domain`, constructor `.definition`, generated docs and `GET /api/ontology`; Azure route included. Prompt integration moves with writer enforcement to avoid conflicting with the old allow-list. |
-| Import preparation and validation | Prepared and reconciled locally | All 21,415 CSV events match the official ListenBrainz export. 20,448 plays have provider matches to 8,289 recordings; 967 remain unresolved. No database write. |
+| Import preparation and validation | Prepared and reconciled locally | All 21,415 CSV events match the official ListenBrainz export. 20,448 plays have provider matches to 8,289 recordings; 967 remain unresolved. Baseline now loaded in isolated validation; production unchanged. |
 | MusicBrainz enrichment | Recording retrieval started | Three live lookups passed; resumable worker started for all 8,289 matched recordings. Read local progress before claiming completion. Linked detail and acoustic passes remain pending. |
 | AcousticBrainz enrichment | Access verified, import pending | Count and low-level data retrieved for Severed; not a coverage audit. |
-| Replacement of old database data | Not performed | User says old data is not needed. Reset only as part of verified replacement process. |
+| Replacement of old database data | Isolated validation replaced; production pending | Verified snapshot and replay in Neon validation. Production cutover follows chat-writer enforcement and remaining enrichment. |
 
 ## Credentials
 
@@ -55,3 +55,19 @@ Implemented `brainz:import prepare` and `fetch-recordings`, with strict CSV pars
 Validation: 29 tests passed and one existing isolated-database test skipped; `npm run build` passed. Initial failing tests covered missing implementation, official export directory handling and duplicate occurrence reuse; each was made green. Three real recording responses passed validation. Repeating preparation returned the identical manifest and verified payload hashes. Full recording retrieval started in a hidden process, initially PID 48996; current truth is in `output/imports/2026-10-17/musicbrainz/progress.json` and the process/log files, not this historical PID.
 
 Ruling: use the signed-in official export rather than retrieve/save an API token — the exported data includes the needed provider matches; future refreshes require another export or a separately configured token.
+
+## 17 October — isolated catalog import and workbench validation
+
+Implemented checksum-validated graph compilation and typed Prisma batch persistence without changing the Entity/Relationship storage architecture. Semantic version 1.1.0 adds CreditsArtist, MusicBrainzRelationship and RedirectsTo. Provider relationship UUIDs, canonical direction, dates, attributes, observation hashes and definition URLs remain accessible. Embedded linked entities are distinguished from full lookups and unresolved mapped placeholders.
+
+The first fixed snapshot contains 60,449 entities and 63,295 relationships, including all 21,415 plays and 21,415 mapping records. It includes 2,336 fetched recording responses, 13 redirects, 5,953 pending responses and zero failures at compile time. Node totals: 9,119 Recording, 3,862 Artist, 585 ArtistCredit, 1,912 Work and 2,141 Url. Extra Recording objects are linked context/redirect targets, not additional scrobbles. All 967 unresolved plays are retained.
+
+Loaded explicitly into the existing Neon validation branch using `.env.migration`; production was not reset. Local restore on port 55433 was unavailable, so that infrastructure limitation is recorded rather than bypassed. Replayed the full snapshot without replacement: 60,449 nodes and 63,295 relationships verified, zero records created. Receipt completed at 21:59 UTC. [Commands, exact targets and limitations](HISTORY_IMPORT.md).
+
+Read paths now exclude private source-event and mapping classes before search, degree counts, direct detail and traversal. Private nodes cannot bridge otherwise public nodes. Missing and private IDs both return HTTP 404. Schema discovery uses aggregate type queries and semantic definitions instead of reading all payloads. UI identity handling retains distinct same-title recordings and parallel assertions; MusicBrainz edges show provider names, and Work has a separate filter group.
+
+Browser validation on the local workbench backed by Neon validation loaded Severed as a still-pending recording and These Are the Times with billing metadata. I Think I'm Paranoid loaded a 44-node/53-edge neighborhood including artists, its distinct Work, recording versions and public URLs. Provider relationship labels and filter groups rendered correctly. Screenshot: `output/imports/2026-10-17/validation-workbench.png`. The inspector currently exposes raw provider JSON; a polished evidence display remains future UI work. Chat writes were disabled on this local validation server because the old writer is not migrated yet.
+
+Validation: 35 default tests passed, four database-dependent tests skipped; all three Brainz integration tests passed separately on the explicit Neon validation target. Build and Azure bundle loading passed (existing large-chunk and Functions test-mode warnings remain). Fresh read-only review found a cached-client target-switch hazard and insufficient stored-endpoint validation. Both were reproduced as failing tests and fixed; full replay and integration tests passed afterward. Local HTTP checks verified catalog detail 200, private/absent detail 404. Private evidence: `validation-read-verification.json`, `validation-replay.log`, and the snapshot receipt under `output/imports/2026-10-17/`.
+
+At 22:01 UTC the existing collection worker was still running: 2,911 of 8,289 responses successful, zero failed/missing responses. This is a point-in-time observation; inspect `musicbrainz/progress.json` for current state. No second MusicBrainz worker was started. Next implementation work remains semantic prompt/chat-writer enforcement, linked release/work/artist detail closure, AcousticBrainz coverage/comparisons and production activation. Full collection and complete product migration are not claimed by this checkpoint.

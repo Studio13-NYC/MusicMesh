@@ -155,7 +155,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
             "line-style": "data(lineStyle)",
             "arrow-scale": 0.85,
             opacity: 0.88,
-            label: "data(type)",
+            label: "data(label)",
             color: "#8fa0b7",
             "font-size": 10,
             "text-background-color": "#07131f",
@@ -324,6 +324,7 @@ export const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
           source: edge.source,
           target: edge.target,
           type: edge.type,
+          label: edge.label || edge.type,
           color: "#6e86a3",
           width: edge.styleKey === "solid" ? 2 : 2.5,
           lineStyle: EDGE_STYLE_MAP[edge.styleKey] || "solid"

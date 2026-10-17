@@ -688,7 +688,7 @@ function handleGraphDemoNodeDetail(request, response, nodeId) {
       sendJson(response, 200, detail);
     })
     .catch((error) => {
-      sendJson(response, 500, { error: error.message });
+      sendJson(response, error.code === "GRAPH_NODE_NOT_FOUND" ? 404 : 500, { error: error.message });
     });
 }
 

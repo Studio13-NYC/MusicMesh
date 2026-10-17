@@ -8,11 +8,13 @@ The user approved the [standalone model and personal-history import design](../r
 
 The old generated database content is disposable: it is not an identity or evidence source for the new catalog. The new source is the 21,415-play Last.fm history already imported into ListenBrainz, plus available MusicBrainz and AcousticBrainz metadata. Keep Prisma/PostgreSQL and the existing graph architecture; introduce explicit domain classes and shared semantics. The approved scope is the user's listened catalog and relevant connected entities, not a global mirror.
 
-`prebrainz` marks the last successful deployed runtime, `5a404fa` (Actions run `34173029047`). `withBrainz` marks documentation/cleanup checkpoint `c960400` before implementation; it does not mean the history import is complete. The first implementation adds domain classes and a shared `/api/ontology` catalog; writer enforcement and the new import remain pending. Implementation commits and verification are recorded in the progress report.
+`prebrainz` marks the last successful deployed runtime, `5a404fa` (Actions run `34173029047`). `withBrainz` marks documentation/cleanup checkpoint `c960400` before implementation; it does not mean the history import is complete. The implementation adds domain classes, a shared `/api/ontology` catalog and isolated import support; chat-writer enforcement and production activation remain pending. Implementation commits and verification are recorded in the progress report.
 
 Current live counts at the start of this work were 312 entities and 505 relationships, all entities sourced from chat. The September counts below are historical migration evidence. Root `.env` still selects production. No production reset or new import has happened at this checkpoint.
 
 History preparation now reconciles all 21,415 CSV plays with the official ListenBrainz export. Provider matches cover 20,448 plays and 8,289 recordings; 967 plays remain unresolved. A resumable local recording retrieval worker has started. Read [HISTORY_IMPORT.md](HISTORY_IMPORT.md) for commands, artifact paths, process checks and the remaining import boundary. Check its actual progress before launching another worker.
+
+The isolated Neon validation database now holds the first history/catalog snapshot: 60,449 entities and 63,295 relationships, including all 21,415 plays. Replaying it created zero additional records. Semantic version 1.1.0 adds ordered billing links, actual MusicBrainz relationship-type assertions and explicit ID redirects. Public graph reads exclude personal event/mapping classes; schema discovery uses aggregates and definitions instead of scanning every payload. Distinct same-title recordings remain distinct in the UI. The local validation API is run with maintenance enabled to prevent legacy chat writes into the new catalog. Production has not been reset.
 
 ## Historical migration state — September 2026
 

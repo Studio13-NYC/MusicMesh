@@ -13,7 +13,7 @@ function renderDomainModel() {
     for (const [key, field] of Object.entries(definition.fields)) lines.push(`| ${key} | ${field.type}${field.unit ? ` (${field.unit})` : ""} | ${field.required ? "Yes" : field.requiredUnless ? `Unless ${JSON.stringify(field.requiredUnless)}` : "No"} | ${field.meaning} |`);
     lines.push("");
   }
-  lines.push("## Structural relationships", "", "These are local structural mappings, not invented MusicBrainz relationship-type IDs. Full provider relationship ingestion is a later import step.", "");
+  lines.push("## Relationships", "", "Local structural classes describe billing, catalog containment, mappings and evidence. MusicBrainzRelationship preserves the provider relationship-type UUID, name, direction, dates, attributes and source response; its meaning is available through definitionUrl. It does not invent a provider type.", "");
   for (const definition of Object.values(model.relationships)) lines.push(`### ${definition.key}`, "", `${definition.sourceTypes.join(" / ")} → ${definition.targetTypes.join(" / ")}`, "", definition.meaning, "", `Inverse reading: ${definition.inverse}.`, "", `Identity: ${definition.identity}`, "", `Evidence: ${definition.evidenceRule}`, "");
   lines.push("## Legacy entity vocabulary", "", "Disposition applies to vocabulary, not an automatic migration of old assertions.", "", "| Legacy type | Status | Replacement | Reason |", "|---|---|---|---|");
   for (const [key, value] of Object.entries(model.legacyEntities)) lines.push(`| ${key} | ${value.status} | ${value.replacement || "See definition"} | ${value.reason} |`);

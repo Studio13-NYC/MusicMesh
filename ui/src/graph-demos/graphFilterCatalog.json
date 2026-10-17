@@ -1,19 +1,22 @@
 {
   "nodeGroups": [
     { "id": "artist-band", "label": "Artist / Band", "kinds": ["Artist", "Band"] },
-    { "id": "album-release", "label": "Album / Release", "kinds": ["Album", "Release"] },
+    { "id": "album-release", "label": "Release / Release group", "kinds": ["Album", "Release", "ReleaseGroup"] },
     { "id": "track-song", "label": "Track / Song", "kinds": ["Track", "Song"] },
+    { "id": "work", "label": "Work / Composition", "kinds": ["Work", "Composition"] },
     { "id": "person-member", "label": "Person / Member", "kinds": ["Person", "Member"] },
     {
       "id": "contributor-credit",
       "label": "Contributor / Credit",
-      "kinds": ["Contributor", "Credit", "Contribution", "Producer", "Engineer"]
+      "kinds": ["Contributor", "Credit", "Contribution", "Producer", "Engineer", "ArtistCredit"]
     },
     { "id": "record-label", "label": "Record Label", "kinds": ["RecordLabel", "Label"] },
     { "id": "scene", "label": "Scene", "kinds": ["Scene", "MusicScene"] },
     { "id": "venue", "label": "Venue", "kinds": ["Venue"] },
     { "id": "genre-style", "label": "Genre / Style", "kinds": ["Genre", "Style"] },
-    { "id": "place", "label": "Place", "kinds": ["Place", "City", "State", "Country"] },
+    { "id": "place", "label": "Place / Area", "kinds": ["Place", "Area", "City", "State", "Country"] },
+    { "id": "event-series", "label": "Event / Series", "kinds": ["Event", "Series"] },
+    { "id": "acoustics", "label": "Acoustics / Similarity", "kinds": ["AcousticAnalysis", "SimilarityAssessment"] },
     {
       "id": "recording-session",
       "label": "Recording / Session",
@@ -22,8 +25,6 @@
         "RecordingSession",
         "Session",
         "StudioEvent",
-        "Work",
-        "Composition",
         "Project",
         "ArtistProject",
         "Mix",
@@ -53,10 +54,14 @@
       "label": "Technique / Process",
       "kinds": ["Technique", "Process", "Format", "Medium", "Technology"]
     },
-    { "id": "source-evidence", "label": "Source / Evidence", "kinds": ["Source", "Evidence", "Reference"] },
+    { "id": "source-evidence", "label": "Source / Evidence", "kinds": ["Source", "Evidence", "Reference", "SourceDocument", "EvidenceAssertion", "Url"] },
     { "id": "other", "label": "Other", "kinds": [] }
   ],
   "relationshipGroups": [
+    { "id": "musicbrainz", "label": "MusicBrainz relationships", "types": ["MusicBrainzRelationship"] },
+    { "id": "billing", "label": "Artist billing", "types": ["CreditedAs", "CreditsArtist"] },
+    { "id": "structure", "label": "Catalog structure", "types": ["EditionOf", "HasMedium", "HasTrack", "UsesRecording", "PerformanceOf", "RedirectsTo"] },
+    { "id": "acoustics", "label": "Acoustic evidence", "types": ["AnalysisOf", "ComparesRecording", "SupportedByAnalysis"] },
     { "id": "membership", "label": "Membership", "types": ["MEMBER_OF", "HAS_MEMBER"] },
     {
       "id": "releases",

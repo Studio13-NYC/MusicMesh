@@ -2,11 +2,14 @@ const { PrismaClient } = require("../generated/prisma");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { validateEnv } = require("./env");
 let client;
+let clientConnectionString;
 
 function getDatabase() {
   validateEnv();
   if (!process.env.DATABASE_URL)
     throw new Error("MusicMesh PostgreSQL requires DATABASE_URL.");
+  if (client && clientConnectionString !== new URL(process.env.DATABASE_URL).toString())
+    throw new Error("Database target changed after initialization; close the existing client before selecting another target.");
   if (!client) {
     const url = new URL(process.env.DATABASE_URL);
     if (
@@ -25,6 +28,7 @@ function getDatabase() {
         idleTimeoutMillis: 10000,
       }),
     });
+    clientConnectionString = url.toString();
   }
   return client;
 }
@@ -33,6 +37,7 @@ async function closeDatabase() {
   if (client) {
     await client.$disconnect();
     client = null;
+    clientConnectionString = undefined;
   }
 }
 module.exports = { getDatabase, closeDatabase };

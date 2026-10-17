@@ -1029,7 +1029,7 @@ export function GraphDemoApp({
 
           <div className="demo-canvas-shell">
             {isGraphLoading ? (
-              <div className="demo-empty-state">Loading graph from Neo4j...</div>
+              <div className="demo-empty-state">Loading graph...</div>
             ) : filteredGraph.nodes.length > 0 ? (
               <GraphCanvas
                 ref={canvasRef}
@@ -1195,10 +1195,11 @@ function EdgeDetailCard({ edge, graph }) {
 
   return (
     <div className="demo-detail-card">
-      <h2>{edge.type}</h2>
+      <h2>{edge.label || edge.type}</h2>
       <p className="demo-detail-subtitle">
         {source?.label || edge.source} → {target?.label || edge.target}
       </p>
+      {edge.summary?.providerTypeId && <p className="demo-detail-subtitle">MusicBrainz type: {edge.summary.providerTypeId}</p>}
       <div className="demo-property-list demo-property-list-tight">
         <div className="demo-property-row">
           <span>Style</span>

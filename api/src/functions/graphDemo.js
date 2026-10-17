@@ -188,7 +188,7 @@ app.http("graphDemoNodeDetail", {
       const payload = await getNodeDetail(request.params.id);
       return jsonResponse(200, payload);
     } catch (error) {
-      return jsonResponse(500, { error: error.message || "Graph demo node detail failed." });
+      return jsonResponse(error.code === "GRAPH_NODE_NOT_FOUND" ? 404 : 500, { error: error.message || "Graph demo node detail failed." });
     }
   }
 });

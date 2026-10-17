@@ -1,6 +1,6 @@
 // Semantic source of truth. Definitions describe domain meaning; provider payloads
 // remain data. This module has no database, network, or environment dependency.
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 function deepFreeze(value) {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -78,6 +78,9 @@ function relationship(key, sourceTypes, targetTypes, meaning, inverse, options =
     evidenceRule: "Preserve provider assertion and context; endpoint coincidence does not establish this relationship.", fields: { ...commonFields }, ...options };
 }
 const relationships = {
+  RedirectsTo: relationship("RedirectsTo", ["Recording"], ["Recording"], "MusicBrainz resolves the requested recording identifier to a different current recording identifier. Preserve both the original mapping and redirect evidence.", "Was requested under identifier", { fields: { ...commonFields, requestUrl: field("string", "Lookup that returned the new identifier.", true) } }),
+  CreditsArtist: relationship("CreditsArtist", ["ArtistCredit"], ["Artist"], "Artist appears at this zero-based position in the ordered billing; this does not imply an instrumental contribution.", "Artist is billed in credit", { fields: { ...commonFields, position: field("nonNegativeInteger", "Exact index in ArtistCredit.credits.", true) } }),
+  MusicBrainzRelationship: relationship("MusicBrainzRelationship", Object.keys(entities).filter(k => entities[k].providerType && k !== "Track"), Object.keys(entities).filter(k => entities[k].providerType && k !== "Track"), "A provider-defined relationship, identified by its actual MusicBrainz relationship-type UUID. Endpoints use the provider's forward direction; attributes, dates and credited-as text retain the assertion context.", "Read the provider type's inverse definition", { namespace: "musicbrainz", status: "aligned", evidenceRule: "Only construct from an actual provider assertion. providerTypeName is a label, not permission to invent a type UUID or infer a relation. Read https://musicbrainz.org/relationship/<providerTypeId> for its full definition.", fields: { ...commonFields, providerTypeId: field("mbid", "Actual provider relationship-type UUID.", true), providerTypeName: field("string", "Provider type label.", true), sourceType: field("string", "Source class in provider-forward direction.", true), targetType: field("string", "Target class in provider-forward direction.", true), definitionUrl: field("string", "Official relationship-type definition URL.") } }),
   EditionOf: relationship("EditionOf", ["Release"], ["ReleaseGroup"], "Release is an edition in this release group.", "Has edition"),
   HasMedium: relationship("HasMedium", ["Release"], ["Medium"], "Release contains this medium.", "Medium belongs to release"),
   HasTrack: relationship("HasTrack", ["Medium"], ["Track"], "Medium contains this ordered track.", "Track belongs to medium"),
@@ -149,7 +152,7 @@ const relationshipCrosswalk = [
 for (const [names, status, guidance] of relationshipCrosswalk) for (const key of names.split(" ")) legacyRelationships[key] = { status, guidance };
 
 const ontology = deepFreeze({ version: VERSION, entities, relationships, legacyEntities, legacyRelationships,
-  implementation: { stage: "domain-foundation", writerEnforced: false, historyImported: false, note: "Classes and semantic discovery are available. Existing graph writer migration and personal-history import remain separate pending steps." },
+  implementation: { stage: "isolated-import", writerEnforced: false, historyImported: false, isolatedImportSupported: true, note: "Classes, semantic discovery, provider relationship ingestion and guarded isolated imports are implemented. Chat writer migration, complete enrichment and production history activation remain pending. Operational counts belong in import receipts, not this static catalog." },
   rules: [
     "Work, Recording, Track, Release and ReleaseGroup have different identities.",
     "Provider IDs are typed. Equal names are not identity evidence. Preserve submitted values and mapping uncertainty.",

@@ -212,9 +212,9 @@ Checked configured key names/presence only; no secret values were printed.
 |---|---|
 | MusicMesh Neon / Prisma | Database credential configured; read query succeeded. |
 | OpenAI | Key configured; this pass did not make a model call. |
-| MusicBrainz public metadata | No API key needed for public reads. Direct API currently returned HTTP 503; retry with documented rate limit/backoff. |
+| MusicBrainz public metadata | No API key needed for public reads. The initial HTTP 503 recovered; resumable recording retrieval is running with documented rate limit/backoff. |
 | AcousticBrainz public data | No key needed for tested reads; count and low-level requests succeeded. |
-| ListenBrainz | Public reads work. Full export requires retrieving the account token again; the prior import intentionally did not save it. |
+| ListenBrainz | Official full export job 5949 was downloaded through signed-in Edge, including provider mappings. No account token was saved. |
 | Last.fm | No key found in checked project configuration/process environment. CSV is sufficient for baseline import; live tags/similarity enrichment needs a key. |
 
 Do not paste tokens into chat or store them in tracked files/logs. Signed-in browser access can supply an existing account token through a protected runtime path when required. Do not create new external applications just to read public MusicBrainz/AcousticBrainz data.
@@ -233,7 +233,7 @@ Required implementation checks:
 - The workbench can find an imported recording, show its work/artist/release context, and explain one available acoustic connection using its stored evidence. Inspect database/logs separately from the answer.
 - Produce a receipt showing baseline plays, later additions, matched/unresolved plays, distinct hydrated recordings, catalog/context entity counts, failed/pending requests, acoustic coverage by distinct recording and by listens, and activation state.
 
-Existing commands for relevant validation are `npm test`, `npm run build`, and the isolated database test workflow documented in `package.json`. Root `.env` is production. Use an explicitly selected isolated target for write tests; do not run destructive tests against root `.env`. No import or migration command exists yet for this design, so none is presented as runnable.
+Existing commands for relevant validation are `npm test`, `npm run build`, and the isolated database test workflow documented in `package.json`. Root `.env` is production. Use an explicitly selected isolated target for write tests; do not run destructive tests against root `.env`. Preparation, retrieval, compilation and guarded isolated-load commands now exist; see [HISTORY_IMPORT.md](../../product/HISTORY_IMPORT.md). There is no production replacement command yet.
 
 Acceptance is not “all 21,415 plays matched.” Acceptance is all original events preserved, every claimed identity/enrichment supported, unresolved or unavailable data reported, and the new graph usable without contamination from prior iterations.
 

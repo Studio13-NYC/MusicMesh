@@ -1,6 +1,6 @@
 const { getDatabase } = require("./postgres");
 const store = require("./graphStore");
-const { fromColumns } = require("./graphProperties");
+const { getOntology } = require("./domain");
 const DEFAULT_LOOKUP_LIMIT = 5;
 const DEFAULT_TRAVERSAL_DEPTH = 2;
 const DEFAULT_TRAVERSAL_PATH_LIMIT = 120;
@@ -115,27 +115,16 @@ async function lookupCanonEntities(entities, options = {}) {
 
 async function inspectSchema() {
   const db = getDatabase();
-  return db.$transaction(
-    async (tx) => {
-      const nodes = await tx.entity.findMany();
-      const relationships = await tx.relationship.findMany();
-      return {
-        nodeLabels: [...new Set(nodes.flatMap((n) => n.labels))].sort(),
-        relationshipTypes: [
-          ...new Set(relationships.map((r) => r.type)),
-        ].sort(),
-        nodePropertyKeys: [
-          ...new Set(nodes.flatMap((n) => Object.keys(fromColumns(n)))),
-        ].sort(),
-        relationshipPropertyKeys: [
-          ...new Set(
-            relationships.flatMap((r) => Object.keys(fromColumns(r, true))),
-          ),
-        ].sort(),
-      };
-    },
-    { isolationLevel: "RepeatableRead" },
-  );
+  const ontology=getOntology(),definitions=Object.values(ontology.entities).filter(d=>d.visibility!=="private");
+  const privateLabels=Object.values(ontology.entities).filter(d=>d.visibility==="private").map(d=>d.key);
+  const [nodes,relationships]=await Promise.all([
+    db.entity.groupBy({by:["primaryLabel"],where:{NOT:{labels:{hasSome:privateLabels}}}}),
+    db.$queryRaw`SELECT DISTINCT r.type FROM relationships r JOIN entities s ON s.id=r."sourceId" JOIN entities t ON t.id=r."targetId" WHERE NOT s.labels && ${privateLabels}::text[] AND NOT t.labels && ${privateLabels}::text[]`
+  ]);
+  return {nodeLabels:nodes.map(n=>n.primaryLabel).sort(),relationshipTypes:relationships.map(r=>r.type).sort(),
+    nodePropertyKeys:[...new Set(["id","name","description","externalId","hydrationStatus",...definitions.flatMap(d=>Object.keys(d.fields))])].sort(),
+    relationshipPropertyKeys:[...new Set(["assertionKey",...Object.values(ontology.relationships).flatMap(d=>Object.keys(d.fields))])].sort(),
+    semanticVersion:ontology.version};
 }
 
 function normalizeRelationshipRecord(record) {

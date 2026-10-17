@@ -1,5 +1,8 @@
 const { getDatabase } = require("./postgres");
 const { entityRecord, relationshipRecord } = require("./graphProperties");
+const { getOntology } = require("./domain");
+const PRIVATE_LABELS = Object.values(getOntology().entities).filter(d=>d.visibility==="private").map(d=>d.key);
+const excludedLabels = labels => [...new Set([...PRIVATE_LABELS, ...(labels || [])])];
 
 async function searchEntities(
   query,
@@ -7,9 +10,11 @@ async function searchEntities(
   hiddenLabels = [],
   reverse = false,
 ) {
+  hiddenLabels = excludedLabels(hiddenLabels);
   // strpos treats %, _ and backslash literally, like Cypher CONTAINS.
   const rows = await getDatabase().$queryRaw`
-    SELECT e.*, (SELECT count(*)::int FROM relationships r WHERE r."sourceId"=e.id OR r."targetId"=e.id) AS degree,
+    SELECT e.*, (SELECT count(*)::int FROM relationships r JOIN entities s ON s.id=r."sourceId" JOIN entities t ON t.id=r."targetId"
+      WHERE (r."sourceId"=e.id OR r."targetId"=e.id) AND NOT s.labels && ${hiddenLabels}::text[] AND NOT t.labels && ${hiddenLabels}::text[]) AS degree,
       CASE WHEN lower(e."searchText")=lower(${query}) THEN 0
            WHEN strpos(lower(e."searchText"),lower(${query}))>0 THEN 1 ELSE 2 END AS "matchRank"
     FROM entities e
@@ -36,6 +41,7 @@ async function neighborhood(
     hiddenTypes = [],
   },
 ) {
+  hiddenLabels = excludedLabels(hiddenLabels);
   return getDatabase().$transaction(
     async (tx) => {
       const seeds = await tx.entity.findMany({
@@ -60,7 +66,9 @@ async function neighborhood(
           w.nodes || CASE WHEN r."sourceId"=w.current THEN r."targetId" ELSE r."sourceId" END,
           w.edges || r.id, w.depth+1
         FROM walk w JOIN relationships r ON r."sourceId"=w.current OR r."targetId"=w.current
+        JOIN entities next ON next.id=CASE WHEN r."sourceId"=w.current THEN r."targetId" ELSE r."sourceId" END
         WHERE w.depth<${depth} AND NOT r.id=ANY(w.edges)
+          AND NOT next.labels && ${hiddenLabels}::text[] AND NOT r.type=ANY(${hiddenTypes}::text[])
       ) SELECT nodes, edges FROM walk WHERE depth>0
         ORDER BY depth, current COLLATE "C", nodes, edges LIMIT ${pathLimit}`;
       const distances = new Map(foundIds.map((id) => [id, 0]));
@@ -74,12 +82,14 @@ async function neighborhood(
         .slice(0, nodeLimit);
       const edgeIds = [...new Set(paths.flatMap((p) => p.edges))];
       const nodes = await tx.$queryRaw`
-      SELECT e.*, (SELECT count(*)::int FROM relationships r WHERE r."sourceId"=e.id OR r."targetId"=e.id) AS degree
+      SELECT e.*, (SELECT count(*)::int FROM relationships r JOIN entities s ON s.id=r."sourceId" JOIN entities t ON t.id=r."targetId"
+        WHERE (r."sourceId"=e.id OR r."targetId"=e.id) AND NOT s.labels && ${hiddenLabels}::text[] AND NOT t.labels && ${hiddenLabels}::text[]) AS degree
       FROM entities e WHERE e.id=ANY(${nodeIds}::text[])`;
       const relationships = await tx.relationship.findMany({
         where: {
           sourceId: { in: nodeIds },
           targetId: { in: nodeIds },
+          type: { notIn: hiddenTypes },
           OR: [
             { id: { in: edgeIds } },
             ...(induced ? [{ type: { notIn: hiddenTypes } }] : []),
@@ -106,6 +116,8 @@ async function neighborhood(
 }
 
 async function detail(nodeId, hiddenLabels, hiddenTypes, limit) {
+  hiddenLabels = excludedLabels(hiddenLabels);
+  hiddenTypes = hiddenTypes || [];
   return getDatabase().$transaction(
     async (tx) => {
       const node = await tx.entity.findFirst({
@@ -113,9 +125,11 @@ async function detail(nodeId, hiddenLabels, hiddenTypes, limit) {
       });
       if (!node) return null;
       const rows = await tx.$queryRaw`
-      SELECT type, count(*)::int AS count FROM relationships
-      WHERE ("sourceId"=${nodeId} OR "targetId"=${nodeId}) AND NOT type=ANY(${hiddenTypes}::text[])
-      GROUP BY type ORDER BY count DESC, type COLLATE "C"`;
+      SELECT r.type, count(*)::int AS count FROM relationships r
+      JOIN entities s ON s.id=r."sourceId" JOIN entities t ON t.id=r."targetId"
+      WHERE (r."sourceId"=${nodeId} OR r."targetId"=${nodeId}) AND NOT r.type=ANY(${hiddenTypes}::text[])
+        AND NOT s.labels && ${hiddenLabels}::text[] AND NOT t.labels && ${hiddenLabels}::text[]
+      GROUP BY r.type ORDER BY count DESC, r.type COLLATE "C"`;
       return {
         node: entityRecord(node),
         relationshipCount: rows.reduce((n, r) => n + r.count, 0),
