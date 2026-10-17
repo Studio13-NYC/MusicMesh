@@ -1,6 +1,7 @@
 const http = require("http");
 const crypto = require("crypto");
 const path = require("path");
+const { getOntology } = require("./domain");
 const {
   appendRuntimeEvent,
   appendTapeEntry,
@@ -702,6 +703,11 @@ function startServer(port = DEFAULT_PORT) {
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
       });
       response.end();
+      return;
+    }
+
+    if (request.method === "GET" && requestUrl.pathname === "/api/ontology") {
+      sendJson(response, 200, getOntology());
       return;
     }
 

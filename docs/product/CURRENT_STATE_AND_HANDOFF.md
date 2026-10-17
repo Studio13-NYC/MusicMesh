@@ -8,7 +8,7 @@ The user approved the [standalone model and personal-history import design](../r
 
 The old generated database content is disposable: it is not an identity or evidence source for the new catalog. The new source is the 21,415-play Last.fm history already imported into ListenBrainz, plus available MusicBrainz and AcousticBrainz metadata. Keep Prisma/PostgreSQL and the existing graph architecture; introduce explicit domain classes and shared semantics. The approved scope is the user's listened catalog and relevant connected entities, not a global mirror.
 
-`prebrainz` marks the last successful deployed runtime, `5a404fa` (Actions run `34173029047`). `withBrainz` will mark the documentation/cleanup checkpoint before implementation; it does not mean the history import is complete. The later implementation commits and their verification belong in the progress report.
+`prebrainz` marks the last successful deployed runtime, `5a404fa` (Actions run `34173029047`). `withBrainz` marks documentation/cleanup checkpoint `c960400` before implementation; it does not mean the history import is complete. The first implementation adds domain classes and a shared `/api/ontology` catalog; writer enforcement and the new import remain pending. Implementation commits and verification are recorded in the progress report.
 
 Current live counts at the start of this work were 312 entities and 505 relationships, all entities sourced from chat. The September counts below are historical migration evidence. Root `.env` still selects production. No production reset or new import has happened at this checkpoint.
 

@@ -18,11 +18,11 @@ Use the [standalone design](../research/2026-10-17-music-data-standards/MODEL_AN
 
 | Work | State | Evidence / limitation |
 |---|---|---|
-| Repository cleanup and preparation | Locally validated | Credential-pattern scan clean; unit tests 2 passed, 1 database integration test skipped; build passed. Commit/tag publication pending. |
-| Domain classes and semantic catalog | Planned | Definitions cover identity, endpoints, units, provenance, and deprecated types. |
-| Agent/API access to semantics | Planned | Local and Azure routes plus shared prompt context required. |
+| Repository cleanup and preparation | Complete and pushed | `c960400`; both annotated tags verified on origin. Azure run `39067600782` succeeded. Private/generated files ignored; no untracked leftovers at checkpoint. |
+| Domain classes and semantic catalog | Implemented and locally verified | 41 concrete entity classes, 11 structural relationship classes; 58 legacy labels and 56 predicates classified. Generated [reference](DOMAIN_MODEL.md). |
+| Agent/API access to semantics | Discovery implemented; prompt integration pending | `src/domain`, constructor `.definition`, generated docs and `GET /api/ontology`; Azure route included. Prompt integration moves with writer enforcement to avoid conflicting with the old allow-list. |
 | Import preparation and validation | Planned | Existing CSV and ListenBrainz receipt available; no new import yet. |
-| MusicBrainz enrichment | Blocked for live retrieval at initial check | Direct recording API returned HTTP 503; retry is required. |
+| MusicBrainz enrichment | Retrieval recovered; import pending | Later direct recording lookup returned HTTP 200 and correct Severed recording ID/title. Earlier 503 is not a permanent blocker. |
 | AcousticBrainz enrichment | Access verified, import pending | Count and low-level data retrieved for Severed; not a coverage audit. |
 | Replacement of old database data | Not performed | User says old data is not needed. Reset only as part of verified replacement process. |
 
@@ -33,3 +33,13 @@ Database and OpenAI settings exist. MusicBrainz/AcousticBrainz public reads need
 ## Resuming
 
 Read this file, the plan, `git status --short`, and `git log -5`. Root `.env` is production; use an explicitly selected isolated target for write tests. Do not repeat the earlier ListenBrainz submission. Record every implementation checkpoint, executed checks, actual import totals, and unresolved external-service failures here.
+
+## 17 October — first implementation checkpoint
+
+Implemented typed domain constructors, immutable machine-readable semantics, graph serialization, structural endpoint/reference validation, typed MBID identity, ordered artist credits, partial dates, source-event fields, acoustic analysis and similarity evidence fields. Every catalog entity definition has a concrete constructor. Structural relationship classes use explicit assertion keys so parallel assertions do not collapse.
+
+Local `/api/ontology` was exercised by an HTTP integration test without database or model calls. The Azure route and domain files are included in the deployment bundle. `getOntologyPrompt()` exists, but prompt injection and graph-writer enforcement are deliberately deferred together; no new graph writes or database migration occurred in this phase.
+
+Validation: `npm test` — 18 passed, 1 database integration test skipped (no isolated test database selected). `npm run build` passed with the existing large-bundle warning. `npm run check:api` passed; its Azure test-mode warnings mean bundle loading is verified, not a live Functions host. A fresh read-only code review found provider-identity and conditional-required-field bypasses; both were reproduced with failing tests and fixed, and the full suite passed again. Generated documentation is checked against the registry by a test.
+
+Deployment/remote endpoint verification will be recorded after the implementation push. This phase begins the process; it does not claim the 21,415 plays have been imported into MusicMesh or enriched.

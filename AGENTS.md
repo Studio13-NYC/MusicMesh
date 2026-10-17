@@ -12,7 +12,7 @@ More specific direct user instructions take priority over this file.
 
 Read `docs/product/BRAINZ_PROGRESS.md`, `docs/plans/2026-10-17-brainz.md`, and the standalone design at `docs/research/2026-10-17-music-data-standards/MODEL_AND_IMPORT_DESIGN.md` before model/import work. The user approved beginning this work and declared previous generated database content disposable. Do not use it as enrichment evidence. Preserve the original Last.fm CSV as input; it has already been submitted to ListenBrainz and must not be submitted again.
 
-Domain semantics will live in `src/domain/` and be exposed to code and runtime agents. The progress report must distinguish implemented/tested functionality from planned work and completed imports. The existing Prisma entity/relationship graph, Neon hosting, and chat/workbench stay in place. No global MusicBrainz mirror is required.
+Domain semantics now live in `src/domain/`: read `getOntology()`, `getTypeDefinition(key)`, or the generated `docs/product/DOMAIN_MODEL.md`. Both local and Azure APIs expose `GET /api/ontology`. Constructors expose `.definition`. These are the immediate semantic entry points for agents. The legacy writer is not yet migrated to enforce them; do not infer that an available ontology means an import occurred. The progress report must distinguish implemented/tested functionality from planned work and completed imports. The existing Prisma entity/relationship graph, Neon hosting, and chat/workbench stay in place. No global MusicBrainz mirror is required.
 
 ## Always Check Current Status
 

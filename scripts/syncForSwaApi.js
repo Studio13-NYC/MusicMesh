@@ -19,6 +19,8 @@ fs.mkdirSync(sharedDir, { recursive: true });
 fs.mkdirSync(contentDir, { recursive: true });
 
 const copies = [
+  ["src/domain/catalog.js", "shared/domain/catalog.js"],
+  ["src/domain/index.js", "shared/domain/index.js"],
   ["src/env.js", "shared/env.js"],
   ["src/postgres.js", "shared/postgres.js"],
   ["src/graphStore.js", "shared/graphStore.js"],
@@ -39,6 +41,7 @@ const copies = [
 for (const [fromRel, toRel] of copies) {
   const from = path.join(root, ...fromRel.split("/"));
   const to = path.join(apiRoot, ...toRel.split("/"));
+  fs.mkdirSync(path.dirname(to), { recursive: true });
   fs.copyFileSync(from, to);
 }
 
