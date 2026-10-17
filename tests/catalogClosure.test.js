@@ -30,7 +30,10 @@ test('lookup URLs stay bounded and do not request artist discography or capped r
   const url=new URL(catalogUrl(type,id(1)));assert.equal(url.hostname,'musicbrainz.org');
   assert.ok(!url.searchParams.get('inc').split('+').some(s=>['releases','release-groups','recordings','works'].includes(s)));
  }
- assert.throws(()=>catalogUrl('recording',id(1)),/type/);
+ const inc=new URL(catalogUrl('recording',id(1))).searchParams.get('inc').split('+');
+ for(const type of ['area','artist','event','genre','instrument','label','place','recording','release','release-group','series','url','work'])assert.ok(inc.includes(type+'-rels'),type);
+ assert.ok(!inc.includes('releases'));assert.ok(!inc.includes('release-groups'));
+ assert.throws(()=>catalogUrl('collection',id(1)),/type/);
  assert.throws(()=>catalogUrl('artist','bad'),/MBID/);
 });
 test('catalog collection shares the recording lock, resumes cached requests and has finite closure',async t=>{
@@ -46,16 +49,24 @@ test('catalog collection shares the recording lock, resumes cached requests and 
  let calls=0;const client=new ProviderCache({dir:path.join(cache,'responses'),sleep:async()=>{},fetchImpl:async url=>{
   calls++;const [type,mbid]=new URL(url).pathname.split('/').slice(-2);let body=type==='release'?release():{id:mbid,name:type,title:type};
   if(type==='artist')body.relations=[{'target-type':'artist',artist:{id:id(99),name:'Outside'},direction:'forward',type:'member of band','type-id':id(98)}];
+  if(type==='recording')body={id:mbid,title:'C',length:123000,relations:[{'target-type':'place',place:{id:id(30),name:'Studio'},direction:'forward',type:'recorded at','type-id':id(31)}]};
   return new Response(JSON.stringify(body));}});
  fs.writeFileSync(path.join(cache,'fetch.lock'),JSON.stringify({pid:process.pid}));
  await assert.rejects(()=>collectCatalog({preparedDir:prepared,cacheDir:cache,client}),/worker|lock/);fs.unlinkSync(path.join(cache,'fetch.lock'));
- const first=await collectCatalog({preparedDir:prepared,cacheDir:cache,client});assert.equal(first.state,'complete');assert.equal(first.requested,5);
+ const first=await collectCatalog({preparedDir:prepared,cacheDir:cache,client});assert.equal(first.state,'complete');assert.equal(first.requested,7);
+ assert.equal(first.requests.filter(r=>r.type==='recording').length,1);
+ assert.ok(first.requests.some(r=>r.type==='place'&&r.id===id(30)));
+ assert.ok(!first.requests.some(r=>r.type==='recording'&&r.id===id(8)),'sibling tracks are not additional recording seeds');
  assert.equal(first.requests.some(r=>r.id===id(99)),false);assert.equal(first.databaseWritten,false);
  const before=calls;const resumed=await collectCatalog({preparedDir:prepared,cacheDir:cache,client});assert.equal(calls,before);assert.deepEqual(resumed.requests,first.requests);
  const {compileSnapshot,readSnapshot}=require('../src/import/graphSnapshot');const dest=path.join(dir,'snapshot');
  compileSnapshot({preparedDir:prepared,cacheDir:cache,outputDir:dest,includeCatalog:true});const graph=readSnapshot(dest);
  assert.equal(graph.nodes.filter(n=>n.type==='Track').length,2);assert.equal(graph.nodes.filter(n=>n.type==='ListeningEvent').length,1);
  assert.equal(graph.manifest.catalog.state,'complete');
+ const audio=graph.nodes.find(n=>n.id==='musicbrainz:recording:'+id(6));
+ assert.equal(audio.properties.durationMs,123000);
+ assert.ok(audio.properties.rawProvider.relations.some(r=>r['target-type']==='place'),'full lookup becomes canonical recording payload');
+ assert.ok(graph.relationships.some(r=>r.type==='MusicBrainzRelationship'&&r.target==='musicbrainz:place:'+id(30)));
  const seedFile=path.join(cache,'responses',sha256(url)+'.json'),original=fs.readFileSync(seedFile);
  const changed=JSON.parse(original);changed.body.title='New evidence';changed.bodyHash=sha256(JSON.stringify(changed.body));fs.writeFileSync(seedFile,JSON.stringify(changed));
  assert.throws(()=>compileSnapshot({preparedDir:prepared,cacheDir:cache,outputDir:path.join(dir,'stale'),includeCatalog:true}),/seed.*changed/);

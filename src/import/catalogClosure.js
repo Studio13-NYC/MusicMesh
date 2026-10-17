@@ -3,7 +3,8 @@ const {ProviderCache,recordingUrl,validateRecording,atomicJson}=require('./provi
 const {sha256}=require('./history');
 const MBID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const rels='artist-rels+area-rels+place-rels+url-rels+instrument-rels+event-rels+label-rels+series-rels';
-const includes={release:'recordings+artist-credits+release-groups+labels+isrcs+genres+tags+'+rels,
+const includes={recording:'artist-credits+genres+tags+isrcs+annotation+recording-rels+work-rels+release-rels+release-group-rels+genre-rels+'+rels,
+ release:'recordings+artist-credits+release-groups+labels+isrcs+genres+tags+'+rels,
  artist:'aliases+genres+tags+'+rels,work:'aliases+genres+tags+work-rels+'+rels,
  'release-group':'artist-credits+genres+tags+'+rels,label:'aliases+genres+tags+'+rels,
  area:'aliases+area-rels+url-rels',place:'aliases+area-rels+place-rels+url-rels',
@@ -14,6 +15,7 @@ function catalogUrl(type,id){
  const u=new URL('https://musicbrainz.org/ws/2/'+type+'/'+id.toLowerCase());u.searchParams.set('fmt','json');u.searchParams.set('inc',includes[type]);return u.href;
 }
 function validateCatalog(type,body){
+ if(type==='recording')return validateRecording(body);
  if(!body||!MBID.test(body.id||'')||typeof (body.title||body.name)!=='string')throw new Error('Invalid catalog lookup body');
  if(type!=='release')return;
  if(!Array.isArray(body.media))throw new Error('Release media missing');
@@ -54,19 +56,21 @@ async function collectCatalog({preparedDir,cacheDir,limit=Infinity,waitForLock=f
   const prepared=JSON.parse(fs.readFileSync(path.join(preparedDir,'manifest.json')));
   const mappings=checkedPrepared(preparedDir,'mappings.ndjson',prepared).toString('utf8').trim().split('\n').filter(Boolean).map(JSON.parse);
   const ids=JSON.parse(checkedPrepared(preparedDir,'recording-mbids.json',prepared));
-  const initial=new Map(),releases=new Map(),contexts=new Map(),recordingEvidence=[];
+  const initial=new Map(),releases=new Map(),recordings=new Map(),contexts=new Map(),recordingEvidence=[];
   const add=(map,type,id)=>{catalogUrl(type,id);map.set(type+':'+id.toLowerCase(),{type,id:id.toLowerCase()});};
   for(const m of mappings)for(const e of m.properties.providerEvidence||[]){const id=e.track_metadata?.mbid_mapping?.release_mbid;if(id)add(releases,'release',id);}
   for(const id of ids){
+   add(recordings,'recording',id);
    const r=cachedResponse(cacheDir,recordingUrl(id),validateRecording);if(!r)throw new Error('Recording pass still has pending lookups');
    recordingEvidence.push({id,status:r.status,...(r.bodyHash?{responseHash:r.bodyHash}:{})});if(r.status!=='ok')continue;
    for(const c of r.body['artist-credit']||[])add(initial,'artist',c.artist.id);
    for(const relation of r.body.relations||[])if(['artist','work'].includes(relation['target-type']))add(initial,relation['target-type'],relation[relation['target-type']].id);
    for(const relation of r.body.relations||[])if(['label','area','place','instrument','event','series'].includes(relation['target-type']))add(contexts,relation['target-type'],relation[relation['target-type']].id);
   }
-  manifest={version:1,phase:'catalog-closure',state:'running',input:prepared.input,recordingListHash:prepared.files['recording-mbids.json'],recordingEvidence,
-   selection:'ListenBrainz-selected release editions; direct listened-recording artists/works; release groups and billed artists; one layer of referenced non-discography context',
-   excluded:['all editions of a release group','artist discographies','recursive related artist/work expansion','claim that selected edition was listened'],
+  manifest={version:2,phase:'catalog-closure',state:'running',input:prepared.input,recordingListHash:prepared.files['recording-mbids.json'],recordingEvidence,
+   selection:'ListenBrainz-selected release editions; all relationship categories on mapped listened recordings; direct artists/works; release groups and billed artists; one layer of referenced non-discography context',
+   excluded:['all editions of a release group','artist discographies','recursive related artist/work expansion','claim that selected edition was listened','lookup of outside recording/release/genre relationship targets unless independently selected'],
+   recordingRelationshipIncludes:includes.recording.split('+').filter(x=>x.endsWith('-rels')),
    pagination:'Exact entity lookups and complete edition tracklists; no capped entity-list subquery or browse request is used',requested:0,ok:0,notFound:0,errors:0,requests:[],databaseWritten:false};
   const seen=new Set();let failures=0,limited=false;
   async function phase(queue,expand){
@@ -79,25 +83,25 @@ async function collectCatalog({preparedDir,cacheDir,limit=Infinity,waitForLock=f
      manifest.ok++;failures=0;
      if(expand){const graph=require('./catalogGraph').catalogGraph(item.type,r);
       for(const n of graph.nodes){const type=n.externalId?.type;if(!type)continue;
-       if(expand==='release'&&['artist','work','release-group'].includes(type))add(initial,type,n.externalId.value);
+       if((expand==='release'&&['artist','work','release-group'].includes(type))||(expand==='recording'&&['artist','work'].includes(type)))add(initial,type,n.externalId.value);
        if(['label','area','place','instrument','event','series'].includes(type))add(contexts,type,n.externalId.value);
       }
      }
     }else if(r.status==='not-found'){manifest.notFound++;failures=0;}else{manifest.errors++;failures++;}
-    save({phase:manifest.phase,state:manifest.state,requested:manifest.requested,ok:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,lastType:item.type,lastId:item.id});
+    save({phase:manifest.phase,state:manifest.state,stage:expand||'context',requested:manifest.requested,ok:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,lastType:item.type,lastId:item.id});
     if(failures>=3||(r.httpStatus>=400&&r.httpStatus<500&&![404,429].includes(r.httpStatus)))throw new Error('Catalog requests failing; cache preserved for resumption');
    }
   }
-  await phase(releases,'release');if(!limited)await phase(initial,'direct');if(!limited)await phase(contexts,null);
+  await phase(recordings,'recording');if(!limited)await phase(releases,'release');if(!limited)await phase(initial,'direct');if(!limited)await phase(contexts,null);
   manifest.state=limited?'limited':manifest.errors||recordingEvidence.some(e=>e.status==='error')?'incomplete':'complete';
-  manifest.seedCounts={releases:releases.size,direct:initial.size,context:contexts.size};
+  manifest.seedCounts={releases:releases.size,recordings:recordings.size,direct:initial.size,context:contexts.size};
   manifest.completedAt=new Date().toISOString();atomicJson(path.join(cacheDir,'catalog-manifest.json'),manifest);save({phase:manifest.phase,state:manifest.state,requested:manifest.requested,ok:manifest.ok,notFound:manifest.notFound,errors:manifest.errors});return manifest;
  }catch(error){save({phase:'catalog-closure',state:'interrupted',requested:manifest?.requested||0,errors:manifest?.errors||0,reason:error.message});throw error;}
  finally{fs.unlinkSync(lock);}
 }
 function readCatalogResponses(cacheDir,prepared,recordingIds){
  const manifest=JSON.parse(fs.readFileSync(path.join(cacheDir,'catalog-manifest.json'))),{canonicalJson}=require('../domain/serialization');
- if(manifest.version!==1||canonicalJson(manifest.input)!==canonicalJson(prepared.input)||manifest.recordingListHash!==prepared.files['recording-mbids.json'])throw new Error('Catalog manifest source identity mismatch');
+ if(manifest.version!==2||canonicalJson(manifest.input)!==canonicalJson(prepared.input)||manifest.recordingListHash!==prepared.files['recording-mbids.json'])throw new Error('Catalog manifest source identity/version mismatch; recollect closure');
  const seedIds=manifest.recordingEvidence.map(e=>e.id);
  if(canonicalJson([...seedIds].sort())!==canonicalJson([...recordingIds].sort()))throw new Error('Catalog seed identity changed; recollect closure');
  for(const seed of manifest.recordingEvidence){

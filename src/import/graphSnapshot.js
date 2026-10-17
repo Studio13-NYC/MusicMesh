@@ -59,12 +59,17 @@ function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCata
     const {manifest,responses}=require('./catalogClosure').readCatalogResponses(cacheDir,prepared,recordingIds);
     for(const {type,requestedId,response} of responses){
       const graph=require('./catalogGraph').catalogGraph(type,response);graph.nodes.forEach(addNode);graph.relationships.forEach(addEdge);
+      // The second recording lookup includes every relationship category. Prefer its
+      // complete payload to the earlier first-pass payload, keeping both caches as evidence.
+      if(type==='recording')nodes.set(`musicbrainz:recording:${response.body.id}`,graph.nodes.find(n=>n.id===`musicbrainz:recording:${response.body.id}`));
       if(requestedId!==response.body.id){
         const original=require('./catalogGraph').providerEntity(type,{id:requestedId,title:`Redirected ${type} (${requestedId})`},{url:response.url,retrievedAt:response.fetchedAt,responseHash:response.bodyHash});addNode(original);
         addEdge(new domain.RedirectsTo({source:original,target:nodes.get(`musicbrainz:${type}:${response.body.id}`),assertionKey:'musicbrainz-redirect',properties:{requestUrl:response.url,source:'musicbrainz',responseHash:response.bodyHash}}));
       }
     }
-    catalog={state:manifest.state,requested:manifest.requested,retrieved:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,selection:manifest.selection,excluded:manifest.excluded,pagination:manifest.pagination,manifestHash:sha256(JSON.stringify(manifest))};
+    const recordingRequests=manifest.requests.filter(r=>r.type==='recording');
+    const recordingRelationshipLookups={requested:recordingRequests.length,retrieved:recordingRequests.filter(r=>r.status==='ok').length,notFound:recordingRequests.filter(r=>r.status==='not-found').length,errors:recordingRequests.filter(r=>r.status==='error').length};
+    catalog={state:manifest.state,requested:manifest.requested,retrieved:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,selection:manifest.selection,excluded:manifest.excluded,recordingRelationshipIncludes:manifest.recordingRelationshipIncludes,recordingRelationshipLookups,pagination:manifest.pagination,manifestHash:sha256(JSON.stringify(manifest))};
   }
   let acoustic=null;
   if(acousticDir){const graph=require('./acousticSimilarity').readAcousticGraph(acousticDir,nodes,prepared);graph.nodes.forEach(addNode);graph.relationships.forEach(addEdge);acoustic=graph.receipt;}
