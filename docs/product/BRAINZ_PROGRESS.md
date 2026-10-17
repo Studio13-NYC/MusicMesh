@@ -42,4 +42,6 @@ Local `/api/ontology` was exercised by an HTTP integration test without database
 
 Validation: `npm test` — 18 passed, 1 database integration test skipped (no isolated test database selected). `npm run build` passed with the existing large-bundle warning. `npm run check:api` passed; its Azure test-mode warnings mean bundle loading is verified, not a live Functions host. A fresh read-only code review found provider-identity and conditional-required-field bypasses; both were reproduced with failing tests and fixed, and the full suite passed again. Generated documentation is checked against the registry by a test.
 
-Deployment/remote endpoint verification will be recorded after the implementation push. This phase begins the process; it does not claim the 21,415 plays have been imported into MusicMesh or enriched.
+Implementation commit `ae77a2b` is pushed and deployed. Azure run `39068182813` succeeded. The public `https://musicmesh.s13.nyc/api/ontology` endpoint returned HTTP 200, semantic version `1.0.0`, 41 entity definitions and 11 structural relationship definitions; the full JSON exactly matched the local catalog. This phase begins the process; it does not claim the 21,415 plays have been imported into MusicMesh or enriched.
+
+The original CSV was rechecked: 21,415 rows and unique timestamp/artist/title combinations; SHA-256 `3d08352ed6a56b1e8f1d33c36609d1807f6773fe67244aa97cfd9afe5ca0feff` remains unchanged.
