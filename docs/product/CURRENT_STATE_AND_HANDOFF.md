@@ -12,6 +12,8 @@ The old generated database content is disposable: it is not an identity or evide
 
 Current live counts at the start of this work were 312 entities and 505 relationships, all entities sourced from chat. The September counts below are historical migration evidence. Root `.env` still selects production. No production reset or new import has happened at this checkpoint.
 
+History preparation now reconciles all 21,415 CSV plays with the official ListenBrainz export. Provider matches cover 20,448 plays and 8,289 recordings; 967 plays remain unresolved. A resumable local recording retrieval worker has started. Read [HISTORY_IMPORT.md](HISTORY_IMPORT.md) for commands, artifact paths, process checks and the remaining import boundary. Check its actual progress before launching another worker.
+
 ## Historical migration state — September 2026
 
 Local and public production now use Prisma 7.10.0 and dedicated MusicMesh Neon PostgreSQL. **Cutover and public read/write verification are complete.** Read [NEON_MIGRATION.md](../deployment/NEON_MIGRATION.md) for project IDs, exact commands, verified data counts, backup/restore evidence, and cutover/rollback gates.

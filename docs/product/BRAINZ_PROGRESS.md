@@ -19,16 +19,16 @@ Use the [standalone design](../research/2026-10-17-music-data-standards/MODEL_AN
 | Work | State | Evidence / limitation |
 |---|---|---|
 | Repository cleanup and preparation | Complete and pushed | `c960400`; both annotated tags verified on origin. Azure run `39067600782` succeeded. Private/generated files ignored; no untracked leftovers at checkpoint. |
-| Domain classes and semantic catalog | Implemented and locally verified | 41 concrete entity classes, 11 structural relationship classes; 58 legacy labels and 56 predicates classified. Generated [reference](DOMAIN_MODEL.md). |
+| Domain classes and semantic catalog | Implemented and deployed | 41 concrete entity classes, 11 structural relationship classes; 58 legacy labels and 56 predicates classified. Generated [reference](DOMAIN_MODEL.md); public ontology matches local catalog. |
 | Agent/API access to semantics | Discovery implemented; prompt integration pending | `src/domain`, constructor `.definition`, generated docs and `GET /api/ontology`; Azure route included. Prompt integration moves with writer enforcement to avoid conflicting with the old allow-list. |
-| Import preparation and validation | Planned | Existing CSV and ListenBrainz receipt available; no new import yet. |
-| MusicBrainz enrichment | Retrieval recovered; import pending | Later direct recording lookup returned HTTP 200 and correct Severed recording ID/title. Earlier 503 is not a permanent blocker. |
+| Import preparation and validation | Prepared and reconciled locally | All 21,415 CSV events match the official ListenBrainz export. 20,448 plays have provider matches to 8,289 recordings; 967 remain unresolved. No database write. |
+| MusicBrainz enrichment | Recording retrieval started | Three live lookups passed; resumable worker started for all 8,289 matched recordings. Read local progress before claiming completion. Linked detail and acoustic passes remain pending. |
 | AcousticBrainz enrichment | Access verified, import pending | Count and low-level data retrieved for Severed; not a coverage audit. |
 | Replacement of old database data | Not performed | User says old data is not needed. Reset only as part of verified replacement process. |
 
 ## Credentials
 
-Database and OpenAI settings exist. MusicBrainz/AcousticBrainz public reads need no key. Full ListenBrainz export requires retrieving the existing user token again; it was not stored by the earlier import. No Last.fm API key is configured in the checked project files or process environment; the CSV is sufficient for the baseline.
+Database and OpenAI settings exist. MusicBrainz/AcousticBrainz public reads need no key. The full ListenBrainz export was obtained through the signed-in Edge session without saving an API token. No Last.fm API key is configured in the checked project files or process environment; the CSV is sufficient for the baseline.
 
 ## Resuming
 
@@ -45,3 +45,13 @@ Validation: `npm test` — 18 passed, 1 database integration test skipped (no is
 Implementation commit `ae77a2b` is pushed and deployed. Azure run `39068182813` succeeded. The public `https://musicmesh.s13.nyc/api/ontology` endpoint returned HTTP 200, semantic version `1.0.0`, 41 entity definitions and 11 structural relationship definitions; the full JSON exactly matched the local catalog. This phase begins the process; it does not claim the 21,415 plays have been imported into MusicMesh or enriched.
 
 The original CSV was rechecked: 21,415 rows and unique timestamp/artist/title combinations; SHA-256 `3d08352ed6a56b1e8f1d33c36609d1807f6773fe67244aa97cfd9afe5ca0feff` remains unchanged.
+
+## 17 October — history preparation and retrieval
+
+Downloaded official ListenBrainz export job 5949 through Edge. Reconciled all 21,415 events against the CSV by exact submitted fields and timestamp, with zero missing/extra events. Provider mappings cover 20,448 plays and 8,289 distinct recordings; 967 plays remain unresolved and are preserved. Created immutable source-event and mapping domain objects, serialized locally with checksums and deterministic IDs. No CSV record was dropped or re-submitted.
+
+Implemented `brainz:import prepare` and `fetch-recordings`, with strict CSV parsing, exported-account validation, duplicate occurrence handling, explicit ambiguous matches, checksum-verified resumption, serialized requests, Retry-After and bounded retries. The first pass retrieves recordings and their included credits/relationships; it does not yet materialize the whole linked catalog or write PostgreSQL. [Exact commands and limitations](HISTORY_IMPORT.md).
+
+Validation: 29 tests passed and one existing isolated-database test skipped; `npm run build` passed. Initial failing tests covered missing implementation, official export directory handling and duplicate occurrence reuse; each was made green. Three real recording responses passed validation. Repeating preparation returned the identical manifest and verified payload hashes. Full recording retrieval started in a hidden process, initially PID 48996; current truth is in `output/imports/2026-10-17/musicbrainz/progress.json` and the process/log files, not this historical PID.
+
+Ruling: use the signed-in official export rather than retrieve/save an API token — the exported data includes the needed provider matches; future refreshes require another export or a separately configured token.
