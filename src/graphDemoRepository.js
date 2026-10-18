@@ -634,13 +634,6 @@ async function searchGraphSeeds(query, limit = DEFAULT_SEARCH_LIMIT) {
   });
   return mappedResults
     .map(({ labels, properties, ...result }) => result)
-    .sort((left, right) => {
-      if (left.degree !== right.degree) {
-        return right.degree - left.degree;
-      }
-
-      return `${left.label}:${left.id}`.localeCompare(`${right.label}:${right.id}`);
-    })
     .slice(0, boundedLimit);
 }
 

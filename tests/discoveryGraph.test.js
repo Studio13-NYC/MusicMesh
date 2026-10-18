@@ -5,6 +5,15 @@ const { executeResearchTool } = require('../src/researchTools');
 const { advanceState, newState } = require('../src/researchRunner');
 const album = { id:'album', kind:'ReleaseGroup', label:'Album' };
 const artist = { id:'artist', kind:'Artist', label:'Same name' };
+test('Browse preserves search relevance ahead of billing-credit degree', async (t) => {
+  const store = require('../src/graphStore');
+  t.mock.method(store, 'searchEntities', async () => [
+    {id:'artist',labels:['Artist'],properties:{name:'Artist name'},degree:2},
+    {id:'billing',labels:['ArtistCredit'],properties:{name:'Artist name'},degree:100}
+  ]);
+  const results = await require('../src/graphDemoRepository').searchGraphSeeds('Artist name', 8);
+  assert.deepEqual(results.map(row => row.id), ['artist','billing']);
+});
 test('assertions become qualified connections, preserving parallel claims, zero and exclusions', async () => {
   const { toDiscoveryGraph, confidenceLabel, safeSourceUrl } = await import('../ui/src/graph-demos/discoveryGraph.mjs');
   const claims = [0,65].map((score,i) => ({id:`claim${i}`,kind:'EvidenceAssertion',label:'Claim',properties:{subjectId:'album',factorId:'artist',confidenceScore:score,scope:'album-credit',mode:i?'exclude':'add',excerpt:'Side A only'}}));

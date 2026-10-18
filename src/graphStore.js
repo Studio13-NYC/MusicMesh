@@ -21,9 +21,8 @@ async function searchEntities(
     WHERE NOT e.labels && ${hiddenLabels}::text[] AND
       (${query}='' OR strpos(lower(e."searchText"),lower(${query}))>0 OR
        (${reverse} AND strpos(lower(${query}),lower(e."searchText"))>0))
-    ORDER BY CASE WHEN ${reverse} THEN
-      CASE WHEN lower(e."searchText")=lower(${query}) THEN 0 WHEN strpos(lower(e."searchText"),lower(${query}))>0 THEN 1 ELSE 2 END
-      ELSE 0 END,
+    ORDER BY "matchRank",
+      CASE WHEN e."primaryLabel" IN ('ArtistCredit','Medium','Track','EvidenceAssertion','SourceDocument') THEN 1 ELSE 0 END,
       degree DESC, lower(e."searchText") COLLATE "C", e.id COLLATE "C"
     LIMIT ${limit}`;
   return rows.map((r) => ({ ...entityRecord(r), matchRank: r.matchRank }));

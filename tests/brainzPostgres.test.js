@@ -71,6 +71,21 @@ test('workbench search and graph retain distinct recordings with identical title
   } finally {await db.relationship.deleteMany({where:{id:{in:edges.map(e=>e.id)}}});await db.entity.deleteMany({where:{id:{in:[a.id,b.id,w.id]}}});}
 });
 
+test('seed relevance ranks exact artists before billing and higher-degree partial matches',{skip:!enabled},async()=>{
+  const db=isolated(),prefix='seed-rank:'+randomUUID();
+  const ids=['artist','billing','partial','neighbor'].map(key=>prefix+':'+key);
+  try {
+    await db.entity.createMany({data:ids.map((id,i)=>({id,labels:[i===1?'ArtistCredit':'Artist'],primaryLabel:i===1?'ArtistCredit':'Artist',searchText:i<2?prefix:prefix+' '+i,...toColumns({name:i<2?prefix:prefix+' '+i})}))});
+    await db.relationship.createMany({data:[{id:prefix+':a',sourceId:ids[1],targetId:ids[2],type:'LINK'},{id:prefix+':b',sourceId:ids[2],targetId:ids[3],type:'LINK'}]});
+    assert.equal((await demo.searchGraphSeeds(prefix,1))[0].id,ids[0]);
+    assert.deepEqual((await demo.searchGraphSeeds(prefix,4)).slice(0,2).map(row=>row.id),ids.slice(0,2));
+    assert.equal((await demo.searchGraphSeeds(prefix+' 2',1))[0].id,ids[2]);
+  } finally {
+    await db.relationship.deleteMany({where:{sourceId:{in:ids}}});
+    await db.entity.deleteMany({where:{id:{in:ids}}});
+  }
+});
+
 test('snapshot refresh updates only unchanged baseline records and replays safely',{skip:!enabled},async()=>{
  const {persistDomainBatch}=require('../src/domain/repository');
  const db=isolated(),id='refresh-test:'+randomUUID();
