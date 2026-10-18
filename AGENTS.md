@@ -8,6 +8,10 @@ Environment clarification (2026-10-17): the user confirmed that MusicMesh has no
 
 More specific direct user instructions take priority over this file.
 
+## October-only Neon allowance
+
+The user increased the reported monthly network-transfer allowance from 5 GB to 25 GB for October 2026 only. Read `docs/product/OCTOBER_NEON_BUDGET.md` before bulk database work. Target completion and capacity review by 30 October; do not assume the upgrade continues into November. Preserve validation while reducing full-record verification reads, consolidate remaining imports, and check final storage against lower-plan limits before downgrade.
+
 ## Brainz transition — 2026-10-17
 
 Read `docs/product/BRAINZ_PROGRESS.md`, `docs/plans/2026-10-17-brainz.md`, and the standalone design at `docs/research/2026-10-17-music-data-standards/MODEL_AND_IMPORT_DESIGN.md` before model/import work. The user approved beginning this work and declared previous generated database content disposable. Do not use it as enrichment evidence. Preserve the original Last.fm CSV as input; it has already been submitted to ListenBrainz and must not be submitted again.

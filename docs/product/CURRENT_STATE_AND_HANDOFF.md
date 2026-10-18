@@ -1,8 +1,10 @@
 # Current State And Handoff
 
-Updated 17 October 2026, New York time.
+Updated 18 October 2026, New York time.
 
 ## Current environment and data
+
+**October-only capacity constraint:** Nick raised the reported monthly Neon transfer allowance from 5 GB to 25 GB for October only. Complete necessary bulk work by 30 October and review downgrade eligibility before 1 November 00:00 UTC (31 October, 8 p.m. New York). Read [OCTOBER_NEON_BUDGET.md](OCTOBER_NEON_BUDGET.md) before bulk operations. The project now reports `build` and 5 GiB branch capacity; final storage must fit the lower plan before returning to it. Reduce importer verification egress before another large load; this optimization is not yet implemented.
 
 The user explicitly clarified that **there is no production environment**. The deployed app at https://musicmesh.s13.nyc/ and dedicated Neon main branch are the shared development instance. Root `.env` selects that backend. `.env.migration` remains available for isolated tests. Do not delay loading available verified data behind a production-release gate. Do not use Alexander.
 
