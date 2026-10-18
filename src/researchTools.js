@@ -226,14 +226,35 @@ async function node(db, id) {
   return rows[0];
 }
 function asGraph(nodes, edges = []) {
+  const degree = new Map(nodes.map((n) => [n.id, 0]));
+  for (const edge of edges)
+    for (const id of [edge.sourceId, edge.targetId])
+      degree.set(id, (degree.get(id) || 0) + 1);
+  const hub = edges.length
+    ? [...nodes].sort((a, b) => degree.get(b.id) - degree.get(a.id))[0]?.id
+    : null;
+  const neighbors = nodes.filter((n) => n.id !== hub);
+  const positions = new Map(
+    neighbors.map((n, i) => [
+      n.id,
+      {
+        x: 230 * Math.cos((2 * Math.PI * i) / neighbors.length - Math.PI / 2),
+        y: 230 * Math.sin((2 * Math.PI * i) / neighbors.length - Math.PI / 2),
+      },
+    ]),
+  );
   return {
     nodes: nodes.map((n, i) => ({
       id: n.id,
       label: n.name || n.id,
       kind: n.kind,
       summary: { labels: [n.kind] },
-      x: (i % 6) * 150,
-      y: Math.floor(i / 6) * 110,
+      x: hub ? (n.id === hub ? 0 : positions.get(n.id).x) : (i % 6) * 150,
+      y: hub
+        ? n.id === hub
+          ? 0
+          : positions.get(n.id).y
+        : Math.floor(i / 6) * 110,
       colorKey:
         {
           Release: "album",
