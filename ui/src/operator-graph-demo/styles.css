@@ -542,8 +542,9 @@
 .research-controls button { max-width:420px; overflow:hidden; text-overflow:ellipsis; }
 .research-decision-overlay { position:fixed; inset:0; background:#0009; z-index:1000; }
 .research-decision-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1001; width:min(620px,90vw); max-height:85vh; overflow:auto; padding:28px; border:1px solid #8b8d98; border-radius:12px; background:#181c26; color:#f4f4f5; box-shadow:0 20px 80px #0008; }
-.research-decision-modal dt { font-weight:600; margin-top:12px; text-transform:capitalize; }
-.research-decision-modal dd { margin:4px 0; overflow-wrap:anywhere; }
+.research-decision-modal dl { display:grid; grid-template-columns:110px minmax(0,1fr); gap:10px 16px; font-size:14px; }
+.research-decision-modal dt { font-weight:600; text-transform:capitalize; }
+.research-decision-modal dd { margin:0; overflow-wrap:anywhere; }
 .research-choice { display:flex; gap:10px; padding:10px 0; }
-.research-decision-actions { display:flex; gap:12px; margin-top:22px; }
+.research-decision-actions { display:flex; gap:12px; margin-top:22px; position:sticky; bottom:-28px; padding:14px 0; background:#181c26; border-top:1px solid #8b8d9844; }
 .research-decision-actions button { padding:8px 18px; }

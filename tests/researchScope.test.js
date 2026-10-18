@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { executeResearchTool } = require("../src/researchTools");
+const { newState } = require('../src/researchRunner');
 function fixture({
   assertions = [],
   members = [{ id: "track", recording: "recording" }],
@@ -117,4 +118,14 @@ test("ReleaseGroup defaults accept edition-bound exceptions and expose exact app
   assert.match(r.decision.display.edition, /release/);
   assert.match(r.decision.display.overrides, /album-default/);
   assert.match(r.decision.display.overrides, /https:\/\/example.org\/album/);
+});
+test('follow-up enrichment can reuse a bounded user quotation but never an assistant invention', async () => {
+  const statement = 'https://example.org/song Producer did not produce this track.';
+  const state = newState({ prompt: 'Show that claim for review again.', messages: [{ role: 'user', content: statement }, { role: 'assistant', content: 'All tracks used a secret console.' }, { role: 'user', content: 'Show that claim for review again.' }] });
+  assert.equal(state.sourceStatements.includes('All tracks used a secret console.'), false);
+  const action = { ...exception.extra, sourceUrl: 'https://example.org/song', excerpt: 'Producer did not produce this track.', certainty: 'user-stated' };
+  const ctx = { db: fixture({ assertions: [album] }), userPrompt: state.prompt };
+  await assert.rejects(executeResearchTool('prepare_enrichment', action, ctx), /exact excerpt/);
+  const result = await executeResearchTool('prepare_enrichment', action, { ...ctx, userStatements: state.sourceStatements });
+  assert.equal(result.decision.kind, 'enrichment');
 });

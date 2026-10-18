@@ -214,6 +214,7 @@ async function persistDecision(tx, state, d) {
   await executeResearchTool("prepare_enrichment", a, {
     db: tx,
     userPrompt: state.prompt,
+    userStatements: state.sourceStatements || [state.prompt],
     evidenceTexts: state.evidenceTexts,
     actor,
   });

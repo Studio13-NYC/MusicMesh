@@ -57,10 +57,10 @@ Preserve imported identities, original CSV, STAY and unrelated work. Never use A
 
 ## Task 6: Review, deployment and proof
 
-- [ ] Fresh whole-change review; resolve correctness findings with regression tests.
-- [ ] Commit scoped changes, push under existing authorization, monitor deployment. Apply additive operational schema before new runtime. No existing music data reset.
-- [ ] Actual deployed workbench tests and API/log checks; compare model calls/tokens for simple answer and real graph query. Verify modal behavior without leaving fabricated evidence in real catalog.
-- [ ] Record exact commands/results, limitations, available source integrations and remaining provider access requirements. Expected: current-state docs match shipped code.
+- [x] Fresh whole-change review; resolve correctness findings with regression tests.
+- [x] Commit scoped changes, push under existing authorization, monitor deployment. Apply additive operational schema before new runtime. No existing music data reset.
+- [x] Actual deployed workbench tests and API/log checks; compare model calls/tokens for simple answer and real graph query. Verify modal behavior without leaving fabricated evidence in real catalog.
+- [x] Record exact commands/results, limitations, available source integrations and remaining provider access requirements. Expected: current-state docs match shipped code.
 
 ## Execution ledger
 
@@ -70,3 +70,5 @@ Preserve imported identities, original CSV, STAY and unrelated work. Never use A
 2026-10-18 implementation ledger: Tasks 1–3 implemented and unit/local DB tests passing. Task 4 local API/workbench exercised: 21,415-play response, Defer -> Resume -> Approve. Task 5 executable source driver/importer and old model pipeline removed; current guidance updated. Final review/deployment still pending. Ruling: add typed new-factor creation to enrichment because instrument models will often be absent from the imported catalog; modal discloses the new identity and source. Cost if wrong: a duplicate user-reviewed local factor may need reconciliation; no imported object is overwritten. Ruling: preserve the historical user transcript and protected archives while removing executable dependencies and current guidance; rewriting user history would lose useful product evidence.
 
 2026-10-18 review fix ledger: fresh reviewer reported six Important, no Critical. All six accepted and fixed in one pass: resolved track/recording identity; excluded edition-bound claims from context-free aggregates; ReleaseGroup defaults validated through the same preparation/execution contract; exact IDs/edition/prior claim disclosed; uncertain lease recovery requires explicit retry; stable prompt/decision tape events restored. Added cancellation and removed obsolete review UI. RED: three scope tests plus two SQL recovery/tape tests failed for the expected reasons. GREEN: 90 unit passes, 16 SQL passes; build and API bundle pass. Tape is observational, not a transactional outbox; storage outages are logged and remain a transcript-reliability limitation. Shared additive migration and Azure model configuration applied; deployment verification follows.
+
+2026-10-18 deployment ledger: core commits 4a53698/d941309 pushed; Azure run 39158340330 succeeded. Live workbench returned 7 stored nodes / 6 edges in request req-e43d759b-9b07-4998-9b96-118d607dae2a; API/tape/runtime separately verified. Model gpt-6-luna/high; 8,875 tokens, four model steps. Local modal displayed exact identities and source; test claim denied/deferred without persistence. Final usability fix retains explicit user quotations across bounded follow-ups (never assistant claims), compacts scope details and keeps decision actions visible. 91 unit + 16 SQL checks pass. Final polish deployment follows; no source metadata bulk import was started.

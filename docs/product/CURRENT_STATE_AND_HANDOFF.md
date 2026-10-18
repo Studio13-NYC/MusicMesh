@@ -2,9 +2,9 @@
 
 Updated 18 October 2026. The deployed site and root `.env` select the shared **development** instance, not production. Never use Alexander. Keep `STAY/` and original source files intact.
 
-## Researcher change in progress
+## Researcher runtime
 
-The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6 Luna/high Responses API researcher. Deployment verification is pending until explicitly recorded below.
+The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6 Luna/high Responses API researcher. Core runtime deployed successfully in run 39158340330; final usability fixes are being verified below.
 
 - `src/researchRunner.js`: one model call per durable step, tool-directed exploration, bounded history/context/calls. No automatic model preview, planner, grounder or review chain.
 - `src/researchTools.js`: compact catalog search/detail/adjacency/neighbors, edition tracklist, acoustic comparisons, private-history aggregates, semantics, evidence, sources, scoped credits and factor comparison.
@@ -57,6 +57,12 @@ Root `.env` is main. The local full restoration test database uses `.env.restore
 
 ## Review and pre-deployment verification
 
-Fresh review of `db96e68..4a53698` identified six important findings and no critical findings. Fixed track/recording context resolution, edition restrictions in comparisons/genre aggregates, ReleaseGroup default exceptions, approval scope display, uncertain-call retry handling and prompt/decision tape logging. Added cancellation. Regression tests were observed failing before fixes, then passing. `npm test`: 90 passed / 16 opt-in skipped. Isolated SQL suite: 16/16 passed. `npm run build` and `npm run build:api` passed; existing UI bundle size warning remains. Local workbench proved real 7-node/6-edge graph, Defer/Resume/Approve, and Deny without writes.
+Fresh review of `db96e68..4a53698` identified six important findings and no critical findings. Fixed track/recording context resolution, edition restrictions in comparisons/genre aggregates, ReleaseGroup default exceptions, approval scope display, uncertain-call retry handling and prompt/decision tape logging. Added cancellation. Regression tests were observed failing before fixes, then passing. `npm test`: 91 passed / 16 opt-in skipped. Isolated SQL suite: 16/16 passed. `npm run build` and `npm run build:api` passed; existing UI bundle size warning remains. Local workbench proved real 7-node/6-edge graph, Defer/Resume/Approve, and Deny without writes.
 
 18 October 19:19 UTC: additive `20261018190000_research_runs` migration applied to MusicMesh main. Azure model settings set to `gpt-6-luna` / `high`. Application deployment proof still pending. No bulk catalog reads/imports were performed for this change.
+
+## Deployed proof — 18 October
+
+Commit `d941309` deployed successfully in [run 39158340330](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158340330). Actual Edge workbench request `req-e43d759b-9b07-4998-9b96-118d607dae2a` completed with seven stored nodes/six edges, four researcher calls, 8,875 total tokens and 13,139 ms summed model latency. Runtime telemetry confirms `gpt-6-luna` / high. Tape contains both the user prompt and final answer. Proof: `output/researcher-live-deployed.json`, `output/researcher-deployed-graph.jpg`.
+
+Final usability pass: compact approval details keep Approve/Deny/Defer visible; user-supplied source quotations can carry through the bounded recent user history. Assistant assertions and selected-node text do not become source evidence. Current tests: 91 unit passes and 16 isolated SQL passes. Transcript appends use stable IDs and ordinary retry suppression, but are observational rather than a transactional outbox; a storage outage can leave a tape gap even though run state is saved.

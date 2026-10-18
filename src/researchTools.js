@@ -690,9 +690,11 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
       !(ctx.evidenceTexts || []).some(
         (t) => t.url === a.sourceUrl && t.text.includes(a.excerpt),
       ) &&
-      !(
-        String(ctx.userPrompt || "").includes(a.excerpt) &&
-        String(ctx.userPrompt || "").includes(a.sourceUrl)
+      ![ctx.userPrompt, ...(ctx.userStatements || [])].some(
+        (statement) =>
+          typeof statement === "string" &&
+          statement.includes(a.excerpt) &&
+          statement.includes(a.sourceUrl),
       )
     )
       throw new Error(

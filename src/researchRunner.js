@@ -23,6 +23,9 @@ function newState(body) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 1500) }));
   if (messages.at(-1)?.role === "user") messages.pop();
   messages.push({ role: "user", content: prompt });
+  const sourceStatements = messages
+    .filter((m) => m.role === "user")
+    .map((m) => m.content);
   const selected =
     body.graphContext?.selectedNode || body.graphContext?.currentView?.seedNode;
   if (typeof selected?.id === "string" && selected.id.length <= 512)
@@ -39,6 +42,7 @@ function newState(body) {
   return {
     status: "running",
     prompt,
+    sourceStatements,
     threadId: String(body.threadId || "operator-graph-demo").slice(0, 100),
     actor: body.actor === "Guest" ? "Guest" : "Nick",
     input: messages,
@@ -195,6 +199,7 @@ async function advanceState(
       } else {
         result = await execute(callItem.name, args, {
           userPrompt: s.prompt,
+          userStatements: s.sourceStatements || [s.prompt],
           actor: s.actor,
           evidenceTexts: s.evidenceTexts,
         });
