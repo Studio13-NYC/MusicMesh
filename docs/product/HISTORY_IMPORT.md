@@ -205,3 +205,16 @@ Checkpoint 1 contains 10,204 successful lookups (all 8,289 broader recording loo
 Refreshes now apply each validated batch of changed rows with one parameterized PostgreSQL update, after taking row locks and checking the exact prior snapshot. Payloads remain bound parameters; schema/serializer-defined identifiers alone enter SQL structure. This preserves the same correction checks, rollback behavior and exact replay while avoiding tens of thousands of individual update round trips.
 
 Current verified main baseline after this checkpoint: `output/imports/2026-10-17/main-development-snapshot-3` (03:34 UTC, 18 October). Use that directory as `--previous-snapshot` for the next enrichment. Actual main totals include retained pilot evidence: 182,221 entities/368,477 relationships. Storage was 905,715,712 bytes; check branch capacity before compiling/loading a substantially larger checkpoint. Read CURRENT_STATE_AND_HANDOFF.md for the live chat retrieval limitation.
+
+
+## Compact evidence imports (18 October)
+
+The current source baseline remains snapshot 3; the compact representation has its own `main-development-import-receipt-evidence-v1.json`. Read EVIDENCE_STORAGE.md for preparation/upload/recovery commands. Original source snapshots remain unchanged. Commands above describe historical imports; **future loads after compact conversion must include `--archive`**.
+
+For a newly compiled snapshot, prepare evidence into a fresh archive directory, upload/verify it, then use:
+
+```powershell
+node --max-old-space-size=8192 --env-file=.env scripts/importListeningHistory.js load-main --prepared output/imports/2026-10-17/prepared --snapshot <new-snapshot> --previous-snapshot output/imports/2026-10-17/main-development-snapshot-3 --archive <new-verified-archive>
+```
+
+A verified compact baseline allows new/changed source rows only; unchanged rows are carried forward without rereading their full payloads. Changed rows still require exact locked baseline comparison and post-write verification. Corrections conflict rather than being overwritten. Do not repeat a full replay as routine monitoring. The existing collector uses `catalog-fetch-v3.log` and `catalog-fetch-v3.error.log`; inspect its actual process/lock before launching anything.

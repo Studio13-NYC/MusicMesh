@@ -43,3 +43,19 @@ test('upload resumes existing blobs using their actual length and verifies conte
   const result=await uploadEvidenceArchive(dir,{container});assert.equal(result.created,0);assert.equal(result.verified,1);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+test('failed uploads settle in-flight work and never publish a verified receipt',async()=>{
+ const {uploadEvidenceArchive}=require('../src/evidenceArchive');
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'musicmesh-upload-failure-'));
+ try{
+  const archive=new LocalEvidenceArchive(dir);
+  for(let i=0;i<12;i++)compactProperties({rawProvider:{i,text:'x'.repeat(1000)}},(r,b)=>archive.put(r,b));
+  fs.writeFileSync(path.join(dir,'archive-manifest.json'),JSON.stringify({version:1,documents:[...archive.entries.values()]}));
+  let calls=0,settled=false,release;const pending=new Promise(resolve=>{release=resolve;});
+  const container={createIfNotExists:async()=>{},getProperties:async()=>({}),getBlockBlobClient:()=>({uploadData:async()=>{calls++;if(calls===1)throw new Error('Storage unavailable');await pending;}})};
+  const run=uploadEvidenceArchive(dir,{container}).finally(()=>{settled=true;});
+  // Attach rejection handling before yielding, so failures never become unhandled.
+  const rejected=assert.rejects(run,/Storage unavailable/);
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
+  release();await rejected;assert.ok(calls<=8);assert.equal(fs.existsSync(path.join(dir,'archive-upload-receipt.json')),false);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});

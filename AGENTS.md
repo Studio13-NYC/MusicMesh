@@ -18,6 +18,8 @@ Read `docs/product/BRAINZ_PROGRESS.md`, `docs/plans/2026-10-17-brainz.md`, and t
 
 Domain semantics live in `src/domain/`: read `getOntology()`, `getTypeDefinition(key)`, or generated `docs/product/DOMAIN_MODEL.md`. Both local and Azure APIs expose `GET /api/ontology`; constructors expose `.definition`. Answer, preview, planning and grounding share these definitions. Chat and import writers enforce domain classes and identities. Chat cannot overwrite imported records or invent provider/acoustic evidence; it can reference existing public analyses. Private listening events/mappings stay out of public graph context. Ordinary chat receives the selected graph node and a bounded database neighborhood. Legacy incompatible rows are excluded from matching. The progress report distinguishes downloaded data, main development imports and remaining enrichment. Use the explicit `load-main` command for the shared backend; partial enrichment is allowed and recorded in its receipt. Prisma, Neon and the workbench architecture stay in place. No global mirror is required.
 
+Evidence storage: read `docs/product/EVIDENCE_STORAGE.md` before provider-evidence or bulk-import work. Large evidence is private Azure Blob content referenced from the typed graph. After a verified compact baseline, enrichment imports require a prepared/uploaded `--archive`; do not restore inline duplication. Keep original snapshots and use SQL aggregates/targeted checks rather than full database downloads. Public evidence access is record-gated; listening events/mappings remain private.
+
 ## Always Check Current Status
 
 The MusicMesh UI and operator workflow are being actively refined.
@@ -273,6 +275,7 @@ Current optional env keys:
 - `OPENAI_VERBOSITY`
 - `MUSICMESH_CHAT_GRAPH_SYNC_TIMEOUT_MS`
 - `MUSICMESH_HTTP_USER_AGENT`
+- `MUSICMESH_EVIDENCE_CONNECTION_STRING` (optional evidence-specific setting; falls back to Blob setting)
 - `MUSICMESH_BLOB_CONNECTION_STRING`
 - `MUSICMESH_BLOB_CONTAINER`
 - `AURA_INSTANCEID`
