@@ -26,7 +26,7 @@ Neon meters public database-to-client traffic. Verification reads and full dumps
 
 ## Remaining October work, in order
 
-1. **Reduce importer verification transfer before the next bulk load.** Preserve exact conflict detection, baseline comparison, row locks, endpoint/type validation and transaction rollback. Move large equality checks into PostgreSQL or return bounded validation results; do not skip proof or add an unchecked fast path. Test correction preservation and idempotent replay on small isolated fixtures. This optimization is planned, not yet implemented.
+1. **Reduce importer verification transfer and validate a compact storage representation before the next bulk load.** Preserve exact conflict detection, baseline comparison, row locks, endpoint/type validation and transaction rollback. Move large equality checks into PostgreSQL or return bounded validation results; do not skip proof or add an unchecked fast path. Test correction preservation and idempotent replay on small isolated fixtures. This optimization is planned, not yet implemented.
 2. Let the existing collector finish, then compile/source-audit the final bounded catalog from local caches. Consolidate remaining enrichment into as few verified imports as practical; do not repeatedly replay the entire already-verified graph merely for reassurance. Use snapshot 3 as the current verified baseline until a newer import receipt exists.
 3. Load the remaining selected releases, direct artists/works/groups and bounded context into main, within the reported 25 GB budget. Record actual usage before/after and keep missing/error/partial status explicit. Check storage and compute limits too. No new global database mirror or parallel provider collector is needed.
 4. Verify source-history integrity, graph counts, representative release/track/personnel paths, privacy, and the actual workbench. Improve bounded chat retrieval/projections so ordinary questions do not fetch or expose unnecessary raw provider payloads. Use server-side counts/aggregates and targeted checks; avoid repeated whole-table downloads.
@@ -36,3 +36,25 @@ Neon meters public database-to-client traffic. Verification reads and full dumps
 ## Future sessions
 
 Read this constraint before any bulk Neon operation. Prefer local snapshots for analysis, SQL aggregates for inventory, small isolated test fixtures, and bounded field projections for runtime reads. Do not add full-database polling or scheduled full exports. Report if required work would exceed the remaining allowance or the October window rather than silently extending the upgrade.
+
+
+## Storage reduction strategy — 18 October
+
+Nick explicitly does not want an ongoing $10/month subscription. Complete the storage work **before** the temporary upgrade ends; treat the lower-plan limit as a design constraint rather than assuming renewal. This section is a proposed implementation strategy, not a completed migration.
+
+A read-only server-side aggregate audit at `output/imports/2026-10-18/storage-audit.json` found 656,719,872 bytes in user tables/TOAST and 241,082,368 bytes in indexes. Database size from the live check was 905,715,712 bytes. Relationship indexes account for 183,394,304 bytes; entity indexes 57,655,296. These are actual allocated sizes, not evidence that the indexes are unnecessary. Uncompressed field text totals are 237,911,782 bytes of rawProvider, 130,009,788 bytes of relationship observations, and 98,663,257 bytes of providerEvidence. PostgreSQL compresses large JSON values; these text totals are **not additive disk savings**, and repeated observations can contain useful independent provenance.
+
+### Primary approach
+
+- Keep all listening events, identities, searchable music facts, semantic definitions, structural relationships, useful acoustic features and comparison results in the existing OO/Prisma graph. Preserve stable public IDs and the user's ability to query connections.
+- Store each fetched provider response once in a compressed, content-addressed private evidence archive, with checksum, source URL and retrieval time. Reuse existing storage where practical. Prism is a candidate named by Nick; its availability, backup and deployed-agent access must be verified. Existing Azure Blob infrastructure is another candidate, with costs checked first. A workstation-only path cannot serve as the deployed API's evidence resolver.
+- Replace copied rawProvider bodies, repeated source envelopes and repeated full observation bodies with explicit evidence references and pointers into those documents. Preserve distinct observation history through references. Extract meaningful fields into the typed model before moving raw payloads; current country/tracklist retrieval gaps must not be made worse. References must be resolvable by authorized agents, with provenance intact and private listening evidence protected.
+- Store shared acoustic method/cohort definitions once rather than copying their invariant explanatory material into every comparison; retain per-pair scores/features and source identities. Use shared domain definitions, without flattening incompatible cohorts or losing interpretation.
+- Keep isolated tests small and short-lived. Review retained validation data after backing it up and establishing a local fixture workflow; no branch deletion is authorized by this strategy alone. Branch logical sizes cannot simply be added to infer billed incremental storage.
+- Inspect index usage/definitions and update bloat. Keep indexes needed by graph queries. Reclaim/rebuild space with a verified maintenance procedure after compacting, allowing for locks, temporary space and retained history; do not assume a JSON update or ordinary VACUUM instantly reduces provider-reported usage.
+
+### Acceptance and fallback
+
+Build the compact final snapshot locally, test representative/full-size storage on local PostgreSQL, verify source counts/identities/provenance resolution and actual workbench queries, then migrate main once using a versioned baseline that preserves user corrections. Update the importer so subsequent enrichment cannot restore duplicated payloads, and keep source-audit/replay protection valid across the representation change.
+
+Engineering target: approximately **700 MiB or less** for the final main branch, leaving margin below the previously verified 1 GiB lower-plan limit. This is a target, not a measured forecast. Confirm the actual account's storage, transfer, compute and branch limits before downgrade. If the complete useful graph still does not fit, report the measured gap and evaluate hosting PostgreSQL on existing Prism capacity as a separate deployment decision; do not silently discard music relationships, split across free projects, or renew the paid plan. No Prism migration or evidence offload has occurred yet.
