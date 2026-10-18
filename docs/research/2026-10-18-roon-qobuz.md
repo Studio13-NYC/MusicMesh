@@ -8,6 +8,8 @@ Live follow-up completed later on 18 October: Nick authorized the extension. Ten
 
 ## Recommendation
 
+**Approved by Nick, 18 October:** use Roon-provided genres for genre exploration and library context, alongside MusicBrainz and sourced credit research. Keep source attribution and hierarchy, including the distinction between album classifications and track-specific evidence. Approval establishes the source choice; the completed local probe is not a database import or a deployed researcher integration. Qobuz remains deferred.
+
 Prioritize Roon as a candidate for Nick's genre hierarchy and library classifications, and Qobuz for complementary edition metadata, personnel text and supplementary documents. Keep MusicBrainz identities and existing domain classes as the foundation. Neither source establishes why Nick likes a recording.
 
 Next: a read-only capability test against ten albums already in the listening catalog. Do not start another full catalog collection, install a second application stack, or delay the current MusicBrainz import for these optional sources.

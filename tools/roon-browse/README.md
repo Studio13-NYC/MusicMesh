@@ -30,4 +30,8 @@ The ten-album mode reads local `output/imports/2026-10-17/prepared/events.ndjson
 
 Verified 18 October: 225 requests, ten complete album detail lists, 24 complete genre membership lists, all ten candidates found in at least one genre. All 21 root navigation keys changed after resetting the browse stack. Observed album items contain title/subtitle/image/navigation/hint fields, without typed personnel roles or external catalog IDs. Album/genre snapshots remain private local evidence, not imported graph facts.
 
+## Offline relationship analysis
+
+`node tools/roon-browse/analyze.cjs` compares the tested candidates with checksummed prepared history/mappings and cached MusicBrainz recording/work responses. It writes private `output/roon-browse/relationships.json` and makes no network/database calls. Read `RELATIONSHIP_ANALYSIS.md` in that directory for the initial interpretation and mapping-quality concern. These are factors on provider-matched recordings played under album names, not verified editions or album-wide credits. Work-level writers and performers retain their separate source scope. Shared-recording overlap is reported separately from factors supported on different recordings. Missing credits are unknown, not negative evidence. Instrument attributes remain provider labels; this analysis does not create equipment-model identities.
+
 Connection receipt and exact current Core address are private under `output/roon-probe/`. Authorization tokens survive a normal restart. A connection refusal before a WebSocket opens is reported as `connection-error`; correct the host/network and restart rather than assuming authorization succeeded.
