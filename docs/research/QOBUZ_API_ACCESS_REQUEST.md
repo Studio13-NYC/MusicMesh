@@ -2,6 +2,8 @@
 
 Prepared 18 October 2026. **Draft only; not sent.**
 
+**Deferred by Nick on 18 October:** evaluate Roon first. Retain this draft; do not send or pursue credentials unless Nick resumes Qobuz work.
+
 To: api@qobuz.com
 
 Subject: API application access request - MusicMesh personal music research prototype

@@ -2,6 +2,8 @@
 
 Reviewed 18 October 2026 following Nick's suggestions. This is a source assessment and implementation follow-up, **not a connected integration or completed import**. Runtime status remains in [CURRENT_STATE_AND_HANDOFF.md](../product/CURRENT_STATE_AND_HANDOFF.md).
 
+Priority update, 18 October: Nick deferred Qobuz while we evaluate what Roon supplies. Keep the Qobuz request unsent and do not pursue credentials or implement its adapter now. The optional [MusicMesh Browse extension](../../tools/roon-browse/README.md) is the next Roon access step; its local receipt, not this assessment, establishes whether user authorization has completed.
+
 ## Recommendation
 
 Prioritize Roon as a candidate for Nick's genre hierarchy and library classifications, and Qobuz for complementary edition metadata, personnel text and supplementary documents. Keep MusicBrainz identities and existing domain classes as the foundation. Neither source establishes why Nick likes a recording.

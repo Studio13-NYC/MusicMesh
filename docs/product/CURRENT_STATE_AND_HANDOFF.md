@@ -42,6 +42,10 @@ node --env-file=.env.restore --test tests/researchPostgres.test.js
 
 Root `.env` is main. The local full restoration test database uses `.env.restore` and Docker container `musicmesh-evidence-validation` on 127.0.0.1:55433. Do not reset it. Existing UI/API processes may belong to other work; use a dedicated port for tests. `MUSICMESH_API_PORT=43102` with Vite `--port 3001` selects the test API proxy.
 
+## Optional Roon operator extension
+
+`tools/roon-browse/` now provides a separate local MusicMesh Browse extension with pinned SDK dependencies. It has contacted the discovered Core; user Enable is required. Current state and PID are in ignored `output/roon-browse/status.json`; successful authorization triggers one bounded genre-root read. This is not an Azure/app connector or a completed ten-album test. See [instructions](../../tools/roon-browse/README.md). Qobuz is deferred by Nick; retain the unsent request and evaluate Roon first.
+
 ## Current limits
 
 - Genre arrays/tags exist in archived provider payloads but are not yet normalized into complete queryable genre assignments. The aggregate reports this coverage gap while returning real play totals.
