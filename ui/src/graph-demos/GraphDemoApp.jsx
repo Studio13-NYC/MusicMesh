@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import * as Dialog from '@radix-ui/react-dialog';
+import { DiscoveryCanvas } from './DiscoveryCanvas';
+import { toDiscoveryGraph } from './discoveryGraph.mjs';
 import {
   fetchGraphSubgraph,
   fetchThreadFocusedGraph,
@@ -349,6 +352,9 @@ export function GraphDemoApp({
   onCatalogContextChange = null
 }) {
   const [graph, setGraph] = useState(createEmptyGraph());
+  const [viewMode, setViewMode] = useState('discovery');
+  const [fullscreen, setFullscreen] = useState(false);
+  const [discoveryEdgeId, setDiscoveryEdgeId] = useState(null);
   const [filters, setFilters] = useState({
     nodeKinds: {},
     relationshipTypes: {}
@@ -370,10 +376,12 @@ export function GraphDemoApp({
     index: -1
   });
   const canvasRef = useRef(null);
+  const fullscreenButtonRef = useRef(null);
   const graphRef = useRef(graph);
   const autoLoadedRef = useRef(false);
   const suppressInspectOpenRef = useRef(false);
   const filteredGraph = useMemo(() => applyFilters(graph, filters), [graph, filters]);
+  const discoveryGraph = useMemo(() => toDiscoveryGraph(filteredGraph), [filteredGraph]);
   const nodeFilterCatalog = useMemo(() => buildNodeFilterCatalog(graph), [graph]);
   const relationshipFilterCatalog = useMemo(
     () => buildRelationshipFilterCatalog(graph),
@@ -512,7 +520,7 @@ export function GraphDemoApp({
   }, [defaultSeedQuery, focusKey, threadId]);
 
   useEffect(() => {
-    if (!selectedElement || selectedElement.type !== "node" || graph.meta?.preview) {
+    if (viewMode !== 'network' || !selectedElement || selectedElement.type !== "node" || graph.meta?.preview) {
       return;
     }
 
@@ -543,7 +551,7 @@ export function GraphDemoApp({
     return () => {
       ignore = true;
     };
-  }, [graph.meta?.preview, nodeDetails, selectedElement]);
+  }, [graph.meta?.preview, nodeDetails, selectedElement, viewMode]);
 
   useEffect(() => {
     if (!selectedElement) {
@@ -568,11 +576,11 @@ export function GraphDemoApp({
         suppressInspectOpenRef.current = false;
         return;
       }
-      if (!embedded) {
+      if (!embedded && viewMode === 'network') {
         setIsRightDrawerOpen(true);
       }
     }
-  }, [embedded, selectedElement]);
+  }, [embedded, selectedElement, viewMode]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -622,7 +630,7 @@ export function GraphDemoApp({
     setErrorMessage("");
 
     try {
-      const payload = await fetchGraphSubgraph(seedId, options);
+      const payload = await fetchGraphSubgraph(seedId, { ...options, presentation: viewMode === 'discovery' });
 
       rememberGraph(payload, {
         label: payload.seedNode?.label || "Loaded graph",
@@ -839,6 +847,7 @@ export function GraphDemoApp({
       ? graph.edges.find((edge) => edge.id === selectedElement.id) || null
       : null;
   const selectedNodeDetail = selectedNode ? nodeDetails[selectedNode.id] || null : null;
+  const ActiveCanvas = viewMode === 'discovery' ? DiscoveryCanvas : GraphCanvas;
 
   return (
     <div className={`graph-demo-page${embedded ? " graph-demo-page-embedded" : ""}`}>
@@ -954,6 +963,12 @@ export function GraphDemoApp({
           <div className="demo-toolbar-shell">
             <div className="demo-toolbar">
               <div className="demo-toolbar-group">
+                <button className="demo-button demo-button-tight" type="button"
+                  onClick={() => { setViewMode(viewMode === 'discovery' ? 'network' : 'discovery'); setIsRightDrawerOpen(false); }}>
+                  {viewMode === 'discovery' ? 'Network view' : 'Discovery view'}
+                </button>
+                <button ref={fullscreenButtonRef} className="demo-button demo-button-tight" type="button" disabled={!filteredGraph.nodes.length}
+                  onClick={() => setFullscreen(true)}>Full screen</button>
                 <button
                   className="demo-button demo-button-tight"
                   disabled={graphHistory.index <= 0}
@@ -989,7 +1004,7 @@ export function GraphDemoApp({
                   onClick={() => canvasRef.current?.fitToGraph()}
                   type="button"
                 >
-                  Fit
+                  {viewMode === 'discovery' ? 'Top' : 'Fit'}
                 </button>
                 <button
                   className="demo-button demo-button-tight"
@@ -1007,7 +1022,7 @@ export function GraphDemoApp({
                     : graph.seedNode?.label || "No seed loaded"}
                 </span>
                 <span>
-                  {graph.meta.nodeCount || 0}n / {graph.meta.edgeCount || 0}e
+                  {viewMode === 'discovery' ? discoveryGraph.nodes.length : graph.meta.nodeCount || 0}n / {viewMode === 'discovery' ? discoveryGraph.edges.length : graph.meta.edgeCount || 0}e
                 </span>
                 {graphHistory.entries.length > 0 ? (
                   <span>
@@ -1024,14 +1039,14 @@ export function GraphDemoApp({
                 >
                   {isExpandLoading ? "Expanding..." : "Expand"}
                 </button>
-                <button
+                {viewMode === 'network' && <button
                   aria-expanded={isRightDrawerOpen}
                   className="demo-button demo-button-tight"
                   onClick={() => setIsRightDrawerOpen((currentValue) => !currentValue)}
                   type="button"
                 >
                   Inspect
-                </button>
+                </button>}
               </div>
             </div>
           </div>
@@ -1042,7 +1057,7 @@ export function GraphDemoApp({
             {isGraphLoading ? (
               <div className="demo-empty-state">Loading graph...</div>
             ) : filteredGraph.nodes.length > 0 ? (
-              <GraphCanvas
+              fullscreen ? <div className="demo-empty-state">Graph is open full screen.</div> : <ActiveCanvas
                 ref={canvasRef}
                 graph={filteredGraph}
                 hoveredElement={hoveredElement}
@@ -1052,6 +1067,8 @@ export function GraphDemoApp({
                 onNodePositionChange={handleNodePositionChange}
                 onSelectElement={setSelectedElement}
                 selectedElement={selectedElement}
+                selectedConnectionId={discoveryEdgeId}
+                onSelectConnection={setDiscoveryEdgeId}
               />
             ) : (
               <div className="demo-empty-state">
@@ -1061,6 +1078,18 @@ export function GraphDemoApp({
           </div>
 
           {errorMessage ? <p className="demo-error">{errorMessage}</p> : null}
+          <Dialog.Root open={fullscreen} onOpenChange={setFullscreen}>
+            <Dialog.Portal><Dialog.Overlay className="operator-modal-overlay"/>
+              <Dialog.Content className="discovery-fullscreen" onCloseAutoFocus={(event) => { event.preventDefault(); fullscreenButtonRef.current?.focus(); }}>
+                <div className="discovery-fullscreen-bar"><Dialog.Title>MusicMesh discovery</Dialog.Title>
+                  <Dialog.Close className="demo-button">Exit full screen</Dialog.Close></div>
+                <Dialog.Description className="sr-only">Explore saved music connections and their evidence. Escape returns to chat.</Dialog.Description>
+                {filteredGraph.nodes.length > 0 && <DiscoveryCanvas graph={filteredGraph} selectedElement={selectedElement}
+                  selectedConnectionId={discoveryEdgeId} onSelectConnection={setDiscoveryEdgeId}
+                  onSelectElement={setSelectedElement} onExpandNode={(id) => { setFullscreen(false); handleExpand(id); }} />}
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
         </main>
 
         <aside

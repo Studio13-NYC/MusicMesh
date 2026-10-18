@@ -33,6 +33,7 @@ export async function fetchGraphSubgraph(seedId, options = {}) {
     },
     body: JSON.stringify({
       seedId,
+      presentation: options.presentation === true,
       depth: options.depth ?? 2,
       maxNodes: options.maxNodes ?? 60,
       maxEdges: options.maxEdges ?? 90,

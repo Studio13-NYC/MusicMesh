@@ -382,6 +382,7 @@ function normalizeNodeRecord(record, { seedId, positionsById }) {
     id,
     label,
     kind,
+    properties: require('./discoveryProjection').discoveryProperties(properties),
     colorKey: pickColorKey(kind),
     shapeKey: pickShapeKey(kind),
     x: position.x,
@@ -403,6 +404,7 @@ function normalizeRelationshipRecord(record) {
     source: stableString(record.source),
     target: stableString(record.target),
     type,
+    properties: require('./discoveryProjection').discoveryProperties(properties),
     label: type === "MusicBrainzRelationship" ? stableString(properties.providerTypeName) || type : type,
     styleKey: pickRelationshipStyle(type),
     summary: {
@@ -653,6 +655,14 @@ async function fetchSeededGraph(seedId, options = {}) {
     throw new Error(
       "That graph item is preview-only and has not been saved as a graph node yet."
     );
+  }
+
+  if (options.presentation === true) {
+    const result = await require('./researchTools').executeResearchTool('graph', {
+      action: 'present', id: normalizedSeedId, title: 'Music connections'
+    });
+    result.graph.meta.title = `${result.graph.seedNode.label}: connections`;
+    return result.graph;
   }
 
   const depth = clampInteger(

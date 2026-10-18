@@ -31,16 +31,18 @@ const def = (name, description, properties, required = []) => ({
 const toolDefinitions = [
   def(
     "graph",
-    "Search exact catalog identities; inspect node or adjacency type counts before choosing bounded neighbors. No compulsory traversal. Returned graph uses saved IDs.",
+    "Search identities; inspect adjacency and useful neighbors. present displays an interactive discovery graph: supply a seed id to retrieve its saved people/factors, or 1-30 nodeIds to curate. Include title. Loads saved connections/claims and replaces the view; no writes or invented links.",
     {
       action: {
-        enum: ["search", "node", "adjacency", "neighbors", "album", "acoustic"],
+        enum: ["search", "node", "adjacency", "neighbors", "album", "acoustic", "present"],
       },
       id: string,
       query: string,
       type: string,
       offset: integer,
       limit: integer,
+      nodeIds: { type: "array", items: string, minItems: 1, maxItems: 30 },
+      title: string,
     },
     ["action"],
   ),
@@ -267,6 +269,7 @@ function asGraph(nodes, edges = []) {
       id: n.id,
       label: n.name || n.id,
       kind: n.kind,
+      properties: require('./discoveryProjection').discoveryProperties(n.properties),
       summary: { labels: [n.kind] },
       x: hub ? (n.id === hub ? 0 : positions.get(n.id).x) : (i % 6) * 150,
       y: hub
@@ -290,6 +293,7 @@ function asGraph(nodes, edges = []) {
       target: r.targetId,
       type: r.type,
       label: r.providerTypeName || r.type,
+      properties: require('./discoveryProjection').discoveryProperties(r),
       summary: {},
     })),
     meta: { preview: false, source: "stored-catalog" },
@@ -324,6 +328,7 @@ function mergeGraph(before, next) {
   };
 }
 async function graphTool(a, ctx) {
+  if (a.action === 'present') return presentGraph(a, ctx);
   if (
     a.action === "search" &&
     (typeof a.query !== "string" || !a.query.trim() || a.query.length > 200)
@@ -408,6 +413,50 @@ async function graphTool(a, ctx) {
     };
   }
   throw new Error("Unknown graph action");
+}
+async function presentGraph(a, ctx) {
+  if (a.nodeIds == null && !a.id) throw Error('Presentation requires a seed id or 1-30 public nodeIds');
+  if (a.nodeIds != null && (!Array.isArray(a.nodeIds) || !a.nodeIds.length || a.nodeIds.length > 30))
+    throw Error('Presentation requires 1-30 public nodeIds');
+  if (a.id) identity(a.id);
+  if (typeof a.title !== 'string' || !a.title.trim() || a.title.length > 160)
+    throw Error('Presentation title must contain 1-160 characters');
+  const db = dbFor(ctx);
+  let ids = a.nodeIds ? [...new Set(a.nodeIds.map(identity))] : null;
+  let neighborhoodTruncated = false;
+  if (!ids) {
+    await node(db, a.id);
+    // Start with saved claim factors, then public catalog neighbors. Query IDs only;
+    // raw provider payloads and private listening paths never enter the presentation.
+    const nearby = await db.$queryRaw`SELECT candidate.id FROM (
+      SELECT e.extra->>'factorId' AS id,0 AS priority FROM entities e
+        WHERE e."primaryLabel"='EvidenceAssertion' AND NOT e.labels && ${privateTypes}::text[] AND e.extra->>'subjectId'=${a.id}
+      UNION ALL
+      SELECT CASE WHEN r."sourceId"=${a.id} THEN r."targetId" ELSE r."sourceId" END AS id,1 AS priority FROM relationships r
+        WHERE r."sourceId"=${a.id} OR r."targetId"=${a.id}
+    ) candidate JOIN entities e ON e.id=candidate.id
+    WHERE e."primaryLabel"=ANY(${publicTypes}::text[]) AND NOT e.labels && ${privateTypes}::text[]
+      AND e."primaryLabel" NOT IN ('EvidenceAssertion','SourceDocument','ArtistCredit','Medium','Track') AND candidate.id<>${a.id}
+    GROUP BY candidate.id ORDER BY min(candidate.priority),candidate.id LIMIT 30`;
+    neighborhoodTruncated = nearby.length > 29;
+    ids = [a.id, ...nearby.slice(0, 29).map(n => n.id)];
+  }
+  const nodes = await nodesByIds(db, ids);
+  if (nodes.length !== ids.length) throw Error('Every presentation identity must be a saved public node');
+  // Both endpoints are already public. Bound provider edges and assertions independently.
+  const claims = await db.$queryRaw`SELECT e.id FROM entities e WHERE e."primaryLabel"='EvidenceAssertion' AND NOT e.labels && ${privateTypes}::text[] AND e.extra->>'subjectId'=ANY(${ids}::text[]) AND e.extra->>'factorId'=ANY(${ids}::text[]) ORDER BY e.id LIMIT 61`;
+  const assertions = await nodesByIds(db, claims.slice(0, 60).map(row => row.id));
+  const byId = new Map([...nodes, ...assertions].map(n => [n.id, n]));
+  const allIds = [...byId.keys()];
+  const rows = await db.$queryRaw`SELECT r.id,r."sourceId",r."targetId",r.type,r.extra->>'providerTypeName' AS "providerTypeName",r.extra->'attributes' AS attributes,r.extra->>'definitionUrl' AS "definitionUrl" FROM relationships r WHERE r."sourceId"=ANY(${allIds}::text[]) AND r."targetId"=ANY(${allIds}::text[]) ORDER BY r.id LIMIT 241`;
+  const graph = asGraph([...byId.values()], rows.slice(0, 240));
+  graph.seedNode = graph.nodes.find(n => n.id === ids[0]);
+  graph.meta = { ...graph.meta, title: a.title.trim(), presentation: true,
+    nodeOrder: ids, nodeCount: graph.nodes.length, edgeCount: graph.edges.length,
+    truncated: neighborhoodTruncated || rows.length > 240 || claims.length > 60 };
+  return { data: { displayedNodeIds: ids, relationshipCount: graph.edges.length,
+    assertionCount: assertions.length, truncated: graph.meta.truncated, meaning: 'Saved public evidence; presentation is a read, not a write.' },
+    graph, replaceGraph: true };
 }
 async function listening(a, ctx) {
   if (

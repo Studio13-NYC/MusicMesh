@@ -23,6 +23,7 @@ const copies = [
   ["src/enrichment.js", "shared/enrichment.js"],
   ["src/researchSources.js", "shared/researchSources.js"],
   ["src/researchTools.js", "shared/researchTools.js"],
+  ["src/discoveryProjection.js", "shared/discoveryProjection.js"],
   ["src/researchRunner.js", "shared/researchRunner.js"],
   ["src/researchStore.js", "shared/researchStore.js"],
   ["src/researchApi.js", "shared/researchApi.js"],

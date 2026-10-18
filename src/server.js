@@ -359,6 +359,7 @@ async function handleGraphDemoSubgraph(request, response) {
   try {
     const body = await parseJsonBody(request);
     const payload = await fetchSeededGraph(body.seedId, {
+      presentation: body.presentation === true,
       depth: body.depth,
       maxNodes: body.maxNodes,
       maxEdges: body.maxEdges,
