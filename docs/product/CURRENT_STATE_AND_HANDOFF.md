@@ -4,7 +4,7 @@ Updated 18 October 2026. The deployed site and root `.env` select the shared **d
 
 ## Researcher runtime
 
-The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6 Luna/high Responses API researcher. Current runtime commit `740bafa` deployed successfully in run 39158974520; verification is recorded below.
+The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6 Luna/high Responses API researcher. Current runtime commit `ad5d6ff` deployed successfully in run 39159228539; verification is recorded below.
 
 - `src/researchRunner.js`: one model call per durable step, tool-directed exploration, bounded history/context/calls. No automatic model preview, planner, grounder or review chain.
 - `src/researchTools.js`: compact catalog search/detail/adjacency/neighbors, edition tracklist, acoustic comparisons, private-history aggregates, semantics, evidence, sources, scoped credits and factor comparison.
@@ -69,8 +69,10 @@ Final usability pass: compact approval details keep Approve/Deny/Defer visible; 
 
 ## Completion — 18 October 19:31 UTC
 
-Final runtime `740bafa` deployed successfully in [run 39158974520](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158974520). Build, unit tests and Azure bundle checks all passed in CI. Actual deployed Defer -> full page reload -> Resume -> Approve completed request `req-5e8bbd40-a7dc-434b-a89e-748042a7342f` with the chosen answer; tape independently contains prompt, defer, approve and answer. Local Deny and Cancel stopped test enrichment without saving it. No fabricated claims remain in the catalog.
+Core runtime `740bafa` deployed successfully in [run 39158974520](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158974520). Build, unit tests and Azure bundle checks all passed in CI. Actual deployed Defer -> full page reload -> Resume -> Approve completed request `req-5e8bbd40-a7dc-434b-a89e-748042a7342f` with the chosen answer; tape independently contains prompt, defer, approve and answer. Local Deny and Cancel stopped test enrichment without saving it. No fabricated claims remain in the catalog.
 
 Deployed country lookup `req-cd250054-e0ab-48e8-9d5e-e93617876693`: South Korea (KR), 2,820 tokens / 3,121 ms end-to-end. This is a representative lookup, not a latency guarantee. Final graph workbench check again showed seven stored nodes/six edges; screenshot `output/researcher-deployed-graph.jpg`. Proof files include `output/researcher-deployed-country.json`, `output/researcher-deployed-decision.json`, and `output/researcher-enrichment-modal.jpg`.
 
 Temporary test API/Vite processes and the local restoration container have been stopped; its data remains intact. Existing user services and the MusicBrainz collector were left running. Remaining work is content enrichment/source coverage and optional provider access, not the replaced orchestration. This implementation does not claim every instrument model, studio or personnel credit is populated.
+
+Final visual verification: `ad5d6ff` deployed successfully in [run 39159228539](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39159228539). Retrieved neighborhoods now place their most-connected node centrally, with neighbors around it; the seven-node/six-edge workbench view was visibly verified and saved in `output/researcher-deployed-graph.jpg`. Unit tests and deployment build/API checks pass. GitHub contains the complete runtime and handoff; no source changes remain untracked.
