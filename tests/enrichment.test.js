@@ -18,6 +18,21 @@ const base = {
   certainty: "documented",
 };
 test("album credits require explicit all-tracks scope to inherit", () => {
+  const scopedGroup = {
+    ...base,
+    subjectType: "ReleaseGroup",
+    subjectId: "group:1",
+    releaseId: "release:1",
+  };
+  assert.equal(
+    resolveCredits({
+      releaseId: "release:2",
+      releaseGroupId: "group:1",
+      recordingId: "r1",
+      assertions: [scopedGroup],
+    }).effective.length,
+    0,
+  );
   assert.equal(
     resolveCredits({
       releaseId: "release:1",

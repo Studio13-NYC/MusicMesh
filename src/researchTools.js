@@ -714,6 +714,15 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
         )
       ).data.context;
     let prior;
+    if (
+      a.releaseId &&
+      ((a.subjectType === "Release" && a.subjectId !== a.releaseId) ||
+        (a.subjectType === "ReleaseGroup" &&
+          a.subjectId !== editionContext?.releaseGroupId))
+    )
+      throw new Error(
+        "Album assertion is not applicable to this verified edition",
+      );
     if (a.overridesAssertionId) {
       prior = await db.entity.findFirst({
         where: {
@@ -728,6 +737,7 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
           .filter(Boolean)
           .includes(prior.extra.subjectId) ||
         prior.extra.role !== a.role ||
+        (prior.extra.releaseId && prior.extra.releaseId !== a.releaseId) ||
         prior.extra.scope !== "all-tracks" ||
         prior.extra.mode !== "add"
       )

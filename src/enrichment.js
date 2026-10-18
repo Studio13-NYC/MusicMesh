@@ -61,10 +61,11 @@ function resolveCredits({
 }) {
   const album = assertions.filter(
     (a) =>
-      (a.subjectType === "Release" && a.subjectId === releaseId) ||
-      (a.subjectType === "ReleaseGroup" &&
-        releaseGroupId &&
-        a.subjectId === releaseGroupId),
+      (!a.releaseId || a.releaseId === releaseId) &&
+      ((a.subjectType === "Release" && a.subjectId === releaseId) ||
+        (a.subjectType === "ReleaseGroup" &&
+          releaseGroupId &&
+          a.subjectId === releaseGroupId)),
   );
   const defaults = album
     .filter((a) => a.scope === "all-tracks" && a.mode === "add")
