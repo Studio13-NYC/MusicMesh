@@ -243,7 +243,7 @@ Acceptance is not “all 21,415 plays matched.” Acceptance is all original eve
 
 Implementation ruling, 17 October: the first AcousticBrainz feature pass retrieves offset 0 for each of the 7,220 available mapped recordings. Preserve the 391,369-submission count as coverage evidence; do not download or average all those submissions. Each compact AcousticAnalysis keeps its offset, content hash, extractor version, audio properties and explicitly named units. Full responses stay local. Similarity remains a subsequent version-compatible computation, not a property inferred from counts or shared names. The selected analysis may differ from the file originally scrobbled.
 
-Typed chat enforcement is now implemented and verified on isolated Neon. Ordinary chat receives selected-node context and a bounded public catalog neighborhood. Imported provider facts are read-only to chat; existing public acoustic analyses can be referenced but not fabricated. Existing incompatible legacy records do not enter matching candidates. The public production dataset has not been replaced; see the running progress report for activation state and evidence.
+Typed chat enforcement is implemented and verified on isolated Neon. Ordinary chat receives selected-node context and a bounded public catalog neighborhood. Imported provider facts are read-only to chat; existing public acoustic analyses can be referenced but not fabricated. Existing incompatible legacy records do not enter matching candidates. The shared main development database now holds all source history and the completed first recording pass; see the running progress report for actual counts and remaining enrichment.
 
 - [MusicBrainz schema](https://musicbrainz.org/doc/MusicBrainz_Database/Schema)
 - [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API)
@@ -261,14 +261,14 @@ The implementation and operational choices in this document are MusicMesh design
 
 The first-submission pilot now produces separate rhythm and timbre comparisons, using exactly compatible extractor/audio cohorts and population z-scores. Each SimilarityAssessment retains metric/version, cohort identity, supporting analysis IDs and measured feature differences. Missing features and small cohorts are reported as exclusions. Neighbor selection is recorded in the run receipt; pair evidence is independent of the number of neighbors requested. Full collection will produce a new cohort snapshot, not silently reuse pilot scores.
 
-The 25-analysis pilot and 51 assessments are loaded only in Neon validation. MusicMesh's actual workbench explained a comparison from stored measurements and stated the small-cohort and first-submission limits. This establishes the comparison path, not full acoustic coverage or production activation. Exact commands and receipts are in HISTORY_IMPORT.md and BRAINZ_PROGRESS.md.
+The 25-analysis pilot and 51 assessments are loaded in both validation and main development. MusicMesh's actual validation workbench explained a comparison from stored measurements and stated the small-cohort and first-submission limits. This establishes the comparison path; full acoustic collection remains in progress. Exact commands and receipts are in HISTORY_IMPORT.md and BRAINZ_PROGRESS.md.
 
 
 ### Selected-release closure ruling (17 October)
 
 The baseline export supplies 2,655 release IDs. Fetch those exact editions, preserving them as provider-selected context rather than verified editions heard. Fetch direct listened-recording artists/works, edition groups/billing artists, then one layer of referenced context. Do not expand into artist discographies or every release-group edition. These exact lookups require no browse pagination; validate complete tracklists against counts. ReleaseLabel stores label-info/catalog-number semantics without inventing a provider relationship UUID. Native area fields remain raw provider references with typed context identities where present.
 
-Catalog receipts bind to the seed recording responses and prepared history. Retrying a previously failed recording can change closure, so compilation rejects a stale closure manifest until recollected. Adaptive AcousticBrainz splitting preserves rate limits, successful caches and the consecutive-failure stop. Both paths remain explicit about limited/incomplete data and do not activate production automatically.
+Catalog receipts bind to the seed recording responses and prepared history. Retrying a previously failed recording can change closure, so compilation rejects a stale closure manifest until recollected. Adaptive AcousticBrainz splitting preserves rate limits, successful caches and the consecutive-failure stop. Collectors write local artifacts; `load-main` separately loads available snapshots into the shared development backend.
 
 ### Recording relationship completeness and import audit (17 October)
 

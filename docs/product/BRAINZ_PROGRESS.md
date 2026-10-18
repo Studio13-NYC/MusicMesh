@@ -19,12 +19,12 @@ Use the [standalone design](../research/2026-10-17-music-data-standards/MODEL_AN
 | Work | State | Evidence / limitation |
 |---|---|---|
 | Repository cleanup and preparation | Complete and pushed | `c960400`; both annotated tags verified on origin. Azure run `39067600782` succeeded. Private/generated files ignored; no untracked leftovers at checkpoint. |
-| Domain classes and semantic catalog | Implemented and deployed | 41 concrete entity classes, 14 relationship classes in semantic version 1.1.0; 58 legacy labels and 56 predicates classified. Generated [reference](DOMAIN_MODEL.md); public ontology matches local catalog. |
+| Domain classes and semantic catalog | Implemented and deployed | 41 concrete entity classes, 15 relationship classes in semantic version 1.2.0; 58 legacy labels and 56 predicates classified. Generated [reference](DOMAIN_MODEL.md); public ontology matches local catalog. |
 | Agent/API access to semantics | Implemented and locally verified | Shared definitions in answer/preview/planning/grounding; typed chat writer, stored-catalog context and public acoustic evidence projection. Azure bundle loading verified. |
-| Import preparation and validation | Prepared and reconciled locally | All 21,415 CSV events match the official ListenBrainz export. 20,448 plays have provider matches to 8,289 recordings; 967 remain unresolved. Baseline now loaded in isolated validation; production unchanged. |
-| MusicBrainz enrichment | Recording retrieval started | Three live lookups passed; resumable worker started for all 8,289 matched recordings. Read local progress before claiming completion. Linked detail and acoustic passes remain pending. |
-| AcousticBrainz enrichment | Coverage complete; feature collection running | 7,220/8,289 recordings have submissions, covering 17,766 plays. First 25 feature documents validated; full earliest-submission pass started. Comparisons/database activation pending. |
-| Replacement of old database data | Isolated validation replaced; production pending | Verified snapshot and replay in Neon validation. Production cutover follows chat-writer enforcement and remaining enrichment. |
+| Import preparation and validation | Prepared and reconciled locally | All 21,415 CSV events match the official ListenBrainz export. 20,448 plays have provider matches to 8,289 recordings; 967 remain unresolved. Baseline is now loaded and verified in the shared main development backend. |
+| MusicBrainz enrichment | Initial recording pass complete; expanded catalog running | All 8,289 initial lookups succeeded and are loaded. Expanded relationships: 2,205 successful lookups at 00:37 UTC; selected editions and linked detail follow. |
+| AcousticBrainz enrichment | Coverage complete; feature collection running | 7,220/8,289 recordings have submissions, covering 17,766 plays. 6,525 feature documents collected with zero errors at 00:37 UTC. The loaded comparison pilot contains 25 analyses and 51 comparisons; full comparison/import remains pending. |
+| Replacement of old database data | Main development backend loaded and verified | 76,779 entities / 118,861 relationships, including all 21,415 plays. Full replay verified every record and created zero duplicates. Deployed API and workbench reads passed. |
 
 ## Credentials
 
@@ -32,7 +32,7 @@ Database and OpenAI settings exist. MusicBrainz/AcousticBrainz public reads need
 
 ## Resuming
 
-Read this file, the plan, `git status --short`, and `git log -5`. Root `.env` is production; use an explicitly selected isolated target for write tests. Do not repeat the earlier ListenBrainz submission. Record every implementation checkpoint, executed checks, actual import totals, and unresolved external-service failures here.
+Read this file, the plan, `git status --short`, and `git log -5`. Root `.env` selects the shared main development backend; `.env.migration` selects optional isolated validation. Available verified imports can go into main. Use isolation for disposable test fixtures. Do not repeat the earlier ListenBrainz submission. Record every implementation checkpoint, executed checks, actual import totals, and unresolved external-service failures here.
 
 ## 17 October — first implementation checkpoint
 
@@ -164,4 +164,6 @@ The first recording pass completed all 8,289 lookups with zero missing/errors an
 
 Direct PostgreSQL counts match the snapshot, with database size 344,195,072 bytes. Deployed search and subgraph APIs returned HTTP 200; a private listening-event detail returned 404. Actual Edge workbench search for Paranoid loaded I Think I’m Paranoid with 60 nodes/90 relationships, provider IDs, credits and Work connections. The exact ASCII-apostrophe title search did not match the provider's curly-apostrophe title; the broader word search succeeded. This existing search normalization limitation was not changed by the import.
 
-Evidence is local/private under `output/imports/2026-10-17/`: `main-development-initial-import.json`, `main-development-read-verification.json`, `main-development-workbench.png`, load logs and the snapshot receipt. A full non-destructive replay is underway to verify zero duplicate creation. Main's new data is already usable; completing every collector is not a prerequisite. Current immutable imports still reject differing existing rows, so a future changed snapshot needs deliberate enrichment handling rather than indiscriminately deleting new user work.
+Evidence is local/private under `output/imports/2026-10-17/`: `main-development-initial-import.json`, `main-development-read-verification.json`, `main-development-workbench.png`, load logs and the snapshot receipt. A full non-destructive replay completed at 00:35:53 UTC, verifying all 76,779 entities and 118,861 relationships with zero records created; see `main-development-replay.log` and the snapshot receipt. Main's new data is already usable; completing every collector is not a prerequisite. Current immutable imports still reject differing existing rows, so a future changed snapshot needs deliberate enrichment handling rather than indiscriminately deleting new user work.
+
+Commit `e956d87` passed deployment in [GitHub Actions run 39083277247](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39083277247). At 00:37 UTC, expanded catalog collection had 2,205 successful recording lookups and AcousticBrainz had 6,525/7,220 feature documents, both with zero errors. These ongoing downloads are local artifacts until the next explicit enrichment import.

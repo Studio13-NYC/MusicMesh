@@ -56,7 +56,7 @@ Important rule:
 
 - If PostgreSQL is unavailable, graph checks are blocked infrastructure, not an app bug. Docker MCP is not needed.
 - Neo4j credentials are retained only for the exporter and rollback.
-- For isolated development, use `node --env-file=.env.migration src/index.js`; do not run test writes against production.
+- Root `.env` selects the shared main development backend; the user confirmed there is no production instance. For isolated test fixtures, use `node --env-file=.env.migration src/index.js`. Available real history is loaded into main with the explicit command in `docs/product/HISTORY_IMPORT.md`.
 - See [Neon migration](deployment/NEON_MIGRATION.md) for branch IDs and deployment status.
 
 ## Commands

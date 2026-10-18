@@ -103,7 +103,7 @@ Optional env keys:
 - `MUSICMESH_BLOB_CONTAINER`
 
 
-See [Neon migration and rollback](docs/deployment/NEON_MIGRATION.md) for the dedicated project, backup evidence, and deployment status. Neo4j is retained as a migration source/rollback target; its driver is development-only. Docker MCP is no longer required. Use `.env.migration` explicitly for isolated local test writes.
+See [Neon migration and rollback](docs/deployment/NEON_MIGRATION.md) for the dedicated project, backup evidence, and deployment status. The deployed site and root `.env` database are the shared development instance; there is no production environment. Available listening history is loaded into main using [load-main](docs/product/HISTORY_IMPORT.md), while enrichment continues. Neo4j is retained as a migration source/rollback target; its driver is development-only. Docker MCP is no longer required. Use `.env.migration` explicitly for isolated local test fixtures.
 
 ## Getting Started
 
