@@ -18,7 +18,7 @@ test("tool contracts reject unknown tools and invalid arguments before database 
     executeResearchTool("graph", { action: "search", query: "" }),
     /query/,
   );
-  assert.ok(toolDefinitions.length < 12);
+  assert.ok(toolDefinitions.length <= 12);
 });
 test("graph merge uses exact IDs and caps payloads without dangling edges", () => {
   const g = mergeGraph(null, {

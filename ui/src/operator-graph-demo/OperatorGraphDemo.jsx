@@ -293,7 +293,7 @@ export function OperatorGraphDemo() {
           <Dialog.Portal><Dialog.Overlay className="research-decision-overlay"/><Dialog.Content className="research-decision-modal" onPointerDownOutside={event=>event.preventDefault()}>
             <Dialog.Title>Decision needed</Dialog.Title>
             <Dialog.Description>{researchRun?.decision?.question}</Dialog.Description>
-            {researchRun?.decision?.display&&<dl>{Object.entries(researchRun.decision.display).map(([key,value])=><React.Fragment key={key}><dt>{{subjectIdentity:"Subject identity",factorIdentity:"Factor identity",sourceUrl:"Source"}[key]||key}</dt><dd>{String(value)}</dd></React.Fragment>)}</dl>}
+            {researchRun?.decision?.display&&<dl>{Object.entries(researchRun.decision.display).map(([key,value])=><React.Fragment key={key}><dt>{{subjectIdentity:"Subject identity",factorIdentity:"Factor identity",sourceUrl:"Source",evidenceKind:"Evidence type",excerpt:"Evidence text",confidenceReason:"Confidence reason",previousConfidence:"Previous confidence",evidenceRelation:"How this evidence relates",assertionId:"Claim identity"}[key]||key}</dt><dd>{String(value)}</dd></React.Fragment>)}</dl>}
             {researchRun?.decision?.choices?.map(choice=><label className="research-choice" key={choice}><input type="radio" name="research-choice" value={choice} checked={decisionSelection===choice} onChange={()=>setDecisionSelection(choice)}/>{choice}</label>)}
             {errorMessage&&<p role="alert">{errorMessage}</p>}
             <div className="research-decision-actions">

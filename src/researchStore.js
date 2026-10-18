@@ -8,7 +8,8 @@ const {
 const domain = require("./domain");
 const { entityFromGraph } = require("./domain/serialization");
 const { entityRecord } = require("./graphProperties");
-const { persistDomainBatchInTransaction } = require("./domain/repository");
+const { persistDomainBatchInTransaction, nodeRow } = require("./domain/repository");
+const { confidenceRevision } = require("./enrichment");
 const { visible, executeResearchTool } = require("./researchTools");
 function publicRun(row) {
   return {
@@ -210,6 +211,18 @@ async function persistDecision(tx, state, d) {
       ],
     });
   }
+  if (d.kind === "confidence") {
+    await tx.$queryRaw`SELECT id FROM entities WHERE id=${a.assertionId} FOR UPDATE`;
+    await executeResearchTool("prepare_confidence_revision", a, { db: tx, userPrompt: state.prompt, userStatements: state.sourceStatements || [], evidenceTexts: state.evidenceTexts, actor });
+    const prior = await endpoint(tx, a.assertionId);
+    const assessment = confidenceRevision(prior.properties, a, { actor, at: new Date().toISOString(), decisionId: d.id });
+    const revised = new domain.EvidenceAssertion({ id: prior.id, name: prior.name, properties: { ...prior.properties, ...assessment } });
+    const row = nodeRow(revised);
+    await tx.entity.update({ where: { id: prior.id }, data: { extra: row.extra, confidenceScore: row.confidenceScore } });
+    const doc = new domain.SourceDocument({ id: `${id}:source`, name: a.sourceUrl, properties: { url: a.sourceUrl, retrievedAt: assessment.confidenceUpdatedAt, attribution: actor, source } });
+    const receipt = await persistDomainBatchInTransaction(tx, { nodes: [doc], relationships: [new domain.SupportedBySource({ source: revised, target: doc, assertionKey: id, properties: { source, evidenceRelation: a.evidenceRelation } })] });
+    return { ...receipt, updatedAssertionId: prior.id, confidenceScore: assessment.confidenceScore, confidenceRevision: assessment.confidenceRevision };
+  }
   if (d.kind !== "enrichment") throw new Error("Unsupported decision action");
   await executeResearchTool("prepare_enrichment", a, {
     db: tx,
@@ -248,7 +261,7 @@ async function persistDecision(tx, state, d) {
         Object.entries(a).filter(([key]) => key !== "newFactor"),
       ),
       attribution: actor,
-      certainty: "user-stated",
+      ...(a.confidenceScore != null ? confidenceRevision({}, a, { actor, at: new Date().toISOString(), decisionId: d.id }) : {}),
       source,
     },
   });

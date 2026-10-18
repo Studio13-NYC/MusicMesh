@@ -294,3 +294,9 @@ Nick requested Luna/Medium source researchers with Astra/High review. Two Luna w
 ## 18 October - expanded gear and session sources
 
 Reviewed supplied gear/tutorial links and followed up with musician interviews and session accounts. Saved a private six-candidate supplement and 18-entry source-access ledger, distinguishing session facts, artist/live context, cover-tone guidance and hypotheses. Identified useful technique/influence evidence beyond gear models; historical studio model remains unresolved. Updated the enrichment-team workflow to include these source categories and preserve narrow scope. This parent-researched supplement is separate from Astra's 11-claim review; no graph writes or runtime changes.
+
+## Confidence-scored persistence - 18 October
+
+Nick approved persisting sourced tentative claims with 0-100 confidence, rationale and revision history. See [CLAIM_CONFIDENCE.md](CLAIM_CONFIDENCE.md). The researcher can prepare/revise claims and retrieve assessment history on demand. Scores can rise, fall or stay unchanged; copied sources do not automatically raise them. Labeled source summaries are accepted, and no minimum confidence prevents saving. Existing typed identities, scope and Approve/Deny/Defer remain.
+
+Local Edge workbench saved one real album producer claim to main at 85/100, then saved revision 2 at the same score using the same source as context. Targeted SQL independently confirmed both assessments and two source links. Private receipt/screenshot: `output/research/2026-10-18-enrichment-team/confidence-main-receipt.json` and `confidence-workbench.png`. Isolated database tests proved 35 -> 80 -> 15, stale revision rejection and idempotent approvals. This is separate from collector progress and final catalog import. No new bulk read or migration. Deployment pending at this checkpoint; see CURRENT_STATE_AND_HANDOFF.md for the subsequent deployment receipt.

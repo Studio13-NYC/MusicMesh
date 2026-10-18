@@ -5,6 +5,8 @@ const {
   validateAssertion,
   resolveCredits,
   compareFactors,
+  validateConfidence,
+  validateEvidence,
 } = require("./enrichment");
 const privateTypes = Object.values(domain.getOntology().entities)
   .filter((x) => x.visibility === "private")
@@ -100,7 +102,7 @@ const toolDefinitions = [
   ),
   def(
     "prepare_enrichment",
-    "Prepare a reviewable sourced claim; exact excerpt must occur in user-supplied text or retrieved evidence. Album scope never inferred from one song. No write until modal approval.",
+    "Prepare a sourced claim, including tentative research, with confidence 0-100 and a reason. Evidence may be an exact quote or an explicitly labeled summary of retrieved/user-supplied evidence. No minimum confidence for saving. Scope stays explicit. No write until modal approval.",
     {
       subjectId: string,
       subjectType: { enum: ["Release", "ReleaseGroup", "Track", "Recording"] },
@@ -136,6 +138,9 @@ const toolDefinitions = [
       releaseId: string,
       sourceUrl: string,
       excerpt: string,
+      evidenceKind: { enum: ["quote", "summary"] },
+      confidenceScore: { type: "integer", minimum: 0, maximum: 100 },
+      confidenceReason: string,
       certainty: { enum: ["documented", "uncertain", "user-stated"] },
     },
     [
@@ -147,8 +152,17 @@ const toolDefinitions = [
       "sourceUrl",
       "excerpt",
       "certainty",
+      "confidenceScore",
+      "confidenceReason",
     ],
   ),
+  def("prepare_confidence_revision", "Reassess an existing local EvidenceAssertion using new support, contradiction or context. Scores may rise or fall; copied sources never automatically add confidence. Preserves claim identity, scope, and all previous assessments. Review before write.", {
+    assertionId: string, expectedRevision: integer,
+    confidenceScore: { type: "integer", minimum: 0, maximum: 100 }, confidenceReason: string,
+    sourceUrl: string, excerpt: string, evidenceKind: { enum: ["quote", "summary"] },
+    evidenceRelation: { enum: ["support", "contradict", "context"] },
+  }, ["assertionId", "expectedRevision", "confidenceScore", "confidenceReason", "sourceUrl", "excerpt", "evidenceKind", "evidenceRelation"]),
+  def("claim_history", "Read paged confidence assessments and evidence for a local claim. Legacy unscored claims have unknown confidence, not zero.", { assertionId: string, offset: integer, limit: integer }, ["assertionId"]),
   def(
     "prepare_preference",
     "Prepare an explicitly user-stated like/dislike/observation for review, never infer it from play count.",
@@ -203,6 +217,11 @@ const fields = [
   "sourceUrl",
   "excerpt",
   "certainty",
+  "evidenceKind",
+  "confidenceScore",
+  "confidenceReason",
+  "confidenceRevision",
+  "confidenceUpdatedAt",
   "attribution",
   "features",
   "extractorVersion",
@@ -213,7 +232,7 @@ const fields = [
   "method",
   "cohortId",
 ];
-const extraSql = Prisma.sql`jsonb_strip_nulls(jsonb_build_object(${Prisma.join(fields.flatMap((k) => [Prisma.sql`${k}::text`, Prisma.sql`e.extra->${k}::text`]))}))`;
+const extraSql = Prisma.sql`jsonb_strip_nulls(jsonb_build_object(${Prisma.join(fields.flatMap((k) => [Prisma.sql`${k}::text`, k === "confidenceScore" ? Prisma.sql`to_jsonb(e."confidenceScore")` : Prisma.sql`e.extra->${k}::text`]))}))`;
 async function nodesByIds(db, ids) {
   if (!ids.length) return [];
   return db.$queryRaw(
@@ -488,7 +507,7 @@ async function credits(a, ctx) {
       primaryLabel: "EvidenceAssertion",
       OR: ids.map((id) => ({ extra: { path: ["subjectId"], equals: id } })),
     },
-    select: { id: true, extra: true },
+    select: { id: true, extra: true, confidenceScore: true },
     take: 201,
   });
   const provider = await providerFactors(db, ids);
@@ -500,7 +519,7 @@ async function credits(a, ctx) {
         trackId,
         releaseGroupId,
         assertions: [
-          ...rows.slice(0, 200).map((r) => ({ id: r.id, ...r.extra })),
+          ...rows.slice(0, 200).map((r) => ({ id: r.id, ...r.extra, confidenceScore: r.confidenceScore ?? null })),
           ...provider.factors,
         ],
       }),
@@ -605,7 +624,7 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
         primaryLabel: "EvidenceAssertion",
         OR: ids.map((id) => ({ extra: { path: ["subjectId"], equals: id } })),
       },
-      select: { id: true, extra: true },
+      select: { id: true, extra: true, confidenceScore: true },
       take: 201,
     });
     const provider = await providerFactors(db, ids);
@@ -623,7 +642,7 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
                     r.extra.scope === "direct" &&
                     !r.extra.releaseId,
                 )
-                .map((r) => ({ id: r.id, ...r.extra })),
+                .map((r) => ({ id: r.id, ...r.extra, confidenceScore: r.confidenceScore ?? null })),
               ...provider.factors.filter((a) => a.subjectId === id),
             ],
           })),
@@ -653,6 +672,30 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
         action: {},
       },
     };
+  }
+  if (name === "claim_history" || name === "prepare_confidence_revision") {
+    const row = await dbFor(ctx).entity.findFirst({
+      where: { id: identity(a.assertionId), ...visible, primaryLabel: "EvidenceAssertion" },
+      select: { id: true, name: true, source: true, extra: true, confidenceScore: true },
+    });
+    if (!row) throw new Error("Stored public EvidenceAssertion not found");
+    const revision = row.extra.confidenceRevision || 0;
+    if (name === "claim_history") {
+      const history = row.extra.confidenceHistory || [], start = offset(a.offset), take = limit(a.limit, 20, 10);
+      return { data: { assertionId: row.id, confidenceScore: row.confidenceScore ?? null, confidenceReason: row.extra.confidenceReason || null, revision, total: history.length, assessments: history.slice(start, start + take), truncated: history.length > start + take } };
+    }
+    if (!row.id.startsWith("research:") || row.source !== "user-reviewed")
+      throw new Error("Only local research claims may be reassessed; imported evidence stays unchanged");
+    if (!Number.isInteger(a.expectedRevision) || a.expectedRevision !== revision)
+      throw new Error("Confidence revision changed; read the claim and reassess");
+    validateConfidence(a);
+    validateEvidence(a, ctx);
+    if (!["support", "contradict", "context"].includes(a.evidenceRelation))
+      throw new Error("Evidence relation must be support, contradict or context");
+    return { data: { needsInput: true }, decision: {
+      kind: "confidence", question: `Update confidence for ${row.name}?`, choices: [], action: structuredClone(a),
+      display: { claim: row.name, assertionId: row.id, previousConfidence: row.confidenceScore ?? "Unassessed", confidence: `${a.confidenceScore}/100 (research judgment)`, reason: a.confidenceReason, evidenceRelation: a.evidenceRelation, evidenceKind: a.evidenceKind || "quote", sourceUrl: a.sourceUrl, excerpt: a.excerpt },
+    } };
   }
   if (name === "prepare_enrichment") {
     a = structuredClone(a);
@@ -707,20 +750,7 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
       throw new Error("Subject class does not match stored identity");
     if (!domain.AssertionFactor.definition.targetTypes.includes(factor.kind))
       throw new Error("Unsupported factor identity");
-    if (
-      !(ctx.evidenceTexts || []).some(
-        (t) => t.url === a.sourceUrl && t.text.includes(a.excerpt),
-      ) &&
-      ![ctx.userPrompt, ...(ctx.userStatements || [])].some(
-        (statement) =>
-          typeof statement === "string" &&
-          statement.includes(a.excerpt) &&
-          statement.includes(a.sourceUrl),
-      )
-    )
-      throw new Error(
-        "The exact excerpt must be supplied by the user or retrieved from stored evidence first. Search snippets and model memory cannot establish credits.",
-      );
+    validateEvidence(a, ctx);
     let editionContext;
     if (a.releaseId)
       editionContext = (
@@ -750,7 +780,7 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
           id: a.overridesAssertionId,
           primaryLabel: "EvidenceAssertion",
         },
-        select: { id: true, extra: true },
+        select: { id: true, extra: true, confidenceScore: true },
       });
       if (
         !prior ||
@@ -771,9 +801,9 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
       data: { needsInput: true },
       decision: {
         kind: "enrichment",
-        question: `Save this ${a.scope} ${a.role} claim for ${subject.name}? Review the exact source, scope and quoted evidence.`,
+        question: `Save this ${a.scope} ${a.role} claim for ${subject.name}? Review its confidence, source and scope; tentative claims can be saved.`,
         choices: [],
-        action: { ...a, certainty: "user-stated" },
+        action: a,
         display: {
           subject: subject.name,
           subjectIdentity: `${subject.kind}: ${subject.id}`,
@@ -791,7 +821,10 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
             : {}),
           ...(a.newFactor ? { creates: `New ${factor.kind} identity` } : {}),
           sourceUrl: a.sourceUrl,
+          evidenceKind: a.evidenceKind || "quote",
           excerpt: a.excerpt,
+          confidence: a.confidenceScore == null ? "Unassessed" : `${a.confidenceScore}/100 (research judgment)`,
+          confidenceReason: a.confidenceReason || "Not yet assessed",
           scope: a.scope,
           mode: a.mode,
         },

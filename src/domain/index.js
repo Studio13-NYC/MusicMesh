@@ -34,6 +34,8 @@ function validateFields(definition, properties) {
       case "mbid": valid = typeof value === "string" && MBID.test(value); break;
       case "positiveInteger": valid = Number.isSafeInteger(value) && value > 0; break;
       case "nonNegativeInteger": valid = Number.isSafeInteger(value) && value >= 0; break;
+      case "confidenceScore": valid = Number.isInteger(value) && value >= 0 && value <= 100; break;
+      case "jsonArray": valid = Array.isArray(value); break;
       case "finite": valid = typeof value === "number" && Number.isFinite(value); break;
       case "partialDate": valid = partialDate(value); break;
       case "object": valid = !!value && typeof value === "object" && !Array.isArray(value); break;

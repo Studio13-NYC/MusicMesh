@@ -776,7 +776,13 @@ Identity: Explicit source/context identity; never infer equality from name alone
 | overridesAssertionId | string | No | Exact assertion excluded or replaced, not a blanket role replacement. |
 | releaseId | string | No | Edition context for a recording exception. |
 | sourceUrl | string | Yes | Inspectable source URL. |
-| excerpt | string | Yes | Short exact supporting excerpt, not model memory. |
+| excerpt | string | Yes | Short source quote or clearly labeled research summary; never fabricated quotation. |
+| evidenceKind | string | No | quote or summary; a summary need not repeat source words and remains a research interpretation. |
+| confidenceScore | confidenceScore | No | Integer 0-100 reviewer judgment, not a calibrated probability. 0 means currently unsupported; absent means unassessed. Tentative claims are persistable. |
+| confidenceReason | string | No | Explanation of supporting evidence, uncertainty, identity assumptions and contradictions. |
+| confidenceRevision | positiveInteger | No | Current sequential confidence assessment version. |
+| confidenceUpdatedAt | string | No | ISO time of latest assessment. |
+| confidenceHistory | jsonArray | No | Append-only assessments including previous scores/reasons, source URL/text, evidence kind/relation, actor, time and decision ID. Copied sources do not automatically raise scores. |
 | certainty | string | Yes | documented, uncertain or user-stated; user approval does not establish independent verification. |
 | attribution | string | Yes | Nick or Guest who reviewed this claim. |
 
@@ -832,7 +838,7 @@ Evidence: Preserve provider assertion and context; endpoint coincidence does not
 
 EvidenceAssertion → SourceDocument
 
-Source contains the quoted evidence for the scoped claim.
+Source informs this claim or a confidence revision. Read evidenceRelation (support, contradict or context) and quote/summary provenance; this link alone is not corroboration.
 
 Inverse reading: Source supports claim.
 

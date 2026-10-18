@@ -408,3 +408,7 @@ The current repo is best used for:
 - verifying that chat-derived graph persistence behaves correctly
 - keeping graph visualization aligned with the answer-owned operator workflow
 - tightening graph interaction behavior around focus, history, compare, and inspect
+
+## Confidence-scored research - 18 October
+
+Read `docs/product/CLAIM_CONFIDENCE.md`. Persist useful sourced tentative EvidenceAssertions with a 0-100 score and reason; perfect evidence and external IDs for local factors are not prerequisites. Use a labeled summary or exact quote, preserve scope and identity uncertainty, and retain confidence history. `prepare_confidence_revision` can raise, lower or preserve scores; `claim_history` retrieves prior assessments on demand. Repeated sources do not automatically increase confidence. Existing user authorization and the app decision transaction apply.

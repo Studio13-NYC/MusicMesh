@@ -5,10 +5,10 @@ Nick requested this division of work on 18 October 2026: GPT-6 Luna at Medium fo
 ## Working method
 
 1. Start with existing identities, cached provider relationships and a specific evidence gap. Give each worker a small, non-overlapping question and local input paths; do not send the full graph or listening history.
-2. Luna researchers inspect sources for instruments/models, personnel, studios and recording context. Return atomic proposed facts with source URL, source type, exact short excerpt, album/track scope, identity candidates, uncertainty and missing evidence. Label paraphrases as summaries, never quotations. General equipment ownership is not evidence of session use.
+2. Luna researchers inspect sources for instruments/models, personnel, studios and recording context. Return atomic proposed facts with source URL, source type, short quote or labeled summary, 0-100 confidence and rationale, album/track scope, identity candidates, uncertainty and missing evidence. Label paraphrases as summaries, never quotations. General equipment ownership is not evidence of session use.
 3. Astra reviews the compact claim set, checks the important sources independently, resolves contradictions and distinguishes supported facts, qualified provider assertions, unverified leads and rejected claims. Repeated metadata from one upstream source is not independent corroboration.
-4. Collate the corrected claims and remaining identity/evidence requirements in private JSON and Markdown. Keep original worker output for audit. Factual review and graph readiness are separate states.
-5. Resolve exact catalog identities, split multi-factor claims, ground excerpts and use the existing enrichment contract before persistence. Research files alone are not imported graph records. Existing user authorization remains applicable; unresolved choices in the app use Approve/Deny/Defer.
+4. Collate the corrected claims and remaining identity/evidence requirements in private JSON and Markdown. Keep original worker output for audit. Preserve uncertainty with scored assertions rather than rejecting useful tentative findings.
+5. Match catalog identities, split multi-factor claims, and persist sourced tentative assertions using the confidence contract. Missing provider IDs for local factors and incomplete verification are not automatic blockers. Research files alone are not imported graph records. Existing user authorization remains applicable; unresolved choices in the app use Approve/Deny/Defer.
 
 Album-first means gathering shared session evidence once. An album production credit uses `album-credit`; only explicit evidence of applicability to every track permits `all-tracks`. A track exception uses `direct` and names the overridden assertion and release. Compilations require original recording/session joins. Live recordings, remixes and re-recordings must remain distinct.
 
@@ -42,7 +42,7 @@ Get-Content -LiteralPath 'output/research/2026-10-18-enrichment-team/REPORT.md' 
 Get-Content -LiteralPath 'output/research/2026-10-18-enrichment-team/reviewed-candidates.json' -Raw
 ```
 
-These files contain private library context and stay ignored. Public documentation records the method and aggregate status only. The research batch makes no database changes, starts no collector, changes no billing and installs no Qobuz integration. Roon remains the approved source for attributed genre/library context; MusicBrainz and inspected credit sources supply other relationships.
+These files contain private library context and stay ignored. Public documentation records the method and aggregate status only. The original research batch itself made no database changes. One claim has now been saved and reassessed through the workbench under the approved confidence policy; remaining candidates are still staged. No collector, billing or Qobuz changes were made. Roon remains the approved source for attributed genre/library context; MusicBrainz and inspected credit sources supply other relationships.
 
 Runtime contracts: `src/enrichment.js`, `src/researchTools.js` and `src/researchStore.js`. Before later evidence upload/import, follow [EVIDENCE_STORAGE.md](../product/EVIDENCE_STORAGE.md) and [OCTOBER_NEON_BUDGET.md](../product/OCTOBER_NEON_BUDGET.md).
 
@@ -51,3 +51,7 @@ Runtime contracts: `src/enrichment.js`, `src/researchTools.js` and `src/research
 Include community gear indexes (for example Equipboard), manufacturer/artist interviews, specialist instrument magazines, session accounts, tutorials and tablature. Follow each useful claim to its underlying evidence. A source can be useful without proving original session equipment. Keep four meanings distinct: documented session use; artist/live/band context; cover-tone recreation guidance; and sonic hypothesis. Music videos, live footage and ownership lists do not automatically establish recording-session use. Hashtags do not identify equipment, and syndicated or copied summaries are not independent corroboration.
 
 The private `ONE_HEADLIGHT_SOURCE_FOLLOWUP.md` and `one-headlight-source-followup.json` record a parent-researched supplement to the first batch: supplied links, access failures and six scoped candidates, including playing-technique and mixing evidence. This supplement has not received the separate Astra review and has not been imported. Preserve useful artist-to-equipment observations with date/event context; the current recording/album assertion contract cannot be stretched to accept Artist subjects. A typed extension is needed before storing such observations through that path.
+
+## Confidence policy supersedes original readiness gates
+
+See [CLAIM_CONFIDENCE.md](../product/CLAIM_CONFIDENCE.md). Save sourced tentative assertions with confidence, rationale and history. Raise or lower assessments as support or contradictions arrive. Preserve original reviewer files as historical outputs; do not interpret their former graph-readiness flags as the current persistence rule. The private confidence-main-receipt.json records the first actual saved claim and revision.
