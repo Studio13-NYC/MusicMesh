@@ -69,4 +69,4 @@ This research delta is separate from `main-development-snapshot-3` and the ongoi
 
 ## Next choices
 
-Recommend **Nile Rodgers's artist network** to follow the new cross-album production bridge before choosing individual songs. Alternatives are Bill Willis's organ/bass network or a focused comparison of room capture and live ensemble methods. These are proposed routes, not research already performed. Chet Atkins, Gary Brooker/Procol Harum and the Eden engineer-network routes remain declined.
+Nick redirected the proposed standalone Nile Rodgers expansion to **Talking Heads and its connections to this cohort**. That bounded step is now saved and documented in [Talking Heads discovery](2026-10-18-talking-heads-discovery.md), including MacColl/Bremner/Rockpile and Belew/Bowie/Vaughan paths. Bill Willis's organ/bass network and room-capture comparisons remain unperformed alternatives. Chet Atkins, Gary Brooker/Procol Harum and the Eden engineer-network routes remain declined.
