@@ -64,3 +64,40 @@ test('workbench search and graph retain distinct recordings with identical title
     assert.equal(graph.nodes.filter(x=>x.kind==='Recording').length,2);
   } finally {await db.relationship.deleteMany({where:{id:{in:edges.map(e=>e.id)}}});await db.entity.deleteMany({where:{id:{in:[a.id,b.id,w.id]}}});}
 });
+
+test('snapshot refresh updates only unchanged baseline records and replays safely',{skip:!enabled},async()=>{
+ const {persistDomainBatch}=require('../src/domain/repository');
+ const db=isolated(),id='refresh-test:'+randomUUID();
+ const old=new domain.Recording({id,name:'Original'}),next=new domain.Recording({id,name:'Enriched'});
+ try {
+  await persistDomainBatch(db,{nodes:[old]});
+  const result=await persistDomainBatch(db,{nodes:[next],previousNodes:new Map([[id,old]])});
+  assert.equal(result.updatedNodes,1);assert.equal(result.createdNodes,0);
+  const replay=await persistDomainBatch(db,{nodes:[next],previousNodes:new Map([[id,old]])});
+  assert.equal(replay.updatedNodes,0);
+  await db.entity.update({where:{id},data:{description:'User correction'}});
+  await assert.rejects(()=>persistDomainBatch(db,{nodes:[next],previousNodes:new Map([[id,old]])}),/conflict/);
+  assert.equal((await db.entity.findUnique({where:{id}})).description,'User correction');
+ } finally {await db.entity.deleteMany({where:{id}});}
+});
+
+test('refresh rolls back changed evidence when a later assertion fails',{skip:!enabled},async()=>{
+ const {persistDomainBatch}=require('../src/domain/repository');
+ const db=isolated(),prefix='refresh-edge:'+randomUUID();
+ const a=new domain.Recording({id:prefix+':r',name:'Before'}),b=new domain.Work({id:prefix+':w',name:'Work'});
+ const old=new domain.PerformanceOf({source:a,target:b,assertionKey:prefix,properties:{source:'musicbrainz',description:'Before'}});
+ const next=new domain.PerformanceOf({source:a,target:b,assertionKey:prefix,properties:{source:'musicbrainz',description:'After'}});
+ try {
+  await persistDomainBatch(db,{nodes:[a,b],relationships:[old]});
+  const result=await persistDomainBatch(db,{relationships:[next],previousRelationships:new Map([[old.id,old]])});
+  assert.equal(result.updatedRelationships,1);
+  assert.equal((await persistDomainBatch(db,{relationships:[next],previousRelationships:new Map([[old.id,old]])})).updatedRelationships,0);
+  const missing=new domain.Work({id:prefix+':missing',name:'Missing'});
+  const bad=new domain.PerformanceOf({source:a,target:missing,assertionKey:prefix});
+  await assert.rejects(()=>persistDomainBatch(db,{nodes:[new domain.Recording({id:a.id,name:'After'})],previousNodes:new Map([[a.id,a]]),relationships:[bad]}));
+  assert.equal((await db.entity.findUnique({where:{id:a.id}})).name,'Before');
+  await db.relationship.update({where:{id:next.id},data:{role:'User correction'}});
+  await assert.rejects(()=>persistDomainBatch(db,{relationships:[next],previousRelationships:new Map([[old.id,old]])}),/conflict/);
+  assert.equal((await db.relationship.findUnique({where:{id:next.id}})).role,'User correction');
+ } finally {await db.relationship.deleteMany({where:{sourceId:a.id}});await db.entity.deleteMany({where:{id:{in:[a.id,b.id]}}});}
+});

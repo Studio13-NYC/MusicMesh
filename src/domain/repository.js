@@ -1,4 +1,5 @@
 const assert=require('node:assert/strict');
+const {isDeepStrictEqual}=require('node:util');
 const {DomainEntity,DomainRelationship}=require('./index');
 const {toColumns,searchText,entityRecord}=require('../graphProperties');
 const {entityFromGraph,relationshipFromGraph}=require('./serialization');
@@ -34,10 +35,31 @@ async function persistDomainBatchInTransaction(tx,{nodes=[],relationships=[]}){
     for(const row of edgeRows)compare(row,actualEdges.get(row.id));
     return {createdNodes:insertedNodes.count,createdRelationships:insertedEdges.count,verifiedNodes:nodeRows.length,verifiedRelationships:edgeRows.length};
 }
+// A refresh is an explicit compare-and-swap against a previously imported snapshot.
+// Row locks also protect against writers that do not use our advisory lock.
+async function refreshRows(tx,objects,previous,relationship=false){
+  if(!previous?.size)return 0;
+  const changed=objects.filter(o=>previous.has(o.id));
+  if(!changed.length)return 0;
+  const ids=changed.map(o=>o.id),table=relationship?tx.relationship:tx.entity,toRow=relationship?edgeRow:nodeRow;
+  if(relationship)await tx.$queryRaw`SELECT id FROM relationships WHERE id = ANY(${ids}::text[]) FOR UPDATE`;
+  else await tx.$queryRaw`SELECT id FROM entities WHERE id = ANY(${ids}::text[]) FOR UPDATE`;
+  const current=new Map((await table.findMany({where:{id:{in:ids}}})).map(r=>[r.id,r]));
+  let updated=0;
+  for(const object of changed){
+    const next=toRow(object),before=toRow(previous.get(object.id)),actual=current.get(object.id);
+    if(isDeepStrictEqual(next,actual))continue;
+    compare(before,actual);
+    await table.update({where:{id:object.id},data:next});updated++;
+  }
+  return updated;
+}
 async function persistDomainBatch(db,batch){
   return db.$transaction(async tx=>{
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;
-    return persistDomainBatchInTransaction(tx,batch);
+    const updatedNodes=await refreshRows(tx,batch.nodes||[],batch.previousNodes);
+    const updatedRelationships=await refreshRows(tx,batch.relationships||[],batch.previousRelationships,true);
+    return {...await persistDomainBatchInTransaction(tx,batch),updatedNodes,updatedRelationships};
   },{isolationLevel:'ReadCommitted',timeout:30000});
 }
 module.exports={persistDomainBatch,persistDomainBatchInTransaction,nodeRow,edgeRow};

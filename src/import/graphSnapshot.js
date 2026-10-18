@@ -1,7 +1,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const domain=require('../domain');
-const {entityFromGraph,relationshipFromGraph}=require('../domain/serialization');
+const {entityFromGraph,relationshipFromGraph,canonicalJson}=require('../domain/serialization');
 const {sha256}=require('./history');
 const {recordingUrl}=require('./providerCache');
 const {recordingGraph}=require('./catalogGraph');
@@ -106,20 +106,41 @@ function assertMainDevelopmentTarget(connectionString){
   if(!hosts.includes(url.hostname)||url.pathname!=='/musicmesh'||url.searchParams.get('sslmode')!=='verify-full')throw new Error('Import requires the explicitly selected MusicMesh main development database');
   return {host:url.hostname,database:url.pathname.slice(1)};
 }
-async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,receiptName}){
+function planSnapshotRefresh(previous,next){
+  if(canonicalJson(previous.manifest.sourceInput)!==canonicalJson(next.manifest.sourceInput))throw new Error('Refresh source identity differs');
+  const plan={nodes:new Map(),relationships:new Map(),summary:{changedNodes:0,changedRelationships:0,retainedNodes:0,retainedRelationships:0}};
+  for(const key of ['nodes','relationships']){
+    const before=new Map(previous[key].map(o=>[o.id,o])),after=new Map(next[key].map(o=>[o.id,o]));
+    const serialize=o=>key==='nodes'?o.toGraphNode():o.toGraphRelationship();
+    for(const object of next[key]){
+      const old=before.get(object.id);if(!old)continue;
+      if(old.type!==object.type || (key==='relationships'&&(old.source!==object.source||old.target!==object.target)))throw new Error('Refresh domain identity differs');
+      if(canonicalJson(serialize(old))!==canonicalJson(serialize(object)))plan[key].set(object.id,old);
+    }
+    const suffix=key==='nodes'?'Nodes':'Relationships';
+    plan.summary['changed'+suffix]=plan[key].size;
+    plan.summary['retained'+suffix]=[...before.keys()].filter(id=>!after.has(id)).length;
+  }
+  return plan;
+}
+async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,receiptName,previousDirectory}){
+  if(replace&&previousDirectory)throw new Error('Replacement and refresh cannot be combined');
   const graph=readSnapshot(directory);
+  const previous=previousDirectory?readSnapshot(previousDirectory):null;
+  const refresh=previous?planSnapshotRefresh(previous,graph):null;
   const {getDatabase}=require('../postgres'),{persistDomainBatch}=require('../domain/repository');
   const db=getDatabase();
   const identity=await db.$queryRaw`SELECT current_database() AS database`;
   if(identity[0].database!==target.database)throw new Error('Connected database identity differs');
+  if(previous&&!await db.importBatch.findUnique({where:{sourceHash:sha256(JSON.stringify(previous.manifest.files))}}))throw new Error('Previous snapshot has no verified import receipt in this database');
   if(replace)await db.$transaction(async tx=>{await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;await tx.relationship.deleteMany();await tx.entity.deleteMany();await tx.importBatch.deleteMany();},{timeout:30000});
-  const receipt={target,state:'loading',createdNodes:0,createdRelationships:0,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files,
+  const receipt={target,state:'loading',createdNodes:0,createdRelationships:0,updatedNodes:0,updatedRelationships:0,refresh:refresh?{...refresh.summary,previousSnapshotFiles:previous.manifest.files,omittedRecords:'retained'}:null,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files,
     enrichment:{recordings:graph.manifest.recordingLookups,catalog:graph.manifest.catalog||null,acoustic:graph.manifest.acoustic||null}};
   const receiptPath=path.join(directory,receiptName);
   try {
     for(const [key,objects] of [['nodes',graph.nodes],['relationships',graph.relationships]])for(let i=0;i<objects.length;i+=200){
-      const result=await persistDomainBatch(db,{[key]:objects.slice(i,i+200)});
-      for(const field of ['createdNodes','createdRelationships','verifiedNodes','verifiedRelationships'])receipt[field]+=result[field];
+      const result=await persistDomainBatch(db,{[key]:objects.slice(i,i+200),previousNodes:refresh?.nodes,previousRelationships:refresh?.relationships});
+      for(const field of ['createdNodes','createdRelationships','updatedNodes','updatedRelationships','verifiedNodes','verifiedRelationships'])receipt[field]+=result[field];
       if(i%2000===0)onProgress({...receipt});
     }
     receipt.state='verified';receipt.verifiedAt=new Date().toISOString();
@@ -134,6 +155,7 @@ function loadIsolatedSnapshot(options){
 function loadMainDevelopmentSnapshot(options){
   const target=assertMainDevelopmentTarget(process.env.DATABASE_URL);
   require('./snapshotAudit').auditSnapshot({directory:options.directory,preparedDir:options.preparedDir});
+  if(options.previousDirectory)require('./snapshotAudit').auditSnapshot({directory:options.previousDirectory,preparedDir:options.preparedDir});
   return loadSnapshot({...options,target,receiptName:'main-development-import-receipt.json'});
 }
-module.exports={compileSnapshot,readSnapshot,assertIsolatedTarget,assertMainDevelopmentTarget,loadIsolatedSnapshot,loadMainDevelopmentSnapshot};
+module.exports={planSnapshotRefresh,compileSnapshot,readSnapshot,assertIsolatedTarget,assertMainDevelopmentTarget,loadIsolatedSnapshot,loadMainDevelopmentSnapshot};
