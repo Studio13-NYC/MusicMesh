@@ -70,4 +70,4 @@ One optional chat request to curate 17 supplied IDs timed out with zero tokens r
 2. **The Fabulous Thunderbirds and Jimmie Vaughan:** Edmunds's production, rhythm section, bass layering and guitar sound across their artist network.
 3. **Early Edmunds at Rockfield:** reconcile the I Hear You Knocking recording accounts and identify documented tape, overdubbing and room techniques.
 
-These are choices for Nick, not research already performed.
+Subsequent decision: Nick declined the Chet Atkins route and approved the Thunderbirds/Vaughan network. That bounded step is now [saved and verified](2026-10-18-thunderbirds-vaughan.md). The early Rockfield route remains a possible choice, not research already performed.
