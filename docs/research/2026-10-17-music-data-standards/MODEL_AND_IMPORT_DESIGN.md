@@ -281,3 +281,17 @@ The `audit-snapshot` command checks every original event, mapping and mapping li
 The completed first-submission pass contains 7,220 analyses. Full comparison generation yields 31,306 rhythm/timbre candidates in 68 compatible cohorts, with 21 exclusions affecting 12 analyses. Main snapshot 2 includes all of this evidence and the unchanged source history; consult the progress report for database verification.
 
 The existing loader now accepts an explicit previously imported snapshot for additive enrichment. Changed identities update only when the stored row is exactly the prior imported row (or already the new row), under a row lock and atomic batch. The previous snapshot must have an import receipt in that database, share source identity and preserve entity/relationship types and endpoints. Omitted objects remain, so the original 51 pilot comparisons retain their cohort semantics. This does not synchronize provider deletions or overwrite user corrections. The expanded MusicBrainz collector is independent and still requires a later import.
+
+#### First full-data finding
+
+The full result contains 14,217 rhythm and 17,089 timbre candidates, covering 7,208 recordings. Compatible cohorts range in size; the largest contains 1,825 recordings per feature family. Comparisons do not cross extractor/audio cohorts, and the retained pilot results use different normalization populations.
+
+A concrete rhythm candidate joins Garbage's **I Think I’m Paranoid** (MusicBrainz recording `291791c7-844c-42bc-9cd9-70965d3ada7b`) and Peter Gabriel's **Steam** (`50ba2ad9-fdcc-40bd-b16e-2686c8c1ded4`). In their selected analyses:
+
+| Measurement | I Think I’m Paranoid | Steam |
+|---|---:|---:|
+| Tempo, beats/minute | 113.841 | 108.501 |
+| Onset rate, onsets/second | 3.947 | 3.814 |
+| Essentia danceability index | 1.118 | 1.121 |
+
+The stored normalized RMS distance is 0.15815 within a 117-recording rhythm cohort. The similar onset rate and danceability index, with a roughly 5.34 BPM tempo difference, explain this candidate. The danceability index is not a probability or a 0–1 score. This finding suggests a pair to audition; it does not establish shared personnel, influence, musical identity or a listener preference. Evidence and normalization metadata are retained in `acoustic-comparisons-full-1` and the typed SimilarityAssessment.
