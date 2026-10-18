@@ -75,6 +75,15 @@ test("tool results render saved graph and continue next step; repeated reads are
   state = await advanceState(state, deps);
   assert.equal(count, 1);
 });
+test("saved decision invalidates cached claim assessments", () => {
+  const s = newState({ clientRequestId: "req-confidence-cache", prompt: "Review this claim" });
+  s.status = "needs_input";
+  s.decision = { id: "d", kind: "confidence", question: "Update confidence?", choices: [] };
+  s.cache = { oldHistory: { revision: 1 } };
+  const next = applyDecisionState(s, { decisionId: "d", choice: "approve" }, { confidenceRevision: 2 });
+  assert.deepEqual(next.cache, {});
+  assert.equal(s.cache.oldHistory.revision, 1);
+});
 test("decision supports defer and later approval; deny stops; stale choice fails", () => {
   const s = {
     ...newState({ prompt: "x" }),

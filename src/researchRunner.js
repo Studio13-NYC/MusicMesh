@@ -277,6 +277,8 @@ function applyDecisionState(
       }),
   });
   s.status = "running";
+  // A saved claim or reassessment changes graph/credit/history reads in this run.
+  if (receipt) s.cache = {};
   s.decision = null;
   s.progress = "Decision approved";
   s.message = "";

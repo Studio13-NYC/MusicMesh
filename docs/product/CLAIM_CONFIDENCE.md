@@ -41,3 +41,5 @@ npm run build:api
 Tests cover low-confidence persistence, exact quotes versus summaries, score boundaries, increases/decreases, repeated-source non-inflation, revision history, stale updates, idempotent approvals and compact retrieval. Product verification uses a real sourced album credit, with the private receipt in `output/research/2026-10-18-enrichment-team/confidence-main-receipt.json`. It is separate from the MusicBrainz collector/final catalog import.
 
 Verification on 18 October: 96 unit tests passed (17 opt-in tests skipped); all five targeted isolated PostgreSQL tests passed; UI and API builds passed. Main workbench saved revision 1 and revision 2 of one real claim, retaining score 85/100 and two assessment entries. Zero-confidence claims cannot apply positive credits or exceptions. The API build reports an existing dependency audit warning and the UI build reports its existing bundle-size warning.
+
+Post-write read caches are cleared after a successful decision receipt, so the same research run can see its newly saved assessment. A focused runner regression passed for this case.
