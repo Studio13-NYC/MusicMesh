@@ -4,7 +4,7 @@ Updated 18 October 2026. The deployed site and root `.env` select the shared **d
 
 ## Researcher runtime
 
-The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6 Luna/high Responses API researcher. Core runtime deployed successfully in run 39158340330; final usability fixes are being verified below.
+The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6 Luna/high Responses API researcher. Current runtime commit `740bafa` deployed successfully in run 39158974520; verification is recorded below.
 
 - `src/researchRunner.js`: one model call per durable step, tool-directed exploration, bounded history/context/calls. No automatic model preview, planner, grounder or review chain.
 - `src/researchTools.js`: compact catalog search/detail/adjacency/neighbors, edition tracklist, acoustic comparisons, private-history aggregates, semantics, evidence, sources, scoped credits and factor comparison.
@@ -66,3 +66,11 @@ Fresh review of `db96e68..4a53698` identified six important findings and no crit
 Commit `d941309` deployed successfully in [run 39158340330](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158340330). Actual Edge workbench request `req-e43d759b-9b07-4998-9b96-118d607dae2a` completed with seven stored nodes/six edges, four researcher calls, 8,875 total tokens and 13,139 ms summed model latency. Runtime telemetry confirms `gpt-6-luna` / high. Tape contains both the user prompt and final answer. Proof: `output/researcher-live-deployed.json`, `output/researcher-deployed-graph.jpg`.
 
 Final usability pass: compact approval details keep Approve/Deny/Defer visible; user-supplied source quotations can carry through the bounded recent user history. Assistant assertions and selected-node text do not become source evidence. Current tests: 91 unit passes and 16 isolated SQL passes. Transcript appends use stable IDs and ordinary retry suppression, but are observational rather than a transactional outbox; a storage outage can leave a tape gap even though run state is saved.
+
+## Completion — 18 October 19:31 UTC
+
+Final runtime `740bafa` deployed successfully in [run 39158974520](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158974520). Build, unit tests and Azure bundle checks all passed in CI. Actual deployed Defer -> full page reload -> Resume -> Approve completed request `req-5e8bbd40-a7dc-434b-a89e-748042a7342f` with the chosen answer; tape independently contains prompt, defer, approve and answer. Local Deny and Cancel stopped test enrichment without saving it. No fabricated claims remain in the catalog.
+
+Deployed country lookup `req-cd250054-e0ab-48e8-9d5e-e93617876693`: South Korea (KR), 2,820 tokens / 3,121 ms end-to-end. This is a representative lookup, not a latency guarantee. Final graph workbench check again showed seven stored nodes/six edges; screenshot `output/researcher-deployed-graph.jpg`. Proof files include `output/researcher-deployed-country.json`, `output/researcher-deployed-decision.json`, and `output/researcher-enrichment-modal.jpg`.
+
+Temporary test API/Vite processes and the local restoration container have been stopped; its data remains intact. Existing user services and the MusicBrainz collector were left running. Remaining work is content enrichment/source coverage and optional provider access, not the replaced orchestration. This implementation does not claim every instrument model, studio or personnel credit is populated.
