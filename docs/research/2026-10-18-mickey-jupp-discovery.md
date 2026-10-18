@@ -68,4 +68,4 @@ Independent readback confirmed 42 catalog entities, 217 catalog relationships an
 
 This delta and the previous Lowe–Edmunds delta are outside `main-development-snapshot-3`. The next bulk compare-and-swap import must incorporate their exact provider baselines/receipts before attempting to hydrate or modify overlapping identities. Preserve local assertions and later edits. Do not delete or blindly overwrite rows to avoid conflicts, and do not claim snapshot 3 already includes these additions.
 
-Recommended next approval: Brooker's artist network, starting with *No More Fear of Flying* and Procol Harum, to trace keyboard roles and recurring musicians. Alternatives are Mattacks's Fairport/session network or Jupp's songwriting route through Dr. Feelgood. Those deeper explorations are proposed, not completed in this batch.
+Nick subsequently declined the Brooker and Eden engineer-network proposals and selected [Dave Edmunds's guitar sound, equipment and recording methods](2026-10-18-edmunds-sound.md). Mattacks/Fairport and Jupp/Dr. Feelgood remain unexplored options, not completed research.

@@ -318,3 +318,7 @@ User-approved branch saved and independently checked: 80 entities / 274 relation
 ## Discovery presentation - 18 October 2026
 
 The saved Mickey Jupp/Lowe/Edmunds research now has an app discovery renderer and a bounded researcher presentation tool. See docs/product/DISCOVERY_GRAPH.md. Local workbench verified 14 Juppanese domain nodes and 19 displayed connections, including confidence and side-specific credits. This is UI/retrieval work; it adds no catalog entities, relationships or listens and does not change the snapshot-3 or operator-enrichment import baselines. Collection and final bulk import remain separate.
+
+### Dave Edmunds sound research - 18 October 2026
+
+The user-approved Edmunds branch added 105 entities / 136 relationships, including 19 sourced assertions: six artist-context, six direct-recording and seven non-inheriting album credits. Independent ID-bounded readback and idempotent replay passed. Two archival gear leads remain 60/65 confidence; stronger primary-source claims are 84-95. Private receipt and exact additive catalog: output/research/2026-10-18-edmunds-sound/. New compact Azure evidence: 34,054 compressed bytes. This is separate from the running MusicBrainz collector and main-development-snapshot-3; retain this delta with the Lowe-Edmunds and Mickey Jupp deltas in the next import baseline. No listening writes, full scans or billing changes. Research and source limitations: docs/research/2026-10-18-edmunds-sound.md.
