@@ -1,3 +1,5 @@
+> Historical user transcript. Retired technology names and approval behavior below are not current implementation instructions; see CURRENT_STATE_AND_HANDOFF.md.
+
 # R.E.M. Discography Roleplay Flow
 
 This file captures the roleplay run as a transcript artifact, including:

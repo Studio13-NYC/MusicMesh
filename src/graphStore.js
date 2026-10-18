@@ -11,7 +11,7 @@ async function searchEntities(
   reverse = false,
 ) {
   hiddenLabels = excludedLabels(hiddenLabels);
-  // strpos treats %, _ and backslash literally, like Cypher CONTAINS.
+  // strpos treats %, _ and backslash literally.
   const rows = await getDatabase().$queryRaw`
     SELECT e.*, (SELECT count(*)::int FROM relationships r JOIN entities s ON s.id=r."sourceId" JOIN entities t ON t.id=r."targetId"
       WHERE (r."sourceId"=e.id OR r."targetId"=e.id) AND NOT s.labels && ${hiddenLabels}::text[] AND NOT t.labels && ${hiddenLabels}::text[]) AS degree,
@@ -53,7 +53,7 @@ async function neighborhood(
       const compareIds = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
       const foundIds = seeds.map((n) => n.id).sort(compareIds);
       if (!foundIds.length) return { seeds: [], nodes: [], relationships: [] };
-      // Cypher variable-length paths never reuse an edge, but may revisit nodes.
+      // Paths never reuse an edge, but may revisit nodes.
       // Retain that distinction (including cycles), both traversal directions,
       // and the original path/node/edge caps. Order capped paths nearest-first,
       // then by stable IDs, rather than depending on storage-engine row order.

@@ -2,6 +2,13 @@
 
 Updated 17 October 2026, New York time. This is the running implementation record.
 
+
+## 18 October — task-directed researcher implementation
+
+Nick approved the [standalone researcher specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md), then authorized implementation. Local changes replace the mandatory model preview/plan/ground/review chain with a durable GPT-6 Luna/high tool loop. Typed scoped evidence and private explicit preferences support album defaults and track exceptions. Approve/Deny/Defer uses a persisted decision modal. No existing imported music records were reset. Deployment and final validation will be recorded separately.
+
+Local live API: greeting 1,150 tokens / 1.86 s; selected release country 2,691 / 2.78 s. Tests cover edition inheritance, bounds, public/private catalog reads, 21,415-play aggregate, retries and stale/idempotent decisions. The collector remained running (56,271 successful metadata requests, zero errors at 19:02:20 UTC); that is downloaded evidence, not a new backend import. Total remaining context requests is not known.
+
 ## Agreed direction
 
 Use the [standalone design](../research/2026-10-17-music-data-standards/MODEL_AND_IMPORT_DESIGN.md) and [implementation plan](../plans/2026-10-17-brainz.md). Improve the domain structure with actual classes and machine-readable semantic definitions. Keep Prisma, PostgreSQL, the generic graph persistence architecture, and the operator workbench. Import the user's 21,415-play history and enrich its catalog, not the entire global catalog. The previous generated graph is disposable and must not be reused as evidence.

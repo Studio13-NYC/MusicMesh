@@ -1,3 +1,5 @@
+> Current runtime: [researcher handoff](CURRENT_STATE_AND_HANDOFF.md). Earlier pipeline notes below are historical; the automatic preview/planning path is retired.
+
 # Execution Lessons
 
 This is the short operating guide for good MusicMesh execution and planning.
@@ -80,7 +82,6 @@ Use the LLM for music-domain interpretation:
 Use deterministic code for stable mechanical work:
 
 - JSON shape validation
-- Cypher writes
 - graph payload filtering
 - UI grouping/counting
 - log aggregation

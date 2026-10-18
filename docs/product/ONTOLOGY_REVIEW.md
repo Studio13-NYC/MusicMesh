@@ -1,3 +1,5 @@
+> Current runtime: [researcher handoff](CURRENT_STATE_AND_HANDOFF.md). Earlier pipeline notes below are historical; the automatic preview/planning path is retired.
+
 # Ontology Review
 
 MusicMesh should not let meaningful music-domain concepts disappear into generic `Other` buckets or opaque properties.
@@ -111,7 +113,6 @@ The domain writer now allows a broader label catalog for the layers this project
 - `Technique`, `Process`, `Format`, `Medium`, `Technology`
 - `Source`, `Evidence`, `Reference`
 
-The LLM remains responsible for the semantic decision. Deterministic code only validates safe identifiers, writes Cypher, groups filters, and reports review candidates.
 
 ## Review Workflow
 

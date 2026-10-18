@@ -1,3 +1,5 @@
+> Current implementation and known limits: [researcher handoff](docs/product/CURRENT_STATE_AND_HANDOFF.md). Local/Azure use one bounded, durable researcher; the old automatic model preview/planning chain is retired.
+
 # MusicMesh
 
 MusicMesh is a clean-sheet restart of an LLM-native operator product for music knowledge work.
@@ -24,7 +26,7 @@ Today, the repo has:
 - startup checks for OpenAI, Prisma/PostgreSQL, and Playwright
 - a Vite/React SPA with the operator graph workbench as the default screen
 - a local API and synced Azure Functions API bundle
-- answer-first chat backed by GPT-5.5
+- answer-first chat backed by GPT-6 Luna/high
 - chat-derived graph preview, grounding, persistence, and run-quality review
 - graph APIs that return only music-domain nodes and relationships
 - an append-only conversation tape and runtime log on disk
@@ -103,7 +105,7 @@ Optional env keys:
 - `MUSICMESH_BLOB_CONTAINER`
 
 
-See [Neon migration and rollback](docs/deployment/NEON_MIGRATION.md) for the dedicated project, backup evidence, and deployment status. The deployed site and root `.env` database are the shared development instance; there is no production environment. Available listening history is loaded into main using [load-main](docs/product/HISTORY_IMPORT.md), while enrichment continues. Neo4j is retained as a migration source/rollback target; its driver is development-only. Docker MCP is no longer required. Use `.env.migration` explicitly for isolated local test fixtures.
+See [Neon migration and rollback](docs/deployment/NEON_MIGRATION.md) for the dedicated project, backup evidence, and deployment status. The deployed site and root `.env` database are the shared development instance; there is no production environment. Available listening history is loaded into main using [load-main](docs/product/HISTORY_IMPORT.md), while enrichment continues. Docker MCP is no longer required. Use `.env.migration` explicitly for isolated local test fixtures.
 
 ## Getting Started
 

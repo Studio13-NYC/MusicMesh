@@ -17,9 +17,7 @@ const optionalEnvKeys = [
   ...getReasoningEnvKeys(),
   "MUSICMESH_HTTP_USER_AGENT",
   "MUSICMESH_BLOB_CONNECTION_STRING",
-  "MUSICMESH_BLOB_CONTAINER",
-  "AURA_INSTANCEID",
-  "AURA_INSTANCENAME"
+  "MUSICMESH_BLOB_CONTAINER"
 ];
 
 function stripWrappingQuotes(value) {

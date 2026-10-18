@@ -4,6 +4,8 @@ This file is for new agents entering the MusicMesh clean-sheet repo.
 
 Read this first.
 
+Current researcher update (18 October): read `docs/product/CURRENT_STATE_AND_HANDOFF.md` and `docs/superpowers/specs/2026-10-18-researcher-design.md`. Local/Azure share `researchApi`, `researchStore`, `researchRunner` and `researchTools`. The app uses GPT-6 Luna/high in a bounded, durable tool loop. Existing graph IDs render directly. Approve/Deny/Defer is the explicit user-decision modal; no automatic preview/plan/ground/review chain remains. Nick/Guest is attribution, not authentication. Detailed semantics are fetched on demand rather than sending the whole ontology each call.
+
 Environment clarification (2026-10-17): the user confirmed that MusicMesh has no production environment. The deployed site and Neon main branch selected by root `.env` are the shared development instance. Load verified available data there while enrichment continues; do not wait for a production release gate. `.env.migration` remains available for isolated tests. Historical docs calling main "production" describe deployment topology, not its actual product stage. Never use Alexander.
 
 More specific direct user instructions take priority over this file.
@@ -66,7 +68,9 @@ Current runtime and bootstrap code:
 - [package.json](/D:/Studio13/Lab/Code/MusicMesh/package.json)
 - [src/index.js](/D:/Studio13/Lab/Code/MusicMesh/src/index.js)
 - [src/server.js](/D:/Studio13/Lab/Code/MusicMesh/src/server.js)
-- [src/chatService.js](/D:/Studio13/Lab/Code/MusicMesh/src/chatService.js)
+- [src/researchRunner.js](/D:/Studio13/Lab/Code/MusicMesh/src/researchRunner.js)
+- [src/researchTools.js](/D:/Studio13/Lab/Code/MusicMesh/src/researchTools.js)
+- [src/researchStore.js](/D:/Studio13/Lab/Code/MusicMesh/src/researchStore.js)
 - [src/env.js](/D:/Studio13/Lab/Code/MusicMesh/src/env.js)
 - [src/check.js](/D:/Studio13/Lab/Code/MusicMesh/src/check.js)
 - [scripts/playwrightSmoke.js](/D:/Studio13/Lab/Code/MusicMesh/scripts/playwrightSmoke.js)
@@ -103,7 +107,7 @@ The clean-sheet direction is:
 - the user should get a direct answer first when that is what they need
 - graph persistence is chat-driven and must be verifiable
 - `canonicalStatus` / `isProposed` are hidden offline-maintenance metadata only
-- the app must not expose proposal, review, or apply workflow as a user-facing path
+- ordinary graph reads need no approval; scoped writes and necessary choices use the persisted Approve/Deny/Defer modal
 - `Other` and generic `Entity` are ontology-review signals, not final modeling destinations
 - reuse existing canon and schema before inventing new structure
 - avoid overengineering and drift from the core operator product
@@ -138,17 +142,17 @@ Current workbench shape:
 - simple local API path for chat requests
 - graph seed search and Cytoscape graph inspection
 - chat-derived domain graph persistence
-- graph preview while persistence continues in the background
-- visible graph progress from answer to preview, Complete Graph grounding, save, or human-input-needed outcome
+- saved catalog graph results between research steps
+- visible research progress, completed answer, or a persisted user decision
 - graph view history with `Back` / `Forward` replay of already-seen graph payloads
 - double-click or `Expand` routes through chat and expands the selected node against the Complete Graph in PostgreSQL
 - append-only conversation tape written to `output/chat/conversation-tape.ndjson`
 - runtime event log written to `output/chat/runtime-events.ndjson`
-- post-run quality assessment written to the conversation tape
+- per-call token/latency telemetry; no automatic model review
 
 Important limitations:
 
-- the UI is wired to a thin GPT-5.5-backed API path
+- the UI uses a durable GPT-6 Luna/high Responses API researcher
 - the workbench reads recent conversation tape entries and runtime events from disk
 - chat and graph demo routes can read and write PostgreSQL through the local API
 - the operator surface is minimally live, not complete
@@ -171,7 +175,7 @@ Key UI docs:
 
 Treat LLM behavior as core product behavior, not glue code.
 
-- Start with the actual runtime path: prompt assembly, model selection, graph preview, graph planning, grounding, persistence, tape writes, runtime events, and UI rendering.
+- Start with the actual runtime path: research prompt, model call, bounded tools, saved run state, decision transaction and UI rendering.
 - Inspect the real instructions sent to the model before editing prompts or surrounding orchestration.
 - Keep prompts outcome-first: define the role, success criteria, grounding rules, output shape, and failure behavior.
 - Give the LLM enough structured context to reason over the data directly: existing canon, candidate entities, schemas, retrieved evidence, tool results, and relevant constraints.
@@ -278,19 +282,17 @@ Current optional env keys:
 - `MUSICMESH_EVIDENCE_CONNECTION_STRING` (optional evidence-specific setting; falls back to Blob setting)
 - `MUSICMESH_BLOB_CONNECTION_STRING`
 - `MUSICMESH_BLOB_CONTAINER`
-- `AURA_INSTANCEID`
-- `AURA_INSTANCENAME`
 
 Operational rules:
 
 - The shared development backend uses the dedicated MusicMesh Neon main branch. Optional isolated tests use the validation branch; never point either at Alexander.
-- Do not silently switch database targets to make a check pass. Aura is retained only for export/rollback.
+- Do not silently switch database targets to make a check pass.
 - If PostgreSQL, OpenAI, or Playwright is unavailable, report blocked infrastructure rather than treating it as an app bug.
 - Never print or commit secrets.
 
 ## Database tooling
 
-Prisma and PostgreSQL are the application runtime. Neo4j credentials and the development-only driver are retained for the read-only migration exporter and rollback. Docker MCP is not an application prerequisite. Never use Alexander databases or credentials.
+Prisma and PostgreSQL are the application runtime. Retired database exporters, importers and credentials have been removed. Docker MCP is not an application prerequisite. Never use Alexander databases or credentials.
 
 ## Testing Posture
 

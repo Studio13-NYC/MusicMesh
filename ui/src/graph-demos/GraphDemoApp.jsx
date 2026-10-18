@@ -344,6 +344,7 @@ export function GraphDemoApp({
   threadId = "",
   focusKey = "",
   graphRunStatus = null,
+  researchGraph = null,
   onRequestNodeExpansion = null,
   onCatalogContextChange = null
 }) {
@@ -380,6 +381,8 @@ export function GraphDemoApp({
   );
   const libraryCopy = LIBRARY_COPY[library] || LIBRARY_COPY.cytoscape;
 
+  useEffect(()=>{if(researchGraph?.nodes?.length){rememberGraph(researchGraph,{label:'Research evidence',source:'researcher'});setIsGraphLoading(false);setSearchStatus('Stored evidence');}},[researchGraph]);
+
   useEffect(() => {
     graphRef.current = graph;
   }, [graph]);
@@ -394,6 +397,7 @@ export function GraphDemoApp({
     let ignore = false;
 
     async function loadInitialSeed() {
+      if(researchGraph?.nodes?.length)return;
       setIsSearchLoading(true);
       setSearchStatus("");
 

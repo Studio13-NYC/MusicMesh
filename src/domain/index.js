@@ -125,6 +125,7 @@ class Format extends DomainEntity { static type = "Format"; }
 class Technology extends DomainEntity { static type = "Technology"; }
 class SourceDocument extends DomainEntity { static type = "SourceDocument"; }
 class EvidenceAssertion extends DomainEntity { static type = "EvidenceAssertion"; }
+class PreferenceSignal extends DomainEntity { static type = "PreferenceSignal"; }
 class DomainRelationship {
   static get definition() { return getTypeDefinition(this.type); }
   constructor({ source, target, assertionKey, properties = {} } = {}) {
@@ -170,6 +171,10 @@ class MapsToRecording extends DomainRelationship { static type = "MapsToRecordin
 class AnalysisOf extends DomainRelationship { static type = "AnalysisOf"; }
 class ComparesRecording extends DomainRelationship { static type = "ComparesRecording"; }
 class SupportedByAnalysis extends DomainRelationship { static type = "SupportedByAnalysis"; }
+class AssertionSubject extends DomainRelationship { static type = "AssertionSubject"; }
+class AssertionFactor extends DomainRelationship { static type = "AssertionFactor"; }
+class SupportedBySource extends DomainRelationship { static type = "SupportedBySource"; }
+class PreferenceFor extends DomainRelationship { static type = "PreferenceFor"; }
 function getOntology() { return ontology; }
 function getTypeDefinition(key) {
   const definition = Object.hasOwn(ontology.entities, key) ? ontology.entities[key] : Object.hasOwn(ontology.relationships, key) ? ontology.relationships[key] : null;
@@ -188,4 +193,4 @@ function getOntologyPrompt() {
     'When a relation has no supported class or cannot be grounded, return needs_human_input and explain the missing evidence or modeling definition. Preserve a useful direct answer without claiming a graph write.'
   ].join("\n");
 }
-module.exports = { getOntology, getTypeDefinition, getOntologyPrompt, DomainEntity, DomainRelationship, Artist, Work, Recording, ReleaseGroup, Release, Label, Area, Place, Event, Instrument, Genre, Series, Url, Medium, Track, ArtistCredit, ListeningEvent, IdentityMapping, AcousticAnalysis, SimilarityAssessment, MusicScene, Style, RecordingSession, Project, Mix, Master, Stem, Equipment, Amplifier, EffectsPedal, Guitar, Synthesizer, Console, SignalChain, Company, Technique, Process, Format, Technology, SourceDocument, EvidenceAssertion, EditionOf, ReleaseLabel, RedirectsTo, CreditsArtist, MusicBrainzRelationship, HasMedium, HasTrack, UsesRecording, CreditedAs, PerformanceOf, HasMapping, MapsToRecording, AnalysisOf, ComparesRecording, SupportedByAnalysis };
+module.exports = { PreferenceSignal, AssertionSubject, AssertionFactor, SupportedBySource, PreferenceFor, getOntology, getTypeDefinition, getOntologyPrompt, DomainEntity, DomainRelationship, Artist, Work, Recording, ReleaseGroup, Release, Label, Area, Place, Event, Instrument, Genre, Series, Url, Medium, Track, ArtistCredit, ListeningEvent, IdentityMapping, AcousticAnalysis, SimilarityAssessment, MusicScene, Style, RecordingSession, Project, Mix, Master, Stem, Equipment, Amplifier, EffectsPedal, Guitar, Synthesizer, Console, SignalChain, Company, Technique, Process, Format, Technology, SourceDocument, EvidenceAssertion, EditionOf, ReleaseLabel, RedirectsTo, CreditsArtist, MusicBrainzRelationship, HasMedium, HasTrack, UsesRecording, CreditedAs, PerformanceOf, HasMapping, MapsToRecording, AnalysisOf, ComparesRecording, SupportedByAnalysis };

@@ -1,3 +1,5 @@
+> Current runtime: [researcher handoff](../product/CURRENT_STATE_AND_HANDOFF.md). Earlier pipeline notes below are historical; the automatic preview/planning path is retired.
+
 # Repository audit — 17 October 2026
 
 Scope: tracked files, the four initially untracked directories, root build/cache paths, source references, and deployment configuration. `STAY/` and the protected clean-sheet archive are excluded from deletion. This is a repository relevance/ownership audit, not a full security or dependency-vulnerability audit.
@@ -8,7 +10,6 @@ Scope: tracked files, the four initially untracked directories, root build/cache
 |---|---|
 | `ui/src/data/workspace.js` | No imports/references outside its own declarations. Old mock thread/trace data, unused by current app. |
 | `walkthrough.md` | Describes removed Proposals/Apply workflows and links to missing screenshot assets. Conflicts with the current operator contract. |
-| `Neo4J-snapshot-export/` | July 2026 database snapshot of superseded generated graph. User explicitly says previous database data is not needed. |
 | `data-lastfm/recenttracks-bobdobbsnyc-1792084706.zip` | Confirmed SHA-256 equality of its CSV member and the retained uncompressed CSV. Redundant container. |
 | `data-lastfm/__pycache__/` | Reproducible Python bytecode cache. Ignore future bytecode. |
 
@@ -29,7 +30,6 @@ Scope: tracked files, the four initially untracked directories, root build/cache
 ## Retain deliberately
 
 - `ui/src/concept/`: still explicitly routed by `ui/src/main.jsx` at `/concept`; not unused. No route removal was inferred from the cleanup request.
-- Neo4j export/import and migration verification scripts: useful migration/restore tooling referenced by tests, package commands, and migration evidence. They are not the active database runtime. Remove only when their supported migration/test workflow is replaced.
 - Historical refactor proposal and its diagrams: already labeled historical and linked to current documents. They preserve rationale and are not falsely presented as current behavior.
 - September migration evidence: retained with a historical heading and an October supersession note in the handoff.
 

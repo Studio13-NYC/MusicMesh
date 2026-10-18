@@ -1,3 +1,5 @@
+> Historical 17 October research/implementation baseline. The 18 October researcher specification supersedes references to the retired preview/planning modules; see `docs/product/CURRENT_STATE_AND_HANDOFF.md` for live paths. Import/evidence semantics remain applicable.
+
 # MusicMesh: domain model and personal-history import
 
 **17 October 2026 — approved direction; implementation in progress.**

@@ -1,3 +1,5 @@
+> Current runtime: [researcher handoff](CURRENT_STATE_AND_HANDOFF.md). Earlier pipeline notes below are historical; the automatic preview/planning path is retired.
+
 # MusicMesh Parking Lot
 
 This file tracks useful follow-up work that should not interrupt the current path.
@@ -38,7 +40,6 @@ Status: parked
 
 What surfaced:
 
-- When a chat turn adds a new entity, the current pipeline grounds planned entities against likely Neo4j candidate matches.
 - That helps reuse existing nodes when the entity is already mentioned in the plan.
 - It does not yet proactively include a compact neighborhood packet around the likely anchor/core nodes so the LLM can discover additional good existing nodes to connect to.
 
@@ -59,5 +60,4 @@ Definition of done:
 
 - A headed browser test adds a new related entity and shows it connected to relevant existing graph nodes.
 - Runtime logs show one chat pipeline, with neighborhood context used in graph planning or grounding.
-- Neo4j verification shows no proposal scaffolding nodes and no `PROPOSED_RELATIONSHIP` edges.
 - Existing canonized `canonicalStatus` values are not overwritten.

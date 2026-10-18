@@ -1,6 +1,6 @@
 // Semantic source of truth. Definitions describe domain meaning; provider payloads
 // remain data. This module has no database, network, or environment dependency.
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
 function deepFreeze(value) {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -73,12 +73,28 @@ const additions = {
 };
 for (const [key, meaning] of Object.entries(additions)) entities[key] = entity(key, meaning, null);
 
+// Research assertions preserve source scope; inheritance is evaluated, never copied.
+entities.SourceDocument.fields = { ...commonFields, url: field("string", "Source HTTPS URL.", true), retrievedAt: field("string", "ISO retrieval or user-review time.", true), attribution: field("string", "Nick or Guest; attribution is not authentication.", true) };
+entities.EvidenceAssertion.fields = { ...commonFields,
+ subjectId: field("string", "Exact subject identity.", true), subjectType: field("string", "Release, ReleaseGroup, Track or Recording.", true),
+ factorId: field("string", "Exact Artist, Place, Instrument, Equipment or other factor identity.", true), role: field("string", "Producer, engineer, studio, instrument, equipment, genre or technique role.", true),
+ scope: field("string", "album-credit does not imply every track; all-tracks explicitly inherits in this edition; direct describes only the subject.", true),
+ mode: field("string", "add, exclude, or replace a named assertion.", true), overridesAssertionId: field("string", "Exact assertion excluded or replaced, not a blanket role replacement."),
+ releaseId: field("string", "Edition context for a recording exception."), sourceUrl: field("string", "Inspectable source URL.", true), excerpt: field("string", "Short exact supporting excerpt, not model memory.", true),
+ certainty: field("string", "documented, uncertain or user-stated; user approval does not establish independent verification.", true), attribution: field("string", "Nick or Guest who reviewed this claim.", true)
+};
+entities.PreferenceSignal = entity("PreferenceSignal", "An explicit user's like, dislike or passage observation. Separate from scrobbles, acoustic similarity and causal preference hypotheses.", null, { visibility: "private", fields: { ...commonFields, recordingId: field("string", "Exact recording identity.", true), account: field("string", "Nick or Guest attribution, not authentication.", true), value: field("string", "like, dislike or observation.", true), note: field("string", "User's own stated preference or passage description.", true) } });
+
 function relationship(key, sourceTypes, targetTypes, meaning, inverse, options = {}) {
   return { key, kind: "relationship", namespace: "musicmesh", status: "structural-mapping", meaning, inverse, directional: true, sourceTypes, targetTypes,
     identity: "Type + directed endpoints + explicit assertionKey. Separate source assertions/episodes remain separate.",
     evidenceRule: "Preserve provider assertion and context; endpoint coincidence does not establish this relationship.", fields: { ...commonFields }, ...options };
 }
 const relationships = {
+  AssertionSubject: relationship("AssertionSubject", ["EvidenceAssertion"], ["Release","ReleaseGroup","Track","Recording"], "Claim describes this exact subject in its recorded scope.", "Has sourced claim"),
+  AssertionFactor: relationship("AssertionFactor", ["EvidenceAssertion"], ["Artist","Place","Instrument","Equipment","Guitar","Synthesizer","Console","Amplifier","EffectsPedal","Genre","Technique","Style"], "Claim attributes this factor and role; not proof outside its scope.", "Factor participates in claim"),
+  SupportedBySource: relationship("SupportedBySource", ["EvidenceAssertion"], ["SourceDocument"], "Source contains the quoted evidence for the scoped claim.", "Source supports claim"),
+  PreferenceFor: relationship("PreferenceFor", ["PreferenceSignal"], ["Recording"], "Explicit preference refers to this recorded version.", "Recording has private preference"),
   RedirectsTo: relationship("RedirectsTo", Object.keys(entities).filter(k=>entities[k].providerType&&k!=="Track"), Object.keys(entities).filter(k=>entities[k].providerType&&k!=="Track"), "MusicBrainz resolves the requested identifier to a different current identifier of the same entity type. Preserve both the original mapping and redirect evidence.", "Was requested under identifier", { fields: { ...commonFields, requestUrl: field("string", "Lookup that returned the new identifier.", true) } }),
   CreditsArtist: relationship("CreditsArtist", ["ArtistCredit"], ["Artist"], "Artist appears at this zero-based position in the ordered billing; this does not imply an instrumental contribution.", "Artist is billed in credit", { fields: { ...commonFields, position: field("nonNegativeInteger", "Exact index in ArtistCredit.credits.", true) } }),
   MusicBrainzRelationship: relationship("MusicBrainzRelationship", Object.keys(entities).filter(k => entities[k].providerType && k !== "Track"), Object.keys(entities).filter(k => entities[k].providerType && k !== "Track"), "A provider-defined relationship, identified by its actual MusicBrainz relationship-type UUID. Endpoints use the provider's forward direction; attributes, dates and credited-as text retain the assertion context.", "Read the provider type's inverse definition", { namespace: "musicbrainz", status: "aligned", evidenceRule: "Only construct from an actual provider assertion. providerTypeName is a label, not permission to invent a type UUID or infer a relation. Read https://musicbrainz.org/relationship/<providerTypeId> for its full definition.", fields: { ...commonFields, providerTypeId: field("mbid", "Actual provider relationship-type UUID.", true), providerTypeName: field("string", "Provider type label.", true), sourceType: field("string", "Source class in provider-forward direction.", true), targetType: field("string", "Target class in provider-forward direction.", true), definitionUrl: field("string", "Official relationship-type definition URL.") } }),

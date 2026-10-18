@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
+import * as Dialog from "@radix-ui/react-dialog";
 import * as Separator from "@radix-ui/react-separator";
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
 import ReactMarkdown from "react-markdown";
@@ -155,196 +156,6 @@ function newestMatchingEntry(entries, requestId, predicate) {
     .sort((left, right) => timestampValue(right) - timestampValue(left))[0] || null;
 }
 
-function buildGraphRunStatus({ requestIds, runtimeEvents, tapeEntries, isSending }) {
-  const latestRequestId = Array.isArray(requestIds) && requestIds.length > 0
-    ? requestIds[requestIds.length - 1]
-    : "";
-
-  if (!latestRequestId) {
-    return null;
-  }
-
-  const pipelineComplete = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) =>
-      entry.type === "chat_graph_pipeline_deferred_completed" ||
-      entry.type === "chat_graph_pipeline_completed"
-  );
-  const pipelineFailed = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) =>
-      entry.type === "chat_graph_pipeline_deferred_failed" ||
-      entry.type === "chat_graph_pipeline_failed"
-  );
-  const previewCompleted = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) => entry.type === "graph_preview_completed"
-  );
-  const previewFailed = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) => entry.type === "graph_preview_failed"
-  );
-  const previewStarted = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) => entry.type === "graph_preview_started"
-  );
-  const graphPlanCompleted = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) => entry.type === "llm_call_completed" && entry.payload?.purpose === "graph_plan"
-  );
-  const graphGroundingCompleted = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) => entry.type === "llm_call_completed" && entry.payload?.purpose === "graph_grounding"
-  );
-  const answerReturned = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) => entry.type === "chat_answer_returned"
-  );
-  const requestReceived = newestMatchingEntry(
-    runtimeEvents,
-    latestRequestId,
-    (entry) => entry.type === "chat_request_received"
-  );
-  const graphPreviewTapeEntry = newestMatchingEntry(
-    tapeEntries,
-    latestRequestId,
-    (entry) => entry.type === "graph_preview"
-  );
-
-  if (pipelineFailed) {
-    return {
-      requestId: latestRequestId,
-      stage: "failed",
-      label: "Graph pipeline failed before saving",
-      detail: pipelineFailed.payload?.message || "The Complete Graph was not changed.",
-      variant: "error",
-      isActive: false
-    };
-  }
-
-  if (pipelineComplete) {
-    const mode = pipelineComplete.payload?.mode || "";
-
-    if (mode === "persist_graph") {
-      return {
-        requestId: latestRequestId,
-        stage: "saved",
-        label: "Graph saved to Complete Graph",
-        detail: `${pipelineComplete.payload?.graphNodeCount || 0} nodes / ${pipelineComplete.payload?.graphRelationshipCount || 0} relationships persisted${pipelineComplete.payload?.graphAnchorName ? ` around ${pipelineComplete.payload.graphAnchorName}` : ""}.`,
-        variant: "saved",
-        isActive: false
-      };
-    }
-
-    if (mode === "needs_human_input" || pipelineComplete.payload?.humanInputNeeded) {
-      return {
-        requestId: latestRequestId,
-        stage: "needs_human_input",
-        label: "Needs human input before saving",
-        detail: "The preview was not written to the Complete Graph.",
-        variant: "warning",
-        isActive: false
-      };
-    }
-
-    return {
-      requestId: latestRequestId,
-      stage: "answer_only",
-      label: "Answer complete",
-      detail: "No graph save was needed for this turn.",
-      variant: "quiet",
-      isActive: false
-    };
-  }
-
-  if (graphGroundingCompleted) {
-    return {
-      requestId: latestRequestId,
-      stage: "saving",
-      label: "Saving graph...",
-      detail: "Grounding is complete; MusicMesh is writing the connected graph patch.",
-      variant: "active",
-      isActive: true
-    };
-  }
-
-  if (graphPlanCompleted) {
-    return {
-      requestId: latestRequestId,
-      stage: "grounding",
-      label: "Grounding against existing graph...",
-      detail: "MusicMesh is matching the answer to Complete Graph nodes.",
-      variant: "active",
-      isActive: true
-    };
-  }
-
-  if (previewCompleted || graphPreviewTapeEntry) {
-    return {
-      requestId: latestRequestId,
-      stage: "preview",
-      label: "Preview rendered; saving to Complete Graph...",
-      detail: "The canvas is provisional until persistence finishes.",
-      variant: "active",
-      isActive: true
-    };
-  }
-
-  if (previewFailed) {
-    return {
-      requestId: latestRequestId,
-      stage: "preview_failed",
-      label: "Checking Complete Graph...",
-      detail: "Preview failed, but the persistence pipeline is still running.",
-      variant: "active",
-      isActive: true
-    };
-  }
-
-  if (previewStarted) {
-    return {
-      requestId: latestRequestId,
-      stage: "previewing",
-      label: "Drafting graph preview...",
-      detail: "MusicMesh is creating the first visible graph slice.",
-      variant: "active",
-      isActive: true
-    };
-  }
-
-  if (answerReturned) {
-    return {
-      requestId: latestRequestId,
-      stage: "complete_graph",
-      label: "Checking Complete Graph...",
-      detail: "The answer is visible; graph planning is still running.",
-      variant: "active",
-      isActive: true
-    };
-  }
-
-  if (requestReceived || isSending) {
-    return {
-      requestId: latestRequestId,
-      stage: "answering",
-      label: "Answering...",
-      detail: "MusicMesh is preparing the direct response.",
-      variant: "active",
-      isActive: true
-    };
-  }
-
-  return null;
-}
-
 export function OperatorGraphDemo() {
   const [messages, setMessages] = useState(seedMessages);
   const [composerValue, setComposerValue] = useState("");
@@ -362,26 +173,41 @@ export function OperatorGraphDemo() {
   const catalogContextRef=useRef(null);
   const handleCatalogContextChange=useCallback(context=>{catalogContextRef.current=context;},[]);
   const activeGraphRequestIdsRef = useRef(new Set());
-  const graphRunStatus = useMemo(
-    () =>
-      buildGraphRunStatus({
-        requestIds: activeGraphRequestIds,
-        runtimeEvents,
-        tapeEntries,
-        isSending
-      }),
-    [activeGraphRequestIds, isSending, runtimeEvents, tapeEntries]
-  );
-
-  useEffect(() => {
-    loadTape();
-
-    const intervalId = window.setInterval(() => {
-      loadTape();
-    }, 3000);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
+  const [researchRun,setResearchRun]=useState(null);
+  const [researchGraph,setResearchGraph]=useState(null);
+  const [actor,setActor]=useState('Nick');
+  const [decisionOpen,setDecisionOpen]=useState(false);
+  const [decisionSelection,setDecisionSelection]=useState('');
+  const [savedRuns,setSavedRuns]=useState(()=>{try{return JSON.parse(localStorage.getItem('musicmesh-pending-research')||'[]');}catch{return [];}});
+  const researchBusy=useRef(false);
+  const graphRunStatus=researchRun?{label:researchRun.progress||researchRun.status,detail:researchRun.status==='running'?'Following useful evidence paths':researchRun.status==='needs_input'?'Your decision is needed':researchRun.status==='deferred'?'Saved for later':`${researchRun.usage?.total_tokens||0} tokens`,isActive:isSending,variant:researchRun.status==='failed'?'error':'complete'}:null;
+  useEffect(()=>{loadTape();},[]);
+  function rememberRun(run){
+    setResearchRun(run);
+    if(run.graph?.nodes?.length)setResearchGraph(run.graph);
+    setSavedRuns(current=>{const next=current.filter(r=>r.id!==run.requestId);if(['running','needs_input','deferred'].includes(run.status))next.push({id:run.requestId,label:run.decision?.question||run.progress||'Resume research'});const bounded=next.slice(-12);localStorage.setItem('musicmesh-pending-research',JSON.stringify(bounded));return bounded;});
+    if(run.status==='needs_input'){setDecisionSelection('');setDecisionOpen(true);}
+    if(['completed','denied','failed'].includes(run.status)&&run.message)setMessages(current=>current.some(m=>m.id===`assistant-${run.requestId}`)?current.map(m=>m.id===`assistant-${run.requestId}`?{...m,content:run.message}:m):[...current,{id:`assistant-${run.requestId}`,role:'assistant',content:run.message}]);
+  }
+  async function postResearch(path,body){const response=await fetch(`${API_BASE_URL}/api/chat${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const payload=await response.json();if(!response.ok)throw Error(payload.error||`Request failed (${response.status})`);return payload;}
+  async function continueResearch(initial){
+    let run=initial;rememberRun(run);
+    for(let step=0;run.status==='running'&&step<16;step++){
+      if(run.busy)await sleep(1500);
+      run=await postResearch('',{requestId:run.requestId,version:run.version});rememberRun(run);
+    }
+    if(run.status!=='running')await loadTape();
+  }
+  async function resumeResearch(id){
+    if(researchBusy.current)return;researchBusy.current=true;setIsSending(true);setErrorMessage('');
+    try{const response=await fetch(`${API_BASE_URL}/api/chat/run?id=${encodeURIComponent(id)}`);const run=await response.json();if(!response.ok)throw Error(run.error);rememberRun(run);if(run.status==='deferred'){setDecisionSelection('');setDecisionOpen(true);}else await continueResearch(run);}
+    catch(error){setErrorMessage(error.message);}finally{researchBusy.current=false;setIsSending(false);}
+  }
+  async function chooseDecision(choice){
+    if(researchBusy.current||!researchRun?.decision)return;researchBusy.current=true;setIsSending(true);setErrorMessage('');
+    try{const run=await postResearch('/decision',{requestId:researchRun.requestId,version:researchRun.version,decisionId:researchRun.decision.id,choice,selection:decisionSelection});setDecisionOpen(false);await continueResearch(run);}
+    catch(error){setErrorMessage(error.message);}finally{researchBusy.current=false;setIsSending(false);}
+  }
 
   useEffect(() => {
     const viewportElement = viewportRef.current;
@@ -413,7 +239,7 @@ export function OperatorGraphDemo() {
         activeGraphRequestIdsRef.current
       );
 
-      if (nextFocusKey) {
+      if (nextFocusKey && !researchRun) {
         setGraphFocusAnchorId(nextFocusKey);
       }
     } catch {
@@ -439,140 +265,17 @@ export function OperatorGraphDemo() {
     return entries;
   }
 
-  async function recoverAssistantFromTape(requestId, errorMessageId, originalErrorMessage) {
-    for (let attempt = 0; attempt < 45; attempt += 1) {
-      await sleep(attempt === 0 ? 3000 : 2500);
-
-      const entries = await loadTape();
-      const assistantEntry = findAssistantEntryForRequest(entries, requestId);
-
-      if (!assistantEntry) {
-        continue;
-      }
-
-      const recoveredMessage = assistantMessageFromTape(assistantEntry);
-      setMessages((currentMessages) => {
-        const hasRecoveredMessage = currentMessages.some(
-          (message) => message.id === recoveredMessage.id
-        );
-
-        if (hasRecoveredMessage) {
-          return currentMessages.filter((message) => message.id !== errorMessageId);
-        }
-
-        return currentMessages.map((message) =>
-          message.id === errorMessageId ? recoveredMessage : message
-        );
-      });
-      setErrorMessage("");
-      return;
-    }
-
-    setMessages((currentMessages) =>
-      currentMessages.map((message) =>
-        message.id === errorMessageId
-          ? {
-              ...message,
-              content: `MusicMesh could not answer this request: ${originalErrorMessage}`
-            }
-          : message
-      )
-    );
-  }
-
   async function submitPrompt(prompt, { displayPrompt = prompt, graphContext = null } = {}) {
-    const normalizedPrompt = prompt.trim();
-    const visiblePrompt = displayPrompt.trim() || normalizedPrompt;
-
-    if (!normalizedPrompt || isSending) {
-      return false;
-    }
-
-    setErrorMessage("");
-    setIsSending(true);
-
-    const requestId = createClientRequestId();
-    activeGraphRequestIdsRef.current.add(requestId);
-    setActiveGraphRequestIds((currentRequestIds) => [
-      ...currentRequestIds.filter((currentRequestId) => currentRequestId !== requestId),
-      requestId
-    ].slice(-12));
-    setGraphFocusAnchorId(`pending:${requestId}`);
-
-    const nextUserMessage = {
-      id: `user-${requestId}`,
-      role: "user",
-      content: visiblePrompt
-    };
-
-    const nextMessages = [...messages, nextUserMessage];
-    setMessages(nextMessages);
-    setComposerValue("");
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          clientRequestId: requestId,
-          threadId: OPERATOR_THREAD_ID,
-          prompt: normalizedPrompt,
-          graphContext: graphContext||catalogContextRef.current,
-          messages: nextMessages.map((message) => ({
-            role: message.role,
-            content: message.content
-          }))
-        })
-      });
-
-      const responseText = await response.text();
-      let payload = {};
-
-      try {
-        payload = responseText ? JSON.parse(responseText) : {};
-      } catch {
-        throw new Error(responseText || `Chat request failed: ${response.status}`);
-      }
-
-      if (!response.ok) {
-        throw new Error(payload.error || `Chat request failed: ${response.status}`);
-      }
-
-      if (typeof payload.graphAnchorId === "string" && payload.graphAnchorId.trim()) {
-        setGraphFocusAnchorId(`graph:${payload.graphAnchorId.trim()}`);
-      } else if (typeof payload.requestId === "string" && payload.requestId.trim()) {
-        setGraphFocusAnchorId(`pending:${payload.requestId.trim()}`);
-      }
-
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        {
-          id: payload.responseId || `assistant-${Date.now()}`,
-          role: "assistant",
-          content: payload.message
-        }
-      ]);
-      await loadTape();
-      return true;
-    } catch (error) {
-      setErrorMessage(error.message);
-      const errorMessageId = `assistant-error-${requestId}`;
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        {
-          id: errorMessageId,
-          role: "assistant",
-          content:
-            "MusicMesh lost the live backend connection for this request. I am checking the run tape for the completed answer."
-        }
-      ]);
-      recoverAssistantFromTape(requestId, errorMessageId, error.message);
-      return false;
-    } finally {
-      setIsSending(false);
-    }
+    const normalizedPrompt=prompt.trim();if(!normalizedPrompt||researchBusy.current)return false;
+    researchBusy.current=true;setErrorMessage('');setIsSending(true);
+    const requestId=createClientRequestId();
+    const nextMessages=[...messages,{id:`user-${requestId}`,role:'user',content:displayPrompt.trim()||normalizedPrompt}];
+    setMessages(nextMessages);setComposerValue('');
+    // Save before dispatch so a lost HTTP response can be resumed by its stable ID.
+    rememberRun({requestId,status:'running',version:0,progress:'Reading your question'});
+    try{const run=await postResearch('',{clientRequestId:requestId,version:0,threadId:OPERATOR_THREAD_ID,prompt:normalizedPrompt,graphContext:graphContext||catalogContextRef.current,actor,messages:nextMessages.slice(-6).map(({role,content})=>({role,content}))});await continueResearch(run);return true;}
+    catch(error){setErrorMessage(`${error.message}. Use Resume research to recover this run.`);return false;}
+    finally{researchBusy.current=false;setIsSending(false);}
   }
 
   async function handleSubmit(event) {
@@ -589,15 +292,7 @@ export function OperatorGraphDemo() {
 
     const kind =
       typeof node?.kind === "string" && node.kind.trim() ? node.kind.trim() : "music entity";
-    const prompt = [
-      `Expand the graph around "${label}" (${kind}).`,
-      "First answer from your own music knowledge with the most useful direct connections.",
-      "Keep the immediate answer compact: 8 to 12 direct one-hop connections are enough.",
-      "Include the best relevant people, bands/artists, recordings, instruments/equipment, studios/places, scenes/genres, and the relationship types when they are known.",
-      "When mapping the graph, connect the expansion into the Complete Graph in Neo4j and reuse existing nodes when they already exist.",
-      "Do not leave labels, albums, tracks, people, or scenes as disconnected local islands.",
-      "Then map the useful direct relationships for the graph."
-    ].join(" ");
+    const prompt = `Explore useful stored connections around "${label}" (${kind}). Inspect available relationship families and choose the paths most relevant to understanding this music. Use exact catalog identities and sourced evidence; stop when useful context is established. Explain gaps without inventing graph records.`;
 
     return submitPrompt(prompt, {
       displayPrompt: `Expand ${label}`,
@@ -626,6 +321,24 @@ export function OperatorGraphDemo() {
           </div>
         </header>
 
+        <div className="research-controls">
+          <label>Contributing as <select aria-label="Contribution attribution" value={actor} onChange={event=>setActor(event.target.value)} disabled={isSending}><option>Nick</option><option>Guest</option></select></label>
+          {savedRuns.map(run=><button key={run.id} disabled={isSending} onClick={()=>resumeResearch(run.id)} title={run.label}>Resume research: {run.label.slice(0,65)}</button>)}
+        </div>
+        <Dialog.Root open={decisionOpen} onOpenChange={open=>{if(!open&&!isSending)chooseDecision('defer');}}>
+          <Dialog.Portal><Dialog.Overlay className="research-decision-overlay"/><Dialog.Content className="research-decision-modal" onPointerDownOutside={event=>event.preventDefault()}>
+            <Dialog.Title>Decision needed</Dialog.Title>
+            <Dialog.Description>{researchRun?.decision?.question}</Dialog.Description>
+            {researchRun?.decision?.display&&<dl>{Object.entries(researchRun.decision.display).map(([key,value])=><React.Fragment key={key}><dt>{key}</dt><dd>{String(value)}</dd></React.Fragment>)}</dl>}
+            {researchRun?.decision?.choices?.map(choice=><label className="research-choice" key={choice}><input type="radio" name="research-choice" value={choice} checked={decisionSelection===choice} onChange={()=>setDecisionSelection(choice)}/>{choice}</label>)}
+            {errorMessage&&<p role="alert">{errorMessage}</p>}
+            <div className="research-decision-actions">
+              <button disabled={isSending||Boolean(researchRun?.decision?.choices?.length&&!decisionSelection)} onClick={()=>chooseDecision('approve')}>Approve</button>
+              <button disabled={isSending} onClick={()=>chooseDecision('deny')}>Deny</button>
+              <button disabled={isSending} onClick={()=>chooseDecision('defer')}>Defer</button>
+            </div>
+          </Dialog.Content></Dialog.Portal>
+        </Dialog.Root>
         <PanelGroup className="operator-demo-panels" direction="horizontal">
           <Panel className="operator-demo-chat-panel" defaultSize={52} minSize={36}>
             <section className="operator-chat-surface">
@@ -725,10 +438,11 @@ export function OperatorGraphDemo() {
                 {workspaceMode === "graph" ? (
                   <GraphDemoApp
                     GraphCanvas={CytoscapeCanvas}
-                    defaultSeedQuery="rock music"
+                    defaultSeedQuery=""
+                    researchGraph={researchGraph}
                     embedded
                     library="cytoscape"
-                    focusKey={graphFocusAnchorId}
+                    focusKey={researchGraph ? "" : graphFocusAnchorId}
                     graphRunStatus={graphRunStatus}
                     onRequestNodeExpansion={handleGraphNodeExpansion}
                     onCatalogContextChange={handleCatalogContextChange}

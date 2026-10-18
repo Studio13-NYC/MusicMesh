@@ -103,9 +103,11 @@ async function appendBlobRecord(blobName, record) {
 
 async function readBlobRecords(blobName, limit) {
   const appendBlobClient = await getAppendBlobClient(blobName);
-  const download = await appendBlobClient.download();
+  const properties = await appendBlobClient.getProperties();
+  const start = Math.max(0, (properties.contentLength || 0) - 262144);
+  const download = await appendBlobClient.download(start);
   const contents = await streamToString(download.readableStreamBody);
-  return parseNdjson(contents, limit);
+  return parseNdjson(contents, Math.max(1, Math.min(200, Number(limit) || 100)));
 }
 
 function appendFileRecord(filePath, record) {
@@ -118,8 +120,12 @@ function readFileRecords(filePath, limit) {
     return [];
   }
 
-  const contents = fs.readFileSync(filePath, "utf8");
-  return parseNdjson(contents, limit);
+  const size = fs.statSync(filePath).size;
+  const bytes = Buffer.alloc(Math.min(size,262144));
+  const fd = fs.openSync(filePath,"r");
+  try { fs.readSync(fd,bytes,0,bytes.length,Math.max(0,size-bytes.length)); } finally { fs.closeSync(fd); }
+  const contents = bytes.toString("utf8");
+  return parseNdjson(contents, Math.max(1, Math.min(200, Number(limit) || 100)));
 }
 
 function parseNdjson(contents, limit) {

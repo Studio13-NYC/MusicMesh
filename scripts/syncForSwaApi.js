@@ -19,6 +19,14 @@ fs.mkdirSync(sharedDir, { recursive: true });
 fs.mkdirSync(contentDir, { recursive: true });
 
 const copies = [
+  ["src/publicSource.js", "shared/publicSource.js"],
+  ["src/enrichment.js", "shared/enrichment.js"],
+  ["src/researchSources.js", "shared/researchSources.js"],
+  ["src/researchTools.js", "shared/researchTools.js"],
+  ["src/researchRunner.js", "shared/researchRunner.js"],
+  ["src/researchStore.js", "shared/researchStore.js"],
+  ["src/researchApi.js", "shared/researchApi.js"],
+
   ["src/evidenceArchive.js", "shared/evidenceArchive.js"],
   ["src/evidenceService.js", "shared/evidenceService.js"],
   ["src/domain/catalog.js", "shared/domain/catalog.js"],
@@ -32,10 +40,6 @@ const copies = [
   ["src/activityStore.js", "shared/activityStore.js"],
   ["src/reasoningConfig.js", "shared/reasoningConfig.js"],
   ["src/llmTelemetry.js", "shared/llmTelemetry.js"],
-  ["src/chatService.js", "shared/chatService.js"],
-  ["src/graphPreview.js", "shared/graphPreview.js"],
-  ["src/runQualityAssessment.js", "shared/runQualityAssessment.js"],
-  ["src/graphChatOrchestrator.js", "shared/graphChatOrchestrator.js"],
   ["src/graphDomainWriter.js", "shared/graphDomainWriter.js"],
   ["src/graphDemoRepository.js", "shared/graphDemoRepository.js"],
   ["src/graphCanonRepository.js", "shared/graphCanonRepository.js"],

@@ -7,7 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// IDs retain Neo4j element IDs so saved graph links and tape remain valid.
+// Stable graph identities preserve saved links and provenance.
 model Entity {
   id               String         @id
   domainId         String?
@@ -80,4 +80,16 @@ model ImportBatch {
   relationships Int
 
   @@map("import_batches")
+}
+
+// Bounded, expiring operational state; never a music graph entity.
+model ResearchRun {
+  id         String   @id
+  version    Int      @default(0)
+  state      Json
+  lease      String?
+  leaseUntil DateTime? @db.Timestamptz(6)
+  expiresAt  DateTime @db.Timestamptz(6)
+  @@index([expiresAt])
+  @@map("research_runs")
 }
