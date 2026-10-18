@@ -12,7 +12,7 @@ The [approved specification](../superpowers/specs/2026-10-18-researcher-design.m
 - `src/enrichment.js`: all-tracks album defaults versus album-only credits; direct track/recording additions and named exceptions. Edition membership is checked. Provider assertions remain unchanged.
 - `src/publicSource.js`: bounded public HTTPS text retrieval, validated and pinned DNS, bounded redirects. Private networks, unsupported documents and oversized pages are rejected. Source text is untrusted evidence. Source excerpts must be tied to their fetched URL or supplied explicitly by the user before review.
 - `src/domain/`: typed SourceDocument/EvidenceAssertion fields and private PreferenceSignal; four explicit assertion/preference relationships. Generated DOMAIN_MODEL.md remains synchronized.
-- Local and Azure APIs share `researchApi.js`: POST `/api/chat`, POST `/api/chat/decision`, GET `/api/chat/run?id=...`. The browser drives saved steps and renders retrieved graph IDs directly. Pending decisions appear in a Radix modal; deferred runs have Resume buttons.
+- Local and Azure APIs share `researchApi.js`: POST `/api/chat`, POST `/api/chat/decision`, GET `/api/chat/run?id=...`. The browser drives saved steps and renders retrieved graph IDs directly. Pending decisions appear in a Radix modal with exact subject/factor IDs, edition and overridden source claim; deferred runs have Resume and Cancel buttons. Expired in-flight leases require an explicit retry decision rather than silently repeating a potentially billed call.
 - Default Nick / optional Guest attribution. Plays are not likes. Raw listening records remain excluded from graph tools; the single-owner development researcher can query listening aggregates.
 
 ## Verified data baseline
@@ -54,3 +54,9 @@ Root `.env` is main. The local full restoration test database uses `.env.restore
 ## Local performance evidence
 
 `output/researcher-live-local.json`: greeting 1,150 total tokens / 1.86 seconds; selected release country 2,691 tokens / 2.78 seconds. These are two live API examples, not a general latency guarantee. The old country run used 56,935 tokens across answer/plan/preview/review. New simple answers invoke no automatic downstream model stages.
+
+## Review and pre-deployment verification
+
+Fresh review of `db96e68..4a53698` identified six important findings and no critical findings. Fixed track/recording context resolution, edition restrictions in comparisons/genre aggregates, ReleaseGroup default exceptions, approval scope display, uncertain-call retry handling and prompt/decision tape logging. Added cancellation. Regression tests were observed failing before fixes, then passing. `npm test`: 90 passed / 16 opt-in skipped. Isolated SQL suite: 16/16 passed. `npm run build` and `npm run build:api` passed; existing UI bundle size warning remains. Local workbench proved real 7-node/6-edge graph, Defer/Resume/Approve, and Deny without writes.
+
+18 October 19:19 UTC: additive `20261018190000_research_runs` migration applied to MusicMesh main. Azure model settings set to `gpt-6-luna` / `high`. Application deployment proof still pending. No bulk catalog reads/imports were performed for this change.

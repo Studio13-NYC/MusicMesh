@@ -234,7 +234,14 @@ function asGraph(nodes, edges = []) {
       summary: { labels: [n.kind] },
       x: (i % 6) * 150,
       y: Math.floor(i / 6) * 110,
-      colorKey: n.kind,
+      colorKey:
+        {
+          Release: "album",
+          ReleaseGroup: "album",
+          Recording: "track",
+          Track: "track",
+          Place: "venue",
+        }[n.kind] || n.kind?.toLowerCase(),
       shapeKey: "ellipse",
     })),
     edges: edges.map((r) => ({
@@ -412,14 +419,14 @@ async function listening(a, ctx) {
       },
     };
   const rows = await db.$queryRaw(
-    Prisma.sql`WITH mapped AS (${mappings}) SELECT g.id,g.name,count(DISTINCT mapped.event_id)::int AS plays FROM mapped JOIN entities a ON a."primaryLabel"='EvidenceAssertion' AND a.extra->>'subjectId'=mapped.recording_id AND a.extra->>'role'='genre' AND a.extra->>'mode'='add' AND a.extra->>'scope'='direct' JOIN entities g ON g.id=a.extra->>'factorId' AND g."primaryLabel"='Genre' GROUP BY g.id,g.name ORDER BY count(DISTINCT mapped.event_id) DESC,g.id LIMIT ${take}`,
+    Prisma.sql`WITH mapped AS (${mappings}) SELECT g.id,g.name,count(DISTINCT mapped.event_id)::int AS plays FROM mapped JOIN entities a ON a."primaryLabel"='EvidenceAssertion' AND a.extra->>'subjectId'=mapped.recording_id AND a.extra->>'role'='genre' AND a.extra->>'mode'='add' AND a.extra->>'scope'='direct' AND coalesce(a.extra->>'releaseId','')='' JOIN entities g ON g.id=a.extra->>'factorId' AND g."primaryLabel"='Genre' GROUP BY g.id,g.name ORDER BY count(DISTINCT mapped.event_id) DESC,g.id LIMIT ${take}`,
   );
   return {
     data: {
       ...summary[0],
       groups: rows,
       coverage:
-        "Direct sourced recording genre assertions only. Imported provider tags are retained in evidence but are not yet normalized genre assignments. Multiple genres can count the same play.",
+        "Direct sourced recording genre assertions without edition restrictions only. Edition-restricted claims are excluded because plays do not establish the edition. Imported provider tags are retained in evidence but are not yet normalized genre assignments. Multiple genres can count the same play.",
       conclusion: rows.length
         ? "Partial coverage; cannot claim a complete most-listened genre."
         : "No queryable genre assignments yet; the listening history is present.",
@@ -438,13 +445,21 @@ async function credits(a, ctx) {
   });
   const releaseGroupId =
     groupEdges.length === 1 ? groupEdges[0].targetId : null;
+  let recordingId = a.recordingId,
+    trackId = a.trackId;
   if (a.recordingId || a.trackId) {
     const members =
-      await db.$queryRaw`SELECT t.id,r.id AS recording FROM relationships hm JOIN relationships ht ON ht."sourceId"=hm."targetId" AND ht.type='HasTrack' JOIN entities t ON t.id=ht."targetId" JOIN relationships ur ON ur."sourceId"=t.id AND ur.type='UsesRecording' JOIN entities r ON r.id=ur."targetId" WHERE hm."sourceId"=${release.id} AND hm.type='HasMedium' AND (${a.recordingId || ""}='' OR r.id=${a.recordingId || ""}) AND (${a.trackId || ""}='' OR t.id=${a.trackId || ""}) LIMIT 1`;
+      await db.$queryRaw`SELECT t.id,r.id AS recording FROM relationships hm JOIN relationships ht ON ht."sourceId"=hm."targetId" AND ht.type='HasTrack' JOIN entities t ON t.id=ht."targetId" JOIN relationships ur ON ur."sourceId"=t.id AND ur.type='UsesRecording' JOIN entities r ON r.id=ur."targetId" WHERE hm."sourceId"=${release.id} AND hm.type='HasMedium' AND (${a.recordingId || ""}='' OR r.id=${a.recordingId || ""}) AND (${a.trackId || ""}='' OR t.id=${a.trackId || ""}) LIMIT 2`;
     if (!members.length)
       throw new Error("Track/recording is not in this release");
+    if (members.length > 1)
+      throw new Error(
+        "Recording has multiple track positions in this edition; choose an exact trackId using the album tracklist",
+      );
+    recordingId = members[0].recording;
+    trackId = members[0].id;
   }
-  const ids = [release.id, releaseGroupId, a.recordingId, a.trackId].filter(
+  const ids = [release.id, releaseGroupId, recordingId, trackId].filter(
     Boolean,
   );
   const rows = await db.entity.findMany({
@@ -460,6 +475,8 @@ async function credits(a, ctx) {
     data: {
       ...resolveCredits({
         ...a,
+        recordingId,
+        trackId,
         releaseGroupId,
         assertions: [
           ...rows.slice(0, 200).map((r) => ({ id: r.id, ...r.extra })),
@@ -467,6 +484,7 @@ async function credits(a, ctx) {
         ],
       }),
       truncated: rows.length > 200 || provider.truncated,
+      context: { releaseId: release.id, releaseGroupId, recordingId, trackId },
       coverage:
         "Reviewed assertions and imported MusicBrainz credits. Provider release credits remain album-credit; no automatic all-tracks inference.",
     },
@@ -581,7 +599,8 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
                   (r) =>
                     r.extra.subjectId === id &&
                     r.extra.mode === "add" &&
-                    r.extra.scope === "direct",
+                    r.extra.scope === "direct" &&
+                    !r.extra.releaseId,
                 )
                 .map((r) => ({ id: r.id, ...r.extra })),
               ...provider.factors.filter((a) => a.subjectId === id),
@@ -589,8 +608,9 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
           })),
         ),
         truncated: rows.length > 200 || provider.truncated,
+        editionRestrictedClaims: rows.filter((r) => r.extra.releaseId).length,
         coverage:
-          "Direct reviewed and imported provider recording credits. Use credits with an exact edition to inspect inherited album defaults. Provider instrument attributes are descriptors, not equipment-model identities.",
+          "Direct reviewed and imported provider recording credits without edition restrictions. Edition-restricted reviewed claims are excluded; use credits with an exact edition to inspect those and inherited album defaults. Provider instrument attributes are descriptors, not equipment-model identities.",
       },
     };
   }
@@ -678,32 +698,42 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
       throw new Error(
         "The exact excerpt must be supplied by the user or retrieved from stored evidence first. Search snippets and model memory cannot establish credits.",
       );
+    let editionContext;
     if (a.releaseId)
-      await credits(
-        {
-          releaseId: a.releaseId,
-          recordingId: a.subjectType === "Recording" ? a.subjectId : undefined,
-          trackId: a.subjectType === "Track" ? a.subjectId : undefined,
-        },
-        ctx,
-      );
+      editionContext = (
+        await credits(
+          {
+            releaseId: a.releaseId,
+            recordingId:
+              a.subjectType === "Recording" ? a.subjectId : undefined,
+            trackId: a.subjectType === "Track" ? a.subjectId : undefined,
+          },
+          ctx,
+        )
+      ).data.context;
+    let prior;
     if (a.overridesAssertionId) {
-      const prior = await db.entity.findFirst({
+      prior = await db.entity.findFirst({
         where: {
           id: a.overridesAssertionId,
           primaryLabel: "EvidenceAssertion",
         },
-        select: { extra: true },
+        select: { id: true, extra: true },
       });
       if (
         !prior ||
-        prior.extra.subjectId !== a.releaseId ||
-        prior.extra.role !== a.role
+        ![a.releaseId, editionContext?.releaseGroupId]
+          .filter(Boolean)
+          .includes(prior.extra.subjectId) ||
+        prior.extra.role !== a.role ||
+        prior.extra.scope !== "all-tracks" ||
+        prior.extra.mode !== "add"
       )
         throw new Error(
-          "Exception must reference a compatible assertion on this release",
+          "Exception must reference an applicable all-tracks default on this release or its verified release group",
         );
     }
+    const edition = a.releaseId ? await node(db, a.releaseId) : null;
     return {
       data: { needsInput: true },
       decision: {
@@ -713,7 +743,19 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
         action: { ...a, certainty: "user-stated" },
         display: {
           subject: subject.name,
+          subjectIdentity: `${subject.kind}: ${subject.id}`,
           factor: factor.name,
+          factorIdentity: `${factor.kind}: ${factor.id}`,
+          ...(edition
+            ? {
+                edition: `${edition.name} — ${edition.id}${edition.properties?.date ? " — " + edition.properties.date : ""}${edition.properties?.country ? " — " + edition.properties.country : ""}`,
+              }
+            : {}),
+          ...(prior
+            ? {
+                overrides: `${prior.id}: ${prior.extra.role} / ${prior.extra.factorId}; ${prior.extra.scope} on ${prior.extra.subjectType} ${prior.extra.subjectId}; ${prior.extra.sourceUrl}; ${prior.extra.excerpt}`,
+              }
+            : {}),
           ...(a.newFactor ? { creates: `New ${factor.kind} identity` } : {}),
           sourceUrl: a.sourceUrl,
           excerpt: a.excerpt,
@@ -744,7 +786,10 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
         question: `Save your ${a.value} for ${recording.name}?`,
         choices: [],
         action: a,
-        display: { note: a.note },
+        display: {
+          recording: `${recording.name} — Recording ${recording.id}`,
+          note: a.note,
+        },
       },
     };
   }

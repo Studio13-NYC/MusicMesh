@@ -19,41 +19,41 @@ Preserve imported identities, original CSV, STAY and unrelated work. Never use A
 
 ## Task 1: Domain enrichment and source semantics
 
-- [ ] Add typed assertion/preference fields and relationships in src/domain; retain old provider class semantics.
-- [ ] Create src/enrichment.js: pure scoped resolution/validation and shared-factor comparison. No copying across album tracks; explicit all-tracks defaults and named overrides.
-- [ ] Create src/researchSources.js: capability catalog and bounded source search with configured Brave key; distinguish available/manual/unconfigured Roon/Qobuz. No arbitrary URL fetch.
-- [ ] Tests first: all-tracks vs album-credit, track add/exclude/replace, cross-edition rejection, conflicts, explicit preference vs plays, source capability truth. Run node --test tests/enrichment.test.js.
-- [ ] Expected: tests pass with deterministic source-backed scope resolution; regenerate domain documentation.
+- [x] Add typed assertion/preference fields and relationships in src/domain; retain old provider class semantics.
+- [x] Create src/enrichment.js: pure scoped resolution/validation and shared-factor comparison. No copying across album tracks; explicit all-tracks defaults and named overrides.
+- [x] Create src/researchSources.js: capability catalog and bounded source search with configured Brave key; distinguish available/manual/unconfigured Roon/Qobuz. No arbitrary URL fetch.
+- [x] Tests first: all-tracks vs album-credit, track add/exclude/replace, cross-edition rejection, conflicts, explicit preference vs plays, source capability truth. Run node --test tests/enrichment.test.js.
+- [x] Expected: tests pass with deterministic source-backed scope resolution; regenerate domain documentation.
 
 ## Task 2: Compact research tools
 
-- [ ] Create src/researchTools.js using existing Prisma/graph/evidence access. Exports toolDefinitions, executeResearchTool(name,args,context), and graph accumulation helpers.
-- [ ] Tools accept exact stored IDs, bounded integer limits and explicit scope. Return {data,graph?,decision?}; graph uses existing node/edge workbench shape. Tool cache keys canonical name+arguments.
-- [ ] Include listening aggregate, release tracklist, acoustic neighbors, source catalog/search, domain definition, scoped evidence reads and enrichment/explicit preference preparation. SQL filters private catalog types, never supplies raw listen rows.
-- [ ] Tests first for bounds, unknown/invalid tools, source/identity protections and result projection. Live local restored DB checks for selected node, adjacency, listening aggregate and album scope.
-- [ ] Expected: queries return bounded useful data with exact IDs, coverage and no full records.
+- [x] Create src/researchTools.js using existing Prisma/graph/evidence access. Exports toolDefinitions, executeResearchTool(name,args,context), and graph accumulation helpers.
+- [x] Tools accept exact stored IDs, bounded integer limits and explicit scope. Return {data,graph?,decision?}; graph uses existing node/edge workbench shape. Tool cache keys canonical name+arguments.
+- [x] Include listening aggregate, release tracklist, acoustic neighbors, source catalog/search, domain definition, scoped evidence reads and enrichment/explicit preference preparation. SQL filters private catalog types, never supplies raw listen rows.
+- [x] Tests first for bounds, unknown/invalid tools, source/identity protections and result projection. Live local restored DB checks for selected node, adjacency, listening aggregate and album scope.
+- [x] Expected: queries return bounded useful data with exact IDs, coverage and no full records.
 
 ## Task 3: Durable single researcher runtime
 
-- [ ] Add Prisma ResearchRun operational table/migration; bounded JSON state and optimistic lease/version, no workflow nodes in music graph.
-- [ ] Create src/researchRunner.js and src/researchStore.js. One model call per advance; at most 8 model steps, 16 tools, bounded context and output. Persist model tool call/output continuation; stop/recover visibly on error/limit. Each step returns {requestId,status,message,graph,decision,usage,version}.
-- [ ] Statuses: running, needs_input, deferred, completed, denied, failed. Decisions have immutable id/version/action/choices; only allowlisted actions, atomic/idempotent application. Nick/Guest attribution.
-- [ ] Tests first for no-tool one-call answer, cached repeated reads, limits, completed idempotency, deny/defer/resume and duplicate/stale approval. Local DB transaction checks.
-- [ ] Expected: no preview/planner/ground/review calls; high effort model verified through telemetry.
+- [x] Add Prisma ResearchRun operational table/migration; bounded JSON state and optimistic lease/version, no workflow nodes in music graph.
+- [x] Create src/researchRunner.js and src/researchStore.js. One model call per advance; at most 8 model steps, 16 tools, bounded context and output. Persist model tool call/output continuation; stop/recover visibly on error/limit. Each step returns {requestId,status,message,graph,decision,usage,version}.
+- [x] Statuses: running, needs_input, deferred, completed, denied, failed. Decisions have immutable id/version/action/choices; only allowlisted actions, atomic/idempotent application. Nick/Guest attribution.
+- [x] Tests first for no-tool one-call answer, cached repeated reads, limits, completed idempotency, deny/defer/resume and duplicate/stale approval. Local DB transaction checks.
+- [x] Expected: no preview/planner/ground/review calls; high effort model verified through telemetry.
 
 ## Task 4: API and workbench integration
 
-- [ ] Replace chat handlers with shared researcher functions; retain tape/runtime read endpoints with bounded tails. POST /api/chat starts or advances requestId; POST /api/chat/decision applies decision; GET /api/chat/run?id= retrieves resumable state. Existing endpoint compatibility fields remain where useful.
-- [ ] Update syncForSwaApi explicit bundle list. Local and Azure handlers use identical shared runtime.
-- [ ] Client advances running requests, displays real graph results between steps, bounded history, no detached promises or permanent idle polls. Add Approve/Deny/Defer modal and deferred resume affordance, Nick/Guest attribution. Replace expansion prompt with task/evidence-directed exploration.
-- [ ] Tests/build first where possible, then actual local SPA/API for simple question, graph expansion and decision interactions. Expected: no misleading preview-saving wait.
+- [x] Replace chat handlers with shared researcher functions; retain tape/runtime read endpoints with bounded tails. POST /api/chat starts or advances requestId; POST /api/chat/decision applies decision; GET /api/chat/run?id= retrieves resumable state. Existing endpoint compatibility fields remain where useful.
+- [x] Update syncForSwaApi explicit bundle list. Local and Azure handlers use identical shared runtime.
+- [x] Client advances running requests, displays real graph results between steps, bounded history, no detached promises or permanent idle polls. Add Approve/Deny/Defer modal and deferred resume affordance, Nick/Guest attribution. Replace expansion prompt with task/evidence-directed exploration.
+- [x] Tests/build first where possible, then actual local SPA/API for simple question, graph expansion and decision interactions. Expected: no misleading preview-saving wait.
 
 ## Task 5: Model and obsolete implementation cleanup
 
-- [ ] Default configured model to gpt-6-luna/high for researcher; update root env without exposing secrets and Azure settings at deployment.
-- [ ] Remove Neo4j-only exporter/importer, driver and npm commands, Aura settings and obsolete current guidance. Preserve protected archive/history and stable IDs. Remove unused sequential live chat path modules after dependency review.
-- [ ] Update current state, operator contract/system prompt, ONE_CHAT_PIPELINE and running Brainz progress; remove contradictory instructions. Run npm test, npm run build, npm run build:api and targeted DB checks.
-- [ ] Expected: no active Neo4j dependencies/code; package lock consistent.
+- [x] Default configured model to gpt-6-luna/high for researcher; update root env without exposing secrets and Azure settings at deployment.
+- [x] Remove Neo4j-only exporter/importer, driver and npm commands, Aura settings and obsolete current guidance. Preserve protected archive/history and stable IDs. Remove unused sequential live chat path modules after dependency review.
+- [x] Update current state, operator contract/system prompt, ONE_CHAT_PIPELINE and running Brainz progress; remove contradictory instructions. Run npm test, npm run build, npm run build:api and targeted DB checks.
+- [x] Expected: no active Neo4j dependencies/code; package lock consistent.
 
 ## Task 6: Review, deployment and proof
 
@@ -68,3 +68,5 @@ Preserve imported identities, original CSV, STAY and unrelated work. Never use A
 
 
 2026-10-18 implementation ledger: Tasks 1–3 implemented and unit/local DB tests passing. Task 4 local API/workbench exercised: 21,415-play response, Defer -> Resume -> Approve. Task 5 executable source driver/importer and old model pipeline removed; current guidance updated. Final review/deployment still pending. Ruling: add typed new-factor creation to enrichment because instrument models will often be absent from the imported catalog; modal discloses the new identity and source. Cost if wrong: a duplicate user-reviewed local factor may need reconciliation; no imported object is overwritten. Ruling: preserve the historical user transcript and protected archives while removing executable dependencies and current guidance; rewriting user history would lose useful product evidence.
+
+2026-10-18 review fix ledger: fresh reviewer reported six Important, no Critical. All six accepted and fixed in one pass: resolved track/recording identity; excluded edition-bound claims from context-free aggregates; ReleaseGroup defaults validated through the same preparation/execution contract; exact IDs/edition/prior claim disclosed; uncertain lease recovery requires explicit retry; stable prompt/decision tape events restored. Added cancellation and removed obsolete review UI. RED: three scope tests plus two SQL recovery/tape tests failed for the expected reasons. GREEN: 90 unit passes, 16 SQL passes; build and API bundle pass. Tape is observational, not a transactional outbox; storage outages are logged and remain a transcript-reliability limitation. Shared additive migration and Azure model configuration applied; deployment verification follows.

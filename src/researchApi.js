@@ -11,7 +11,9 @@ async function researchApi(action, body = {}) {
         ? await store.readRun(body.id)
         : action === "decision"
           ? await store.decide(body)
-          : await store.startOrAdvance(body);
+          : body.cancel === true
+            ? await store.cancel(body)
+            : await store.startOrAdvance(body);
     return { status: 200, body: result };
   } catch (error) {
     return {

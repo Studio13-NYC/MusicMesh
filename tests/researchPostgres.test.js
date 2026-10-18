@@ -5,7 +5,12 @@ const enabled = process.env.MUSICMESH_TEST_DATABASE === "isolated";
 process.env.MUSICMESH_BLOB_CONNECTION_STRING = "";
 const { getDatabase, closeDatabase } = require("../src/postgres");
 const { executeResearchTool } = require("../src/researchTools");
-const { startOrAdvance, decide, readRun } = require("../src/researchStore");
+const {
+  startOrAdvance,
+  decide,
+  readRun,
+  cancel,
+} = require("../src/researchStore");
 test.after(closeDatabase);
 test(
   "research tools use compact stored public facts and private aggregates",
@@ -151,6 +156,104 @@ test(
       );
       assert.equal(retry.version, approved.version);
       assert.equal((await readRun(id, db)).status, "running");
+      const tape = (
+        await require("../src/activityStore").readTapeEntries(200)
+      ).filter((e) => e.payload.requestId === id);
+      assert.equal(tape.filter((e) => e.type === "user_message").length, 1);
+      assert.deepEqual(
+        tape
+          .filter((e) => e.type === "research_decision")
+          .map((e) => e.payload.choice),
+        ["defer", "approve"],
+      );
+      const cancelled = await cancel(
+        { requestId: id, version: approved.version },
+        { db },
+      );
+      assert.equal(cancelled.status, "cancelled");
+      assert.equal(
+        (await cancel({ requestId: id, version: approved.version }, { db }))
+          .version,
+        cancelled.version,
+      );
+      await startOrAdvance(
+        { requestId: id, version: cancelled.version },
+        { db, advance },
+      );
+      assert.equal(calls, 1);
+    } finally {
+      await db.researchRun.deleteMany({ where: { id } });
+    }
+  },
+);
+test(
+  "uncertain model result is never automatically replayed after lease expiry",
+  { skip: !enabled },
+  async () => {
+    const db = getDatabase(),
+      id = `req-${randomUUID()}`;
+    let calls = 0;
+    const advance = async (s) => {
+      calls++;
+      return {
+        ...s,
+        status: "completed",
+        message: "Answer delivered by model",
+      };
+    };
+    const failingDb = {
+      ...db,
+      researchRun: {
+        findUnique: db.researchRun.findUnique.bind(db.researchRun),
+        create: db.researchRun.create.bind(db.researchRun),
+        updateMany: async (args) => {
+          if (args.data.state?.status === "completed")
+            throw Error("Simulated save failure after model completed");
+          return db.researchRun.updateMany(args);
+        },
+      },
+      $executeRaw: db.$executeRaw.bind(db),
+    };
+    try {
+      await assert.rejects(
+        startOrAdvance(
+          { clientRequestId: id, prompt: "answer", version: 0 },
+          { db: failingDb, advance },
+        ),
+        /Simulated save failure/,
+      );
+      await db.researchRun.update({
+        where: { id },
+        data: { leaseUntil: new Date(0) },
+      });
+      const recovered = await startOrAdvance(
+        { requestId: id, version: 0 },
+        { db, advance },
+      );
+      assert.equal(calls, 1);
+      assert.equal(recovered.status, "needs_input");
+      assert.equal(recovered.decision.kind, "retry");
+      assert.match(recovered.decision.question, /may have been billed/);
+      const denied = await decide(
+        {
+          requestId: id,
+          version: recovered.version,
+          decisionId: recovered.decision.id,
+          choice: "deny",
+        },
+        { db },
+      );
+      assert.equal(denied.status, "denied");
+      assert.equal(calls, 1);
+      const tape = (
+        await require("../src/activityStore").readTapeEntries(200)
+      ).filter((e) => e.payload.requestId === id);
+      assert.equal(
+        tape.filter(
+          (e) => e.type === "research_decision" && e.payload.choice === "deny",
+        ).length,
+        1,
+      );
     } finally {
       await db.researchRun.deleteMany({ where: { id } });
     }

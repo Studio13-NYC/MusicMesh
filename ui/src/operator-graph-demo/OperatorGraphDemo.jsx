@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Separator from "@radix-ui/react-separator";
@@ -116,46 +116,6 @@ function findLatestThreadGraphFocusKey(entries, threadId, requestIds = new Set()
   return "";
 }
 
-function findLatestThreadAssessment(entries, threadId) {
-  if (!Array.isArray(entries)) {
-    return null;
-  }
-
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const entry = entries[index];
-
-    if (entry?.threadId === threadId && entry?.type === "run_quality_assessment") {
-      return entry;
-    }
-  }
-
-  return null;
-}
-
-function findAssistantEntryForRequest(entries, requestId) {
-  return newestThreadEntries(entries, OPERATOR_THREAD_ID).find(
-    (entry) =>
-      entry?.type === "assistant_message" &&
-      entry?.payload?.requestId === requestId &&
-      typeof entry?.payload?.text === "string" &&
-      entry.payload.text.trim()
-  );
-}
-
-function assistantMessageFromTape(entry) {
-  return {
-    id: entry?.payload?.responseId || `assistant-${entry?.payload?.requestId || Date.now()}`,
-    role: "assistant",
-    content: entry?.payload?.text || ""
-  };
-}
-
-function newestMatchingEntry(entries, requestId, predicate) {
-  return (Array.isArray(entries) ? entries : [])
-    .filter((entry) => entry?.payload?.requestId === requestId && predicate(entry))
-    .sort((left, right) => timestampValue(right) - timestampValue(left))[0] || null;
-}
-
 export function OperatorGraphDemo() {
   const [messages, setMessages] = useState(seedMessages);
   const [composerValue, setComposerValue] = useState("");
@@ -167,7 +127,6 @@ export function OperatorGraphDemo() {
   const [runtimeLogPath, setRuntimeLogPath] = useState("");
   const [workspaceMode, setWorkspaceMode] = useState("graph");
   const [graphFocusAnchorId, setGraphFocusAnchorId] = useState("");
-  const [activeGraphRequestIds, setActiveGraphRequestIds] = useState([]);
   const viewportRef = useRef(null);
   const composerRef = useRef(null);
   const catalogContextRef=useRef(null);
@@ -187,7 +146,7 @@ export function OperatorGraphDemo() {
     if(run.graph?.nodes?.length)setResearchGraph(run.graph);
     setSavedRuns(current=>{const next=current.filter(r=>r.id!==run.requestId);if(['running','needs_input','deferred'].includes(run.status))next.push({id:run.requestId,label:run.decision?.question||run.progress||'Resume research'});const bounded=next.slice(-12);localStorage.setItem('musicmesh-pending-research',JSON.stringify(bounded));return bounded;});
     if(run.status==='needs_input'){setDecisionSelection('');setDecisionOpen(true);}
-    if(['completed','denied','failed'].includes(run.status)&&run.message)setMessages(current=>current.some(m=>m.id===`assistant-${run.requestId}`)?current.map(m=>m.id===`assistant-${run.requestId}`?{...m,content:run.message}:m):[...current,{id:`assistant-${run.requestId}`,role:'assistant',content:run.message}]);
+    if(['completed','denied','failed','cancelled'].includes(run.status)&&run.message)setMessages(current=>current.some(m=>m.id===`assistant-${run.requestId}`)?current.map(m=>m.id===`assistant-${run.requestId}`?{...m,content:run.message}:m):[...current,{id:`assistant-${run.requestId}`,role:'assistant',content:run.message}]);
   }
   async function postResearch(path,body){const response=await fetch(`${API_BASE_URL}/api/chat${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const payload=await response.json();if(!response.ok)throw Error(payload.error||`Request failed (${response.status})`);return payload;}
   async function continueResearch(initial){
@@ -206,6 +165,11 @@ export function OperatorGraphDemo() {
   async function chooseDecision(choice){
     if(researchBusy.current||!researchRun?.decision)return;researchBusy.current=true;setIsSending(true);setErrorMessage('');
     try{const run=await postResearch('/decision',{requestId:researchRun.requestId,version:researchRun.version,decisionId:researchRun.decision.id,choice,selection:decisionSelection});setDecisionOpen(false);await continueResearch(run);}
+    catch(error){setErrorMessage(error.message);}finally{researchBusy.current=false;setIsSending(false);}
+  }
+  async function cancelResearch(id){
+    if(researchBusy.current)return;researchBusy.current=true;setIsSending(true);setErrorMessage('');
+    try{const response=await fetch(`${API_BASE_URL}/api/chat/run?id=${encodeURIComponent(id)}`);const run=await response.json();if(!response.ok)throw Error(run.error);rememberRun(await postResearch('',{requestId:id,version:run.version,cancel:true}));await loadTape();}
     catch(error){setErrorMessage(error.message);}finally{researchBusy.current=false;setIsSending(false);}
   }
 
@@ -323,7 +287,7 @@ export function OperatorGraphDemo() {
 
         <div className="research-controls">
           <label>Contributing as <select aria-label="Contribution attribution" value={actor} onChange={event=>setActor(event.target.value)} disabled={isSending}><option>Nick</option><option>Guest</option></select></label>
-          {savedRuns.map(run=><button key={run.id} disabled={isSending} onClick={()=>resumeResearch(run.id)} title={run.label}>Resume research: {run.label.slice(0,65)}</button>)}
+          {savedRuns.map(run=><span key={run.id}><button disabled={isSending} onClick={()=>resumeResearch(run.id)} title={run.label}>Resume research: {run.label.slice(0,65)}</button><button disabled={isSending} onClick={()=>cancelResearch(run.id)} aria-label={`Cancel research: ${run.label}`}>Cancel</button></span>)}
         </div>
         <Dialog.Root open={decisionOpen} onOpenChange={open=>{if(!open&&!isSending)chooseDecision('defer');}}>
           <Dialog.Portal><Dialog.Overlay className="research-decision-overlay"/><Dialog.Content className="research-decision-modal" onPointerDownOutside={event=>event.preventDefault()}>
@@ -512,7 +476,6 @@ function GraphRunStatusCard({ status }) {
 }
 
 function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPath }) {
-  const latestAssessmentEntry = findLatestThreadAssessment(tapeEntries, OPERATOR_THREAD_ID);
 
   return (
     <ScrollArea.Root className="operator-workflow-scroll-root">
@@ -528,7 +491,6 @@ function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPat
             <code className="workspace-path">{runtimeLogPath || "Not written yet."}</code>
           </section>
 
-          <RunQualityAssessmentCard entry={latestAssessmentEntry} />
 
           <section className="workspace-block operator-workflow-card">
             <p className="workspace-block-title">Recent events</p>
@@ -582,97 +544,3 @@ function WorkflowWorkbench({ tapeEntries, tapePath, runtimeEvents, runtimeLogPat
   );
 }
 
-function RunQualityAssessmentCard({ entry }) {
-  const assessment = entry?.payload?.assessment || null;
-
-  return (
-    <section className="workspace-block operator-workflow-card run-quality-card">
-      <div className="run-quality-header">
-        <div>
-          <p className="workspace-block-title">Run quality</p>
-          <p className="run-quality-meta">
-            {entry?.createdAt ? new Date(entry.createdAt).toLocaleTimeString() : "Pending"}
-          </p>
-        </div>
-        <span className="run-quality-score">
-          {assessment?.overallScore ? `${assessment.overallScore}/5` : "-"}
-        </span>
-      </div>
-
-      {assessment ? (
-        <div className="run-quality-body">
-          <div className="run-quality-tags">
-            <span>{assessment.outcome || "unknown"}</span>
-            <span>{assessment.needsOperatorAttention ? "attention" : "ok"}</span>
-          </div>
-          <p className="run-quality-summary">{assessment.summary || "No summary returned."}</p>
-          <StageTimingList timings={assessment.stageTimings} />
-          <AssessmentList title="Top findings" items={assessment.topFindings} />
-          <AssessmentList title="Next actions" items={assessment.nextActions} />
-        </div>
-      ) : (
-        <span>No run assessment yet.</span>
-      )}
-    </section>
-  );
-}
-
-function StageTimingList({ timings }) {
-  const rows = Array.isArray(timings) ? timings.slice(0, 8) : [];
-
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="run-quality-section">
-      <p className="run-quality-section-title">Stage timings</p>
-      <div className="run-quality-stage-list">
-        {rows.map((timing) => (
-          <div className="run-quality-stage-row" key={timing.stage || timing.label}>
-            <div>
-              <strong>{timing.label || timing.stage}</strong>
-              <span>{timing.explanation || timing.status}</span>
-            </div>
-            <code>{formatDuration(timing.elapsedMs)}</code>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AssessmentList({ title, items }) {
-  const rows = Array.isArray(items) ? items.slice(0, 3) : [];
-
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="run-quality-section">
-      <p className="run-quality-section-title">{title}</p>
-      <ul className="run-quality-list">
-        {rows.map((item, index) => (
-          <li key={`${title}-${index}`}>
-            <span>{item.description || item.evidence || String(item)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function formatDuration(value) {
-  const duration = Number(value);
-
-  if (!Number.isFinite(duration)) {
-    return "-";
-  }
-
-  if (duration >= 1000) {
-    return `${(duration / 1000).toFixed(1)}s`;
-  }
-
-  return `${Math.round(duration)}ms`;
-}

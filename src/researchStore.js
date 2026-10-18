@@ -30,6 +30,13 @@ function requestId(value) {
     throw new Error("Invalid research request ID");
   return value;
 }
+async function tape(entry) {
+  try {
+    await require("./activityStore").appendTapeEntry(entry);
+  } catch (error) {
+    console.error("Research transcript write failed:", error.message);
+  }
+}
 async function readRun(id, db = getDatabase()) {
   const row = await db.researchRun.findUnique({ where: { id: requestId(id) } });
   if (!row || row.expiresAt < new Date())
@@ -49,6 +56,12 @@ async function startOrAdvance(
       row = await db.researchRun.create({
         data: { id, state, expiresAt: new Date(Date.now() + 86400000) },
       });
+      await tape({
+        id: `user-${id}`,
+        type: "user_message",
+        threadId: state.threadId,
+        payload: { requestId: id, text: state.prompt, actor: state.actor },
+      });
     } catch (error) {
       if (error.code !== "P2002") throw error;
       row = await db.researchRun.findUnique({ where: { id } });
@@ -58,12 +71,47 @@ async function startOrAdvance(
   const expected = Number.isInteger(body.version) ? body.version : 0;
   if (row.version !== expected || row.state.status !== "running")
     return publicRun(row);
+  // A lease is persisted before dispatch. Expiry cannot establish whether the
+  // provider completed/billed an interrupted call. Never replay it implicitly.
+  if (row.lease && row.leaseUntil && row.leaseUntil <= new Date()) {
+    const state = {
+      ...row.state,
+      status: "needs_input",
+      progress: "Interrupted step needs a decision",
+      message:
+        "The last research step was interrupted and its result could not be saved.",
+      decision: {
+        id: crypto.randomUUID(),
+        kind: "retry",
+        choices: [],
+        action: {},
+        question:
+          "The interrupted model call may have been billed, but its result was not saved. Approve to retry this step, Deny to stop, or Defer to decide later.",
+        display: {
+          attempt: row.lease,
+          request: id,
+          step: (row.state.steps || 0) + 1,
+        },
+      },
+    };
+    await db.researchRun.updateMany({
+      where: {
+        id,
+        version: expected,
+        lease: row.lease,
+        leaseUntil: { lte: new Date() },
+      },
+      data: { state, version: { increment: 1 }, lease: null, leaseUntil: null },
+    });
+    return readRun(id, db);
+  }
   const lease = crypto.randomUUID();
   const claimed = await db.researchRun.updateMany({
     where: {
       id,
       version: expected,
-      OR: [{ leaseUntil: null }, { leaseUntil: { lt: new Date() } }],
+      lease: null,
+      leaseUntil: null,
     },
     data: { lease, leaseUntil: new Date(Date.now() + 120000) },
   });
@@ -130,7 +178,7 @@ async function endpoint(tx, id) {
   return entityFromGraph(entityRecord(row));
 }
 async function persistDecision(tx, state, d) {
-  if (d.kind === "clarification") return { confirmed: true };
+  if (["clarification", "retry"].includes(d.kind)) return { confirmed: true };
   const a = d.action,
     actor = state.actor,
     source = "user-reviewed",
@@ -179,17 +227,8 @@ async function persistDecision(tx, state, d) {
       : await endpoint(tx, a.factorId);
   if (subject.type !== a.subjectType)
     throw new Error("Decision subject changed");
-  if (a.overridesAssertionId) {
-    const previous = await tx.entity.findFirst({
-      where: { id: a.overridesAssertionId, primaryLabel: "EvidenceAssertion" },
-    });
-    if (
-      !previous ||
-      previous.extra.subjectId !== a.releaseId ||
-      previous.extra.role !== a.role
-    )
-      throw new Error("Overridden assertion changed");
-  }
+  // prepare_enrichment above revalidates membership and the exact applicable
+  // Release/ReleaseGroup default inside this transaction, using one contract.
   const doc = new domain.SourceDocument({
     id: `${id}:source`,
     name: a.sourceUrl,
@@ -239,7 +278,8 @@ async function persistDecision(tx, state, d) {
 }
 async function decide(body, { db = getDatabase() } = {}) {
   const id = requestId(body.requestId);
-  return db.$transaction(
+  let accepted;
+  const result = await db.$transaction(
     async (tx) => {
       await tx.$queryRaw`SELECT id FROM research_runs WHERE id=${id} FOR UPDATE`;
       const row = await tx.researchRun.findUnique({ where: { id } });
@@ -268,6 +308,13 @@ async function decide(body, { db = getDatabase() } = {}) {
         choice: body.choice,
         selection: body.selection || null,
       };
+      accepted = {
+        threadId: state.threadId,
+        question: row.state.decision.question,
+        kind: row.state.decision.kind,
+        action: row.state.decision.action,
+        message: state.message,
+      };
       return publicRun(
         await tx.researchRun.update({
           where: { id },
@@ -277,6 +324,76 @@ async function decide(body, { db = getDatabase() } = {}) {
     },
     { timeout: 15000 },
   );
+  if (accepted) {
+    await tape({
+      id: `decision-${id}-${result.version}`,
+      type: "research_decision",
+      threadId: accepted.threadId,
+      payload: {
+        requestId: id,
+        decisionId: body.decisionId,
+        choice: body.choice,
+        selection: body.selection || null,
+        question: accepted.question,
+        kind: accepted.kind,
+        action: accepted.action,
+      },
+    });
+    if (body.choice === "deny")
+      await tape({
+        id: `assistant-${id}`,
+        type: "assistant_message",
+        threadId: accepted.threadId,
+        payload: {
+          requestId: id,
+          text: accepted.message,
+          graphMode: "researcher",
+        },
+      });
+  }
+  return result;
+}
+async function cancel(body, { db = getDatabase() } = {}) {
+  const id = requestId(body.requestId);
+  let cancelled;
+  const result = await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM research_runs WHERE id=${id} FOR UPDATE`;
+    const row = await tx.researchRun.findUnique({ where: { id } });
+    if (!row || row.expiresAt < new Date())
+      throw Error("Research run not found or expired");
+    if (["completed", "denied", "cancelled"].includes(row.state.status))
+      return publicRun(row);
+    if (row.version !== body.version)
+      throw Error("Research run changed; refresh before cancelling");
+    const state = {
+      ...row.state,
+      status: "cancelled",
+      decision: null,
+      progress: "Cancelled",
+      message:
+        "Research cancelled. Retrieved evidence is retained; no further steps will run. A call already in flight may still be billed.",
+    };
+    cancelled = state;
+    return publicRun(
+      await tx.researchRun.update({
+        where: { id },
+        data: {
+          state,
+          version: { increment: 1 },
+          lease: null,
+          leaseUntil: null,
+        },
+      }),
+    );
+  });
+  if (cancelled)
+    await tape({
+      id: `cancel-${id}`,
+      type: "assistant_message",
+      threadId: cancelled.threadId,
+      payload: { requestId: id, text: cancelled.message, cancelled: true },
+    });
+  return result;
 }
 module.exports = {
   publicRun,
@@ -284,4 +401,5 @@ module.exports = {
   startOrAdvance,
   decide,
   persistDecision,
+  cancel,
 };
