@@ -1,6 +1,6 @@
 // Semantic source of truth. Definitions describe domain meaning; provider payloads
 // remain data. This module has no database, network, or environment dependency.
-const VERSION = "1.3.0";
+const VERSION = "1.3.1";
 function deepFreeze(value) {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -76,9 +76,9 @@ for (const [key, meaning] of Object.entries(additions)) entities[key] = entity(k
 // Research assertions preserve source scope; inheritance is evaluated, never copied.
 entities.SourceDocument.fields = { ...commonFields, url: field("string", "Source HTTPS URL.", true), retrievedAt: field("string", "ISO retrieval or user-review time.", true), attribution: field("string", "Nick or Guest; attribution is not authentication.", true) };
 entities.EvidenceAssertion.fields = { ...commonFields,
- subjectId: field("string", "Exact subject identity.", true), subjectType: field("string", "Release, ReleaseGroup, Track or Recording.", true),
- factorId: field("string", "Exact Artist, Place, Instrument, Equipment or other factor identity.", true), role: field("string", "Producer, engineer, studio, instrument, equipment, genre or technique role.", true),
- scope: field("string", "album-credit does not imply every track; all-tracks explicitly inherits in this edition; direct describes only the subject.", true),
+ subjectId: field("string", "Exact subject identity.", true), subjectType: field("string", "Artist, Release, ReleaseGroup, Track or Recording.", true),
+ factorId: field("string", "Exact Artist, Place, Instrument, Equipment or other factor identity.", true), role: field("string", "Producer, engineer, studio, instrument, equipment, genre or technique role. Artist-only influenced-by means the subject acknowledges influence from the factor Artist; never infer it from similarity.", true),
+ scope: field("string", "artist-context records a dated practice, gear use or acknowledged influence and never inherits to any recording; album-credit does not imply every track; all-tracks explicitly inherits in this edition; direct describes only the subject.", true),
  mode: field("string", "add, exclude, or replace a named assertion.", true), overridesAssertionId: field("string", "Exact assertion excluded or replaced, not a blanket role replacement."),
  releaseId: field("string", "Edition context for a recording exception."), sourceUrl: field("string", "Inspectable source URL.", true), excerpt: field("string", "Short source quote or clearly labeled research summary; never fabricated quotation.", true),
  evidenceKind: field("string", "quote or summary; a summary need not repeat source words and remains a research interpretation."),
@@ -97,7 +97,7 @@ function relationship(key, sourceTypes, targetTypes, meaning, inverse, options =
     evidenceRule: "Preserve provider assertion and context; endpoint coincidence does not establish this relationship.", fields: { ...commonFields }, ...options };
 }
 const relationships = {
-  AssertionSubject: relationship("AssertionSubject", ["EvidenceAssertion"], ["Release","ReleaseGroup","Track","Recording"], "Claim describes this exact subject in its recorded scope.", "Has sourced claim"),
+  AssertionSubject: relationship("AssertionSubject", ["EvidenceAssertion"], ["Artist","Release","ReleaseGroup","Track","Recording"], "Claim describes this exact subject in its recorded scope. Artist context never establishes a recording credit.", "Has sourced claim"),
   AssertionFactor: relationship("AssertionFactor", ["EvidenceAssertion"], ["Artist","Place","Instrument","Equipment","Guitar","Synthesizer","Console","Amplifier","EffectsPedal","Genre","Technique","Style"], "Claim attributes this factor and role; not proof outside its scope.", "Factor participates in claim"),
   SupportedBySource: relationship("SupportedBySource", ["EvidenceAssertion"], ["SourceDocument"], "Source informs this claim or a confidence revision. Read evidenceRelation (support, contradict or context) and quote/summary provenance; this link alone is not corroboration.", "Source supports claim"),
   PreferenceFor: relationship("PreferenceFor", ["PreferenceSignal"], ["Recording"], "Explicit preference refers to this recorded version.", "Recording has private preference"),

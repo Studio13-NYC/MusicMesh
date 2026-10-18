@@ -1,41 +1,20 @@
 # Graph Visualization Decision
 
-## Status
+Updated 18 October 2026. Nick selected the interactive Lowe/Edmunds and Mickey Jupp conversation graphs as the app reference, explicitly leaving technology choice open.
 
-Cytoscape is the chosen graph visualization path for MusicMesh.
+## Current decision
 
-NVL is deprecated.
+The default is **Discovery**: readable node buttons, curved SVG connections, focused neighborhoods and an inspector for sources, scope and confidence. Fullscreen viewing is available from the workbench. An immediate deterministic layout avoids waiting for a simulation or another model.
 
-## Decision
+**Network view** retains the existing Cytoscape renderer for underlying catalog inspection and node dragging. Both consume the existing saved-ID graph payload, graph history, filters and chat expansion. They do not create separate stores or persistence workflows. NVL remains retired; standalone demo pages are not part of the active build.
 
-MusicMesh should build the active graph product surface on Cytoscape.
+## Interaction and data contract
 
-This decision is based on the current side-by-side implementation work in the repo, not on abstract library comparison alone.
+- Select a node to highlight its neighborhood; choose a connection to inspect its evidence. Connection buttons provide keyboard access equivalent to clicking a line.
+- Full screen uses a dialog with Escape and focus return, retaining node/connection selection.
+- Back/Forward redisplay already-seen payloads without further research.
+- Double-click / Explore continues through chat. Seed browsing reads saved connections without an LLM call.
+- EvidenceAssertions can display as qualified subject-to-factor connections without becoming new canonical relationships. Scores, exclusions, overrides, scope and source remain attached.
+- IDs determine identity. Equal titles never merge entities; missing evidence is not invented for presentation.
 
-## Why Cytoscape
-
-- better product-level control over styling and canvas behavior
-- easier to shape into an intentional MusicMesh surface rather than a generic graph widget
-- simpler interaction debugging for selection, dragging, expansion, and drawer behavior
-- better fit for the current operator-plus-workbench direction
-
-## What Deprecation Means
-
-- the operator workbench uses Cytoscape in the Graph tab
-- standalone graph demo pages are not part of the active build
-- NVL should not be treated as an active product option
-- future graph UX work should assume Cytoscape unless the user explicitly changes direction
-
-## Current Interaction Contract
-
-- drag moves nodes only and must not change graph membership
-- `Back` and `Forward` redisplay graph payloads already seen without new graph research
-- double-clicking a node centers that node and loads its connected graph
-- `Expand` uses the same centered-node behavior as double-click
-- browse filters, legend, and inspect should show music-domain nodes and relationships only
-
-## Guardrails
-
-- do not keep both libraries as equal product directions in the UI
-- do not add brittle label-based UI hacks to make the demos look aligned
-- if a graph issue is real in the payload, fix it in the shared graph shaping path rather than papering over it in one canvas
+Read [DISCOVERY_GRAPH.md](../product/DISCOVERY_GRAPH.md) for the researcher tool, exact API shape, limits, verification and current limitations.

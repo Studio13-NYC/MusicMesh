@@ -10,6 +10,7 @@ const ROLES = [
   "studio",
   "genre",
   "technique",
+  "influenced-by",
 ];
 function validateConfidence(a) {
   if (!Number.isInteger(a.confidenceScore) || a.confidenceScore < 0 || a.confidenceScore > 100)
@@ -60,15 +61,22 @@ function validateAssertion(a) {
     if (typeof a[key] !== "string" || !a[key].trim())
       throw new Error(`Assertion ${key} is required`);
   if (
-    !["Release", "ReleaseGroup", "Track", "Recording"].includes(a.subjectType)
+    !["Artist", "Release", "ReleaseGroup", "Track", "Recording"].includes(a.subjectType)
   )
     throw new Error("Unsupported subject type");
   if (!ROLES.includes(a.role)) throw new Error("Unsupported credit role");
-  if (
+  if (a.subjectType === "Artist") {
+    if (a.scope !== "artist-context" || a.mode !== "add" || a.releaseId || a.overridesAssertionId)
+      throw new Error("Artist context cannot inherit to recordings or override album credits");
+    if (!["instrument", "equipment", "technique", "genre", "influenced-by"].includes(a.role))
+      throw new Error("Artist context requires a practice, equipment, genre or influence role");
+  } else if (
     !["album-credit", "all-tracks", "direct"].includes(a.scope) ||
     (["Recording", "Track"].includes(a.subjectType) && a.scope !== "direct")
   )
     throw new Error("Invalid assertion scope");
+  if (a.role === "influenced-by" && a.subjectType !== "Artist")
+    throw new Error("Influence describes artist context, not a recording credit");
   if (!["add", "exclude", "replace"].includes(a.mode))
     throw new Error("Invalid assertion mode");
   if (a.mode !== "add" && !a.overridesAssertionId)

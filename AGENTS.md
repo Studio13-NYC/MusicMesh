@@ -4,6 +4,8 @@ This file is for new agents entering the MusicMesh clean-sheet repo.
 
 Read this first.
 
+Discovery update (18 October): read `docs/product/DISCOVERY_GRAPH.md` for the default interactive graph and agent population contract. Discovery uses immediate SVG connections and node buttons, with fullscreen source/confidence inspection. Cytoscape remains the Network view. `graph` action `present` takes a seed `id` or ordered public `nodeIds`; direct Browse/Load uses the same bounded read without an LLM call.
+
 Current researcher update (18 October): read `docs/product/CURRENT_STATE_AND_HANDOFF.md` and `docs/superpowers/specs/2026-10-18-researcher-design.md`. Local/Azure share `researchApi`, `researchStore`, `researchRunner` and `researchTools`. The app uses GPT-6 Luna/high in a bounded, durable tool loop. Existing graph IDs render directly. Approve/Deny/Defer is the explicit user-decision modal; no automatic preview/plan/ground/review chain remains. Nick/Guest is attribution, not authentication. Detailed semantics are fetched on demand rather than sending the whole ontology each call.
 
 Environment clarification (2026-10-17): the user confirmed that MusicMesh has no production environment. The deployed site and Neon main branch selected by root `.env` are the shared development instance. Load verified available data there while enrichment continues; do not wait for a production release gate. `.env.migration` remains available for isolated tests. Historical docs calling main "production" describe deployment topology, not its actual product stage. Never use Alexander.
@@ -132,7 +134,7 @@ Current stack:
 - Vite
 - Radix UI
 - `react-resizable-panels`
-- Cytoscape for graph visualization
+- SVG/button discovery view; Cytoscape for network inspection
 
 Current workbench shape:
 
@@ -140,7 +142,7 @@ Current workbench shape:
 - neighboring graph/workflow panel
 - resizable layout
 - simple local API path for chat requests
-- graph seed search and Cytoscape graph inspection
+- graph seed search, discovery connection inspector and optional Cytoscape network inspection
 - chat-derived domain graph persistence
 - saved catalog graph results between research steps
 - visible research progress, completed answer, or a persisted user decision

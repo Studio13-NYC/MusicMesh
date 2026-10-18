@@ -104,10 +104,10 @@ const toolDefinitions = [
   ),
   def(
     "prepare_enrichment",
-    "Prepare a sourced claim, including tentative research, with confidence 0-100 and a reason. Evidence may be an exact quote or an explicitly labeled summary of retrieved/user-supplied evidence. No minimum confidence for saving. Scope stays explicit. No write until modal approval.",
+    "Prepare a sourced claim with confidence 0-100 and a reason. Artist gear/practice/influenced-by claims use artist-context and never inherit to recordings. Evidence may be an exact quote or a labeled summary of retrieved/user-supplied evidence. No minimum confidence for saving. No write until modal approval.",
     {
       subjectId: string,
-      subjectType: { enum: ["Release", "ReleaseGroup", "Track", "Recording"] },
+      subjectType: { enum: ["Artist", "Release", "ReleaseGroup", "Track", "Recording"] },
       factorId: string,
       newFactor: {
         type: "object",
@@ -134,7 +134,7 @@ const toolDefinitions = [
         additionalProperties: false,
       },
       role: string,
-      scope: { enum: ["album-credit", "all-tracks", "direct"] },
+      scope: { enum: ["artist-context", "album-credit", "all-tracks", "direct"] },
       mode: { enum: ["add", "exclude", "replace"] },
       overridesAssertionId: string,
       releaseId: string,
@@ -792,6 +792,7 @@ async function executeResearchTool(name, a = {}, ctx = {}) {
       studio: ["Place"],
       genre: ["Genre", "Style"],
       technique: ["Technique"],
+      "influenced-by": ["Artist"],
     };
     if (!roles[a.role]?.includes(factor.kind))
       throw new Error("Factor class is incompatible with credit role");

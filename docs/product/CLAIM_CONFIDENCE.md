@@ -8,6 +8,8 @@
 
 The score applies to the claim in its stated scope. Explain identity/version uncertainty in the reason. A high-confidence album credit is not proof of every track's personnel. A live gear observation does not become studio use. Missing provider IDs do not prevent creating a named typed local factor. A genuinely ambiguous subject still requires the right context or a choice; do not merge different artists or recordings just to assign a score.
 
+Artist gear, playing/recording practice, genre and acknowledged influences use `subjectType: Artist`, `scope: artist-context`, `mode: add`. Include the period and context in the evidence summary. These claims never become album defaults or recording credits, and cannot carry a release override. `influenced-by` points from the subject artist to the acknowledged influencing artist; sonic similarity alone is insufficient. The same evidence/decision/history path handles these claims; no separate storage mechanism is introduced.
+
 ## Evidence and revision
 
 - `evidenceKind: quote` keeps exact source-text validation.
