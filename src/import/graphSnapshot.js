@@ -11,7 +11,7 @@ function checkedFile(dir,manifest,name){
   if(sha256(bytes)!==manifest.files[name])throw new Error(`Snapshot checksum mismatch: ${name}`);
   return bytes;
 }
-function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCatalog=false}){
+function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCatalog=false,catalogManifestDir}){
   const prepared=JSON.parse(fs.readFileSync(path.join(preparedDir,'manifest.json')));
   const events=readLines(checkedFile(preparedDir,prepared,'events.ndjson')).map(entityFromGraph);
   const mappings=readLines(checkedFile(preparedDir,prepared,'mappings.ndjson')).map(entityFromGraph);
@@ -55,8 +55,8 @@ function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCata
     }
   }
   let catalog=null;
-  if(includeCatalog){
-    const {manifest,responses}=require('./catalogClosure').readCatalogResponses(cacheDir,prepared,recordingIds);
+  if(includeCatalog||catalogManifestDir){
+    const {manifest,responses}=require('./catalogClosure').readCatalogResponses(cacheDir,prepared,recordingIds,catalogManifestDir);
     for(const {type,requestedId,response} of responses){
       const graph=require('./catalogGraph').catalogGraph(type,response);graph.nodes.forEach(addNode);graph.relationships.forEach(addEdge);
       // The second recording lookup includes every relationship category. Prefer its
@@ -68,8 +68,8 @@ function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCata
       }
     }
     const recordingRequests=manifest.requests.filter(r=>r.type==='recording');
-    const recordingRelationshipLookups={requested:recordingRequests.length,retrieved:recordingRequests.filter(r=>r.status==='ok').length,notFound:recordingRequests.filter(r=>r.status==='not-found').length,errors:recordingRequests.filter(r=>r.status==='error').length};
-    catalog={state:manifest.state,requested:manifest.requested,retrieved:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,selection:manifest.selection,excluded:manifest.excluded,recordingRelationshipIncludes:manifest.recordingRelationshipIncludes,recordingRelationshipLookups,pagination:manifest.pagination,manifestHash:sha256(JSON.stringify(manifest))};
+    const recordingRelationshipLookups={requested:recordingRequests.length,retrieved:recordingRequests.filter(r=>r.status==='ok').length,notFound:recordingRequests.filter(r=>r.status==='not-found').length,errors:recordingRequests.filter(r=>r.status==='error').length,pending:recordingRequests.filter(r=>r.status==='pending').length};
+    catalog={state:manifest.state,checkpointMode:manifest.checkpointMode||'collection',pending:manifest.pending||0,requested:manifest.requested,retrieved:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,selection:manifest.selection,excluded:manifest.excluded,recordingRelationshipIncludes:manifest.recordingRelationshipIncludes,recordingRelationshipLookups,pagination:manifest.pagination,manifestHash:sha256(JSON.stringify(manifest))};
   }
   let acoustic=null;
   if(acousticDir){const graph=require('./acousticSimilarity').readAcousticGraph(acousticDir,nodes,prepared);graph.nodes.forEach(addNode);graph.relationships.forEach(addEdge);acoustic=graph.receipt;}

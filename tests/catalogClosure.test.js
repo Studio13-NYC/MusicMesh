@@ -59,6 +59,25 @@ test('catalog collection shares the recording lock, resumes cached requests and 
  assert.ok(!first.requests.some(r=>r.type==='recording'&&r.id===id(8)),'sibling tracks are not additional recording seeds');
  assert.equal(first.requests.some(r=>r.id===id(99)),false);assert.equal(first.databaseWritten,false);
  const before=calls;const resumed=await collectCatalog({preparedDir:prepared,cacheDir:cache,client});assert.equal(calls,before);assert.deepEqual(resumed.requests,first.requests);
+ const checkpointDir=path.join(dir,'checkpoint');
+ const liveProgress=fs.readFileSync(path.join(cache,'catalog-progress.json'));
+ fs.writeFileSync(path.join(cache,'fetch.lock'),JSON.stringify({pid:process.pid}));
+ const missingUrl=catalogUrl('place',id(30)),missingPath=path.join(cache,'responses',sha256(missingUrl)+'.json');
+ const missingBytes=fs.readFileSync(missingPath);fs.unlinkSync(missingPath);
+ const checkpoint=await require('../src/import/catalogClosure').checkpointCatalog({preparedDir:prepared,cacheDir:cache,outputDir:checkpointDir});
+ assert.equal(checkpoint.state,'incomplete');assert.equal(checkpoint.pending,1);assert.equal(checkpoint.ok,6);
+ assert.equal(calls,before);assert.deepEqual(fs.readFileSync(path.join(cache,'catalog-progress.json')),liveProgress);
+ assert.ok(fs.existsSync(path.join(cache,'fetch.lock')),'checkpoint must not touch the live worker lock');
+ fs.writeFileSync(missingPath,missingBytes);fs.unlinkSync(path.join(cache,'fetch.lock'));
+ // Newly completed responses must not silently enter a frozen checkpoint.
+ const checkpointResponses=require('../src/import/catalogClosure').readCatalogResponses(cache,JSON.parse(fs.readFileSync(path.join(prepared,'manifest.json'))),[id(6)],checkpointDir);
+ assert.equal(checkpointResponses.responses.length,6);
+ const checkpointSnapshot=path.join(dir,'checkpoint-snapshot');
+ require('../src/import/graphSnapshot').compileSnapshot({preparedDir:prepared,cacheDir:cache,outputDir:checkpointSnapshot,catalogManifestDir:checkpointDir});
+ const checkpointGraph=require('../src/import/graphSnapshot').readSnapshot(checkpointSnapshot);
+ assert.equal(checkpointGraph.manifest.catalog.pending,1);assert.equal(checkpointGraph.manifest.catalog.state,'incomplete');
+ assert.equal(checkpointGraph.nodes.filter(n=>n.type==='Track').length,2);
+
  const {compileSnapshot,readSnapshot}=require('../src/import/graphSnapshot');const dest=path.join(dir,'snapshot');
  compileSnapshot({preparedDir:prepared,cacheDir:cache,outputDir:dest,includeCatalog:true});const graph=readSnapshot(dest);
  assert.equal(graph.nodes.filter(n=>n.type==='Track').length,2);assert.equal(graph.nodes.filter(n=>n.type==='ListeningEvent').length,1);

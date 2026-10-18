@@ -101,3 +101,20 @@ test('refresh rolls back changed evidence when a later assertion fails',{skip:!e
   assert.equal((await db.relationship.findUnique({where:{id:next.id}})).role,'User correction');
  } finally {await db.relationship.deleteMany({where:{sourceId:a.id}});await db.entity.deleteMany({where:{id:{in:[a.id,b.id]}}});}
 });
+
+
+test('refresh batches distinct payloads including arrays, JSON, cleared fields and quoted text',{skip:!enabled},async()=>{
+ const {persistDomainBatch}=require('../src/domain/repository');
+ const db=isolated(),prefix='bulk-refresh:'+randomUUID();
+ const old=[new domain.Recording({id:prefix+':a',name:'Old A',properties:{description:'Remove this'}}),new domain.Recording({id:prefix+':b',name:'Old B'})];
+ const next=[new domain.Recording({id:old[0].id,name:'A "quote"',properties:{sample:{array:[1,2],text:"O'Reilly"}}}),new domain.Recording({id:old[1].id,name:'Different B',properties:{description:'Keep this'}})];
+ try {
+  await persistDomainBatch(db,{nodes:old});
+  const result=await persistDomainBatch(db,{nodes:next,previousNodes:new Map(old.map(n=>[n.id,n]))});
+  assert.equal(result.updatedNodes,2);
+  const rows=await db.entity.findMany({where:{id:{in:old.map(n=>n.id)}},orderBy:{id:'asc'}});
+  assert.equal(rows[0].description,null);assert.equal(rows[0].name,'A "quote"');assert.deepEqual(rows[0].extra.sample,{array:[1,2],text:"O'Reilly"});
+  assert.equal(rows[1].description,'Keep this');assert.equal(rows[1].name,'Different B');
+  assert.equal((await persistDomainBatch(db,{nodes:next,previousNodes:new Map(old.map(n=>[n.id,n]))})).updatedNodes,0);
+ } finally {await db.entity.deleteMany({where:{id:{in:old.map(n=>n.id)}}});}
+});

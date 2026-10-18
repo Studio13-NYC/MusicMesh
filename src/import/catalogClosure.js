@@ -37,11 +37,15 @@ function cachedResponse(cacheDir,url,validate){
  if(r.status==='ok'){if(r.bodyHash!==sha256(JSON.stringify(r.body)))throw new Error('Catalog cache checksum mismatch');validate(r.body);}
  else if(!['not-found','error'].includes(r.status))throw new Error('Invalid catalog cache status');return r;
 }
-async function collectCatalog({preparedDir,cacheDir,limit=Infinity,waitForLock=false,client:providedClient,onProgress=()=>{},wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
+async function collectCatalog({preparedDir,cacheDir,limit=Infinity,waitForLock=false,client:providedClient,cachedOnly=false,outputDir,onProgress=()=>{},wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
  if(limit!==Infinity&&(!Number.isSafeInteger(limit)||limit<1))throw new Error('limit must be a positive integer');
- fs.mkdirSync(cacheDir,{recursive:true});const lock=path.join(cacheDir,'fetch.lock'),progressFile=path.join(cacheDir,'catalog-progress.json');
- const save=p=>{const value={...p,updatedAt:new Date().toISOString(),databaseWritten:false};atomicJson(progressFile,value);onProgress(value);};
- while(true){
+ if(cachedOnly){
+  if(!outputDir||path.resolve(outputDir)===path.resolve(cacheDir))throw new Error('Cache checkpoint requires a separate empty output directory');
+  fs.mkdirSync(outputDir,{recursive:true});if(fs.readdirSync(outputDir).length)throw new Error('Catalog checkpoint output must be empty');
+ }else fs.mkdirSync(cacheDir,{recursive:true});
+ const lock=path.join(cacheDir,'fetch.lock'),progressFile=path.join(cacheDir,'catalog-progress.json');
+ const save=p=>{const value={...p,updatedAt:new Date().toISOString(),databaseWritten:false};if(!cachedOnly)atomicJson(progressFile,value);onProgress(value);};
+ while(!cachedOnly){
   try{fs.writeFileSync(lock,JSON.stringify({pid:process.pid,phase:'catalog-closure',startedAt:new Date().toISOString()}),{flag:'wx'});break;}
   catch(error){if(error.code!=='EEXIST')throw error;if(!waitForLock)throw new Error('MusicBrainz worker lock exists');
    const owner=JSON.parse(fs.readFileSync(lock));if(!Number.isSafeInteger(owner.pid)||owner.pid<1)throw new Error('Invalid worker lock');
@@ -49,8 +53,8 @@ async function collectCatalog({preparedDir,cacheDir,limit=Infinity,waitForLock=f
    if(owner.pid===process.pid)throw new Error('Cannot wait for own worker lock');save({phase:'catalog-closure',state:'waiting',waitingForPid:owner.pid});await wait(30000);
   }
  }
-  const client=providedClient||new ProviderCache({dir:path.join(cacheDir,'responses')});
-  if(!providedClient)client.nextRequestAt=Date.now()+1100;
+  const client=cachedOnly?{get:async(url,validate)=>cachedResponse(cacheDir,url,validate)||{status:'pending'}}:providedClient||new ProviderCache({dir:path.join(cacheDir,'responses')});
+  if(!cachedOnly&&!providedClient)client.nextRequestAt=Date.now()+1100;
  let manifest;
  try{
   const prepared=JSON.parse(fs.readFileSync(path.join(preparedDir,'manifest.json')));
@@ -71,7 +75,7 @@ async function collectCatalog({preparedDir,cacheDir,limit=Infinity,waitForLock=f
    selection:'ListenBrainz-selected release editions; all relationship categories on mapped listened recordings; direct artists/works; release groups and billed artists; one layer of referenced non-discography context',
    excluded:['all editions of a release group','artist discographies','recursive related artist/work expansion','claim that selected edition was listened','lookup of outside recording/release/genre relationship targets unless independently selected'],
    recordingRelationshipIncludes:includes.recording.split('+').filter(x=>x.endsWith('-rels')),
-   pagination:'Exact entity lookups and complete edition tracklists; no capped entity-list subquery or browse request is used',requested:0,ok:0,notFound:0,errors:0,requests:[],databaseWritten:false};
+   pagination:'Exact entity lookups and complete edition tracklists; no capped entity-list subquery or browse request is used',requested:0,ok:0,notFound:0,errors:0,pending:0,requests:[],databaseWritten:false,checkpointMode:cachedOnly?'cache-only':'collection'};
   const seen=new Set();let failures=0,limited=false;
   async function phase(queue,expand){
    for(const item of [...queue.values()].sort((a,b)=>(a.type+':'+a.id).localeCompare(b.type+':'+b.id))){
@@ -87,20 +91,21 @@ async function collectCatalog({preparedDir,cacheDir,limit=Infinity,waitForLock=f
        if(['label','area','place','instrument','event','series'].includes(type))add(contexts,type,n.externalId.value);
       }
      }
-    }else if(r.status==='not-found'){manifest.notFound++;failures=0;}else{manifest.errors++;failures++;}
+    }else if(r.status==='pending'){manifest.pending++;failures=0;}else if(r.status==='not-found'){manifest.notFound++;failures=0;}else{manifest.errors++;failures++;}
     save({phase:manifest.phase,state:manifest.state,stage:expand||'context',requested:manifest.requested,ok:manifest.ok,notFound:manifest.notFound,errors:manifest.errors,lastType:item.type,lastId:item.id});
     if(failures>=3||(r.httpStatus>=400&&r.httpStatus<500&&![404,429].includes(r.httpStatus)))throw new Error('Catalog requests failing; cache preserved for resumption');
    }
   }
   await phase(recordings,'recording');if(!limited)await phase(releases,'release');if(!limited)await phase(initial,'direct');if(!limited)await phase(contexts,null);
-  manifest.state=limited?'limited':manifest.errors||recordingEvidence.some(e=>e.status==='error')?'incomplete':'complete';
+  manifest.state=limited?'limited':manifest.errors||manifest.pending||recordingEvidence.some(e=>e.status==='error')?'incomplete':'complete';
   manifest.seedCounts={releases:releases.size,recordings:recordings.size,direct:initial.size,context:contexts.size};
-  manifest.completedAt=new Date().toISOString();atomicJson(path.join(cacheDir,'catalog-manifest.json'),manifest);save({phase:manifest.phase,state:manifest.state,requested:manifest.requested,ok:manifest.ok,notFound:manifest.notFound,errors:manifest.errors});return manifest;
+  manifest.completedAt=new Date().toISOString();atomicJson(path.join(cachedOnly?outputDir:cacheDir,'catalog-manifest.json'),manifest);save({phase:manifest.phase,state:manifest.state,requested:manifest.requested,ok:manifest.ok,notFound:manifest.notFound,errors:manifest.errors});return manifest;
  }catch(error){save({phase:'catalog-closure',state:'interrupted',requested:manifest?.requested||0,errors:manifest?.errors||0,reason:error.message});throw error;}
- finally{fs.unlinkSync(lock);}
+ finally{if(!cachedOnly)fs.unlinkSync(lock);}
 }
-function readCatalogResponses(cacheDir,prepared,recordingIds){
- const manifest=JSON.parse(fs.readFileSync(path.join(cacheDir,'catalog-manifest.json'))),{canonicalJson}=require('../domain/serialization');
+function checkpointCatalog(options){return collectCatalog({...options,cachedOnly:true});}
+function readCatalogResponses(cacheDir,prepared,recordingIds,manifestDir=cacheDir){
+ const manifest=JSON.parse(fs.readFileSync(path.join(manifestDir,'catalog-manifest.json'))),{canonicalJson}=require('../domain/serialization');
  if(manifest.version!==2||canonicalJson(manifest.input)!==canonicalJson(prepared.input)||manifest.recordingListHash!==prepared.files['recording-mbids.json'])throw new Error('Catalog manifest source identity/version mismatch; recollect closure');
  const seedIds=manifest.recordingEvidence.map(e=>e.id);
  if(canonicalJson([...seedIds].sort())!==canonicalJson([...recordingIds].sort()))throw new Error('Catalog seed identity changed; recollect closure');
@@ -111,11 +116,12 @@ function readCatalogResponses(cacheDir,prepared,recordingIds){
  const responses=[],seen=new Set();
  for(const request of manifest.requests){
   const url=catalogUrl(request.type,request.id);if(url!==request.url||seen.has(url))throw new Error('Invalid duplicate catalog request');seen.add(url);
+  if(request.status==='pending'){if(manifest.checkpointMode!=='cache-only')throw new Error('Pending catalog request requires a cache checkpoint');continue;}
   const r=cachedResponse(cacheDir,url,body=>validateCatalog(request.type,body));
   if(!r||r.status!==request.status||(r.status==='ok'&&r.bodyHash!==request.responseHash))throw new Error('Catalog response differs from manifest');
   if(r.status==='ok')responses.push({type:request.type,requestedId:request.id,response:r});
  }
- if(manifest.requested!==seen.size||manifest.ok!==responses.length)throw new Error('Catalog request count mismatch');
+ if(manifest.requested!==seen.size||manifest.ok!==responses.length||(manifest.pending||0)!==manifest.requests.filter(r=>r.status==='pending').length)throw new Error('Catalog request count mismatch');
  return {manifest,responses};
 }
-module.exports={catalogUrl,validateCatalog,collectCatalog,readCatalogResponses};
+module.exports={catalogUrl,validateCatalog,collectCatalog,checkpointCatalog,readCatalogResponses};

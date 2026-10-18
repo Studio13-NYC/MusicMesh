@@ -45,13 +45,22 @@ async function refreshRows(tx,objects,previous,relationship=false){
   if(relationship)await tx.$queryRaw`SELECT id FROM relationships WHERE id = ANY(${ids}::text[]) FOR UPDATE`;
   else await tx.$queryRaw`SELECT id FROM entities WHERE id = ANY(${ids}::text[]) FOR UPDATE`;
   const current=new Map((await table.findMany({where:{id:{in:ids}}})).map(r=>[r.id,r]));
-  let updated=0;
+  const updates=[];
   for(const object of changed){
     const next=toRow(object),before=toRow(previous.get(object.id)),actual=current.get(object.id);
     if(isDeepStrictEqual(next,actual))continue;
     compare(before,actual);
-    await table.update({where:{id:object.id},data:next});updated++;
+    updates.push(next);
   }
+  if(!updates.length)return 0;
+  // Every row was locked and checked above. Apply this batch in one database
+  // round trip; identifiers come only from our fixed serializers, never input.
+  const {Prisma}=require('../../generated/prisma');
+  const sqlTable=Prisma.raw(relationship?'relationships':'entities');
+  const columns=Object.keys(updates[0]).filter(key=>key!=='id');
+  const assignments=Prisma.join(columns.map(key=>Prisma.sql`${Prisma.raw('"'+key+'"')} = src.${Prisma.raw('"'+key+'"')}`));
+  const updated=await tx.$executeRaw(Prisma.sql`UPDATE ${sqlTable} AS dst SET ${assignments} FROM jsonb_populate_recordset(NULL::${sqlTable}, ${JSON.stringify(updates)}::jsonb) AS src WHERE dst.id=src.id`);
+  if(updated!==updates.length)throw new Error('Refresh update count differs from locked rows');
   return updated;
 }
 async function persistDomainBatch(db,batch){

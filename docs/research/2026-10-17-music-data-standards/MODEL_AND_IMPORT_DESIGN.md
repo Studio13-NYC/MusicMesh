@@ -295,3 +295,9 @@ A concrete rhythm candidate joins Garbage's **I Think I’m Paranoid** (MusicBra
 | Essentia danceability index | 1.118 | 1.121 |
 
 The stored normalized RMS distance is 0.15815 within a 117-recording rhythm cohort. The similar onset rate and danceability index, with a roughly 5.34 BPM tempo difference, explain this candidate. The danceability index is not a probability or a 0–1 score. This finding suggests a pair to audition; it does not establish shared personnel, influence, musical identity or a listener preference. Evidence and normalization metadata are retained in `acoustic-comparisons-full-1` and the typed SimilarityAssessment.
+
+### Available catalog checkpoints
+
+Available metadata can be imported before the entire bounded catalog closure finishes. `checkpoint-catalog` uses the collector's existing traversal with cache-only reads and writes a separate manifest. No second network path or background writer is introduced. The manifest pins successful response hashes and pending exclusions; late responses belong to a later checkpoint. It records partial status, and pending counts may grow as future responses reveal more direct context.
+
+Snapshot 3 combines all expanded recording relationships, 1,915 completed selected-release lookups, and the completed acoustic comparisons. It adds actual edition/medium/track/recording structure, release groups, label/catalog-number associations, and place/area/event/series context. A selected release is provider-suggested context, not proof of the exact edition the user heard. Updates compare stored rows against the last imported snapshot, then apply an atomic parameterized batch. Existing source history, unrelated user work and omitted historical evidence survive. Current import receipts and counts are in BRAINZ_PROGRESS.md.
