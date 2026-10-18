@@ -1,6 +1,19 @@
 # Personal history preparation and retrieval
 
-Current checkpoint: 17 October 2026. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-isolated` writes only an explicitly selected validation database. No command resubmits plays to ListenBrainz. Typed chat integration is implemented and verified on Neon validation. A limited acoustic comparison pilot is also validated. The linked catalog collector is queued; live release import, production replacement and full acoustic collection remain pending phases of the [plan](../plans/2026-10-17-brainz.md).
+Current checkpoint: 17 October 2026, New York. The user clarified that the deployed main backend is development; there is no production instance. Preparation and collection write local artifacts. `compile` creates a validated graph snapshot; `load-main` loads available data into the explicitly named main development database, and `load-isolated` remains available for the validation database. Partial enrichment does not block main imports. No command resubmits plays to ListenBrainz. The first recording pass completed all 8,289 lookups without errors; expanded catalog and acoustic collection continue.
+
+## Shared development backend
+
+```powershell
+# Initial replacement of the disposable old graph (already completed for snapshot 1):
+node --env-file=.env scripts/importListeningHistory.js load-main --prepared output/imports/2026-10-17/prepared --snapshot output/imports/2026-10-17/main-development-snapshot-1 --replace-existing
+# Replay that exact snapshot without deleting anything:
+node --env-file=.env scripts/importListeningHistory.js load-main --prepared output/imports/2026-10-17/prepared --snapshot output/imports/2026-10-17/main-development-snapshot-1
+```
+
+Main host is `ep-noisy-king-aunaaru0-pooler.c-10.us-east-1.aws.neon.tech` (or its direct endpoint), database `musicmesh`, TLS `verify-full`. `load-main` rejects other projects/targets and audits source integrity before writes. It shares the existing batch loader with `load-isolated`; receipts are named `main-development-import-receipt.json` and retain exact snapshot hashes, created/verified counts and partial enrichment. No full-collection or production-release gate is imposed. Replacement deletes old relationships, entities and import receipts; subsequent exact replay uses immutable record checks. A changed enriched snapshot is not yet a general incremental updater: do not erase later user-created work without checking it. Consult the current-state/progress docs before repeating replacement.
+
+Snapshot 1 is loaded: 76,779 entities/118,861 relationships, all 21,415 plays and 8,289 successful initial recording lookups, plus the existing 25-analysis/51-comparison acoustic pilot. PostgreSQL counts, deployed API reads and the actual Edge graph were verified. Expanded relation/edition data and the rest of the acoustic analyses are still being collected. Individual plays and identity mappings remain excluded from anonymous graph endpoints; loading the development backend does not change that access boundary.
 
 ## Acoustic feature collection
 
@@ -125,7 +138,7 @@ The output stores checksummed `analyses.ndjson`, `comparisons.ndjson`, `cohorts.
 
 Optional `compile --acoustic` validates source-history identity, hashes, classes and endpoints before adding AnalysisOf, ComparesRecording and SupportedByAnalysis relationships. No additional listens are submitted. The default anonymous graph still hides ListeningEvent and IdentityMapping. Selected public analysis/comparison evidence is available to chat through the bounded catalog projection.
 
-The current isolated snapshot has 68,264 entities and 88,481 relationships, including 25 analyses and 51 comparisons. Earlier pilot/snapshot files are historical local checkpoints, not production data. Collection still needs to finish, retry recorded failures, and generate a full comparison snapshot before production activation.
+The isolated snapshot has 68,264 entities and 88,481 relationships, including 25 analyses and 51 comparisons. Main development now holds the larger snapshot documented above. Collection still needs to finish, retry recorded failures and generate a full comparison snapshot for the next enrichment update; it does not block use of the loaded main backend.
 
 
 ## Selected releases and directly linked catalog

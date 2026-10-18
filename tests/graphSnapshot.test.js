@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {prepareHistory}=require('../src/import/history');
-const {compileSnapshot,readSnapshot,assertIsolatedTarget}=require('../src/import/graphSnapshot');
+const {compileSnapshot,readSnapshot,assertIsolatedTarget,assertMainDevelopmentTarget}=require('../src/import/graphSnapshot');
 test('snapshot preserves unresolved plays, creates typed recording stubs, validates hashes and reloads classes',t=>{
   const root=path.join(__dirname,'..','output','tests');fs.mkdirSync(root,{recursive:true});
   const dir=fs.mkdtempSync(path.join(root,'snapshot-'));t.after(()=>fs.rmSync(dir,{recursive:true}));
@@ -20,8 +20,16 @@ test('snapshot preserves unresolved plays, creates typed recording stubs, valida
   fs.appendFileSync(path.join(outputDir,'nodes.ndjson'),'broken');
   assert.throws(()=>readSnapshot(outputDir),/checksum/);
 });
-test('isolated import refuses production and unrelated databases',()=>{
+test('isolated import refuses main development and unrelated databases',()=>{
   assert.throws(()=>assertIsolatedTarget('postgresql://u:p@ep-noisy-king-aunaaru0-pooler.c-10.us-east-1.aws.neon.tech/musicmesh'),/isolated/);
   assert.throws(()=>assertIsolatedTarget('postgresql://u:p@localhost/other'),/isolated/);
   assert.doesNotThrow(()=>assertIsolatedTarget('postgresql://u:p@ep-flat-glitter-au4xn3l9-pooler.c-10.us-east-1.aws.neon.tech/musicmesh?sslmode=verify-full'));
+});
+test('main development import explicitly selects MusicMesh main and rejects other targets or insecure TLS',()=>{
+ const main='postgresql://u:p@ep-noisy-king-aunaaru0-pooler.c-10.us-east-1.aws.neon.tech/musicmesh?sslmode=verify-full';
+ assert.equal(assertMainDevelopmentTarget(main).database,'musicmesh');
+ assert.throws(()=>assertMainDevelopmentTarget(main.replace('verify-full','require')),/main development/);
+ assert.throws(()=>assertMainDevelopmentTarget(main.replace('/musicmesh?','/other?')),/main development/);
+ assert.throws(()=>assertMainDevelopmentTarget(main.replace('ep-noisy-king-aunaaru0','ep-flat-glitter-au4xn3l9')),/main development/);
+ assert.throws(()=>assertIsolatedTarget(main),/isolated/,'main remains opt-in, never an isolated fallback');
 });

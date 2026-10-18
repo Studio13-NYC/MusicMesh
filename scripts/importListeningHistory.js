@@ -20,7 +20,8 @@ async function main() {
       'npm run brainz:import -- compile --prepared <directory> --cache <directory> --output <empty directory> [--include-catalog] [--acoustic <comparison directory>]',
       'npm run brainz:import -- audit-snapshot --prepared <directory> --snapshot <directory> (read-only)',
       'node --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot <directory> [--replace-existing]',
-      'Only load-isolated writes a database; its target is restricted to the configured validation hosts. No command submits listens.'
+      'node --env-file=.env scripts/importListeningHistory.js load-main --prepared <directory> --snapshot <directory> [--replace-existing]',
+      'Only load-isolated and load-main write a database; each requires its named MusicMesh target. Main is the shared development backend. Partial enrichment is allowed and recorded. No command submits listens.'
     ].join('\n'));return;
   }
   if(positionals.length===1 && positionals[0]==='fetch-recordings') {
@@ -53,6 +54,11 @@ async function main() {
   if(positionals.length===1 && positionals[0]==='load-isolated') {
     if(!values.snapshot)throw new Error('load-isolated requires --snapshot');
     try {console.log(JSON.stringify(await require('../src/import/graphSnapshot').loadIsolatedSnapshot({directory:values.snapshot,replace:!!values['replace-existing'],onProgress:p=>console.log(JSON.stringify(p))}),null,2));}
+    finally {await require('../src/postgres').closeDatabase();}return;
+  }
+  if(positionals.length===1 && positionals[0]==='load-main') {
+    if(!values.snapshot||!values.prepared)throw new Error('load-main requires --snapshot and --prepared');
+    try {console.log(JSON.stringify(await require('../src/import/graphSnapshot').loadMainDevelopmentSnapshot({directory:values.snapshot,preparedDir:values.prepared,replace:!!values['replace-existing'],onProgress:p=>console.log(JSON.stringify(p))}),null,2));}
     finally {await require('../src/postgres').closeDatabase();}return;
   }
   if(positionals.length===1 && positionals[0]==='audit-snapshot') {

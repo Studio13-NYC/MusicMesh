@@ -4,7 +4,7 @@ This file is for new agents entering the MusicMesh clean-sheet repo.
 
 Read this first.
 
-Migration status (2026-09-07): MusicMesh is deployed on dedicated Neon PostgreSQL with Prisma 7.10.0. Runtime release 5a404fa passed public read/write verification. Read docs/deployment/NEON_MIGRATION.md and CURRENT_STATE_AND_HANDOFF.md for evidence and rollback limitations. Root .env selects production; explicitly use .env.migration for isolated local writes.
+Environment clarification (2026-10-17): the user confirmed that MusicMesh has no production environment. The deployed site and Neon main branch selected by root `.env` are the shared development instance. Load verified available data there while enrichment continues; do not wait for a production release gate. `.env.migration` remains available for isolated tests. Historical docs calling main "production" describe deployment topology, not its actual product stage. Never use Alexander.
 
 More specific direct user instructions take priority over this file.
 
@@ -12,7 +12,7 @@ More specific direct user instructions take priority over this file.
 
 Read `docs/product/BRAINZ_PROGRESS.md`, `docs/plans/2026-10-17-brainz.md`, and the standalone design at `docs/research/2026-10-17-music-data-standards/MODEL_AND_IMPORT_DESIGN.md` before model/import work. The user approved beginning this work and declared previous generated database content disposable. Do not use it as enrichment evidence. Preserve the original Last.fm CSV as input; it has already been submitted to ListenBrainz and must not be submitted again.
 
-Domain semantics live in `src/domain/`: read `getOntology()`, `getTypeDefinition(key)`, or generated `docs/product/DOMAIN_MODEL.md`. Both local and Azure APIs expose `GET /api/ontology`; constructors expose `.definition`. Answer, preview, planning and grounding share these definitions. Chat and import writers enforce domain classes and identities. Chat cannot overwrite imported records or invent provider/acoustic evidence; it can reference existing public analyses. Private listening events/mappings stay out of public graph context. Ordinary chat receives the selected graph node and a bounded database neighborhood. Legacy incompatible rows are excluded from matching. The progress report distinguishes implementation, isolated validation and production activation; available semantics do not imply a production import. Prisma, Neon and the workbench architecture stay in place. No global mirror is required.
+Domain semantics live in `src/domain/`: read `getOntology()`, `getTypeDefinition(key)`, or generated `docs/product/DOMAIN_MODEL.md`. Both local and Azure APIs expose `GET /api/ontology`; constructors expose `.definition`. Answer, preview, planning and grounding share these definitions. Chat and import writers enforce domain classes and identities. Chat cannot overwrite imported records or invent provider/acoustic evidence; it can reference existing public analyses. Private listening events/mappings stay out of public graph context. Ordinary chat receives the selected graph node and a bounded database neighborhood. Legacy incompatible rows are excluded from matching. The progress report distinguishes downloaded data, main development imports and remaining enrichment. Use the explicit `load-main` command for the shared backend; partial enrichment is allowed and recorded in its receipt. Prisma, Neon and the workbench architecture stay in place. No global mirror is required.
 
 ## Always Check Current Status
 
@@ -276,7 +276,7 @@ Current optional env keys:
 
 Operational rules:
 
-- Production uses the dedicated MusicMesh Neon main branch. Local migration validation uses its isolated branch; never point either at Alexander.
+- The shared development backend uses the dedicated MusicMesh Neon main branch. Optional isolated tests use the validation branch; never point either at Alexander.
 - Do not silently switch database targets to make a check pass. Aura is retained only for export/rollback.
 - If PostgreSQL, OpenAI, or Playwright is unavailable, report blocked infrastructure rather than treating it as an app bug.
 - Never print or commit secrets.

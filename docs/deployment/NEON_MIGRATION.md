@@ -1,5 +1,7 @@
 # MusicMesh Neo4j to Neon migration
 
+Current environment clarification (17 October 2026): the user confirmed that the deployed site and main Neon database are development, not production. References to production below are historical deployment terminology. Root `.env` selects the shared development instance; available verified history may be loaded there while collection continues. See [current state](../product/CURRENT_STATE_AND_HANDOFF.md) and [load-main](../product/HISTORY_IMPORT.md).
+
 Status: **completed and publicly verified on 2026-09-07 (New York time).** Production uses dedicated MusicMesh Neon PostgreSQL. Runtime release `5a404fa`; [successful deployment run 34173029047](https://github.com/Studio13-NYC/MusicMesh/actions/runs/34173029047). The approved maintenance window lasted approximately ten minutes.
 
 ## Infrastructure

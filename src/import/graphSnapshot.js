@@ -100,17 +100,22 @@ function assertIsolatedTarget(connectionString){
   if(!((neon.includes(url.hostname) && url.pathname==='/musicmesh' && url.searchParams.get('sslmode')==='verify-full') || (url.hostname==='127.0.0.1' && url.port==='55433' && url.pathname==='/musicmesh_restore')))throw new Error('Import requires the explicitly selected isolated MusicMesh validation database');
   return {host:url.hostname,database:url.pathname.slice(1)};
 }
-async function loadIsolatedSnapshot({directory,replace=false,onProgress=()=>{}}){
-  // Check before importing postgres/env; a missing explicit environment must never fall back to root production.
-  const target=assertIsolatedTarget(process.env.DATABASE_URL);
+function assertMainDevelopmentTarget(connectionString){
+  const url=new URL(connectionString);
+  const hosts=['ep-noisy-king-aunaaru0-pooler.c-10.us-east-1.aws.neon.tech','ep-noisy-king-aunaaru0.c-10.us-east-1.aws.neon.tech'];
+  if(!hosts.includes(url.hostname)||url.pathname!=='/musicmesh'||url.searchParams.get('sslmode')!=='verify-full')throw new Error('Import requires the explicitly selected MusicMesh main development database');
+  return {host:url.hostname,database:url.pathname.slice(1)};
+}
+async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,receiptName}){
   const graph=readSnapshot(directory);
   const {getDatabase}=require('../postgres'),{persistDomainBatch}=require('../domain/repository');
   const db=getDatabase();
   const identity=await db.$queryRaw`SELECT current_database() AS database`;
   if(identity[0].database!==target.database)throw new Error('Connected database identity differs');
   if(replace)await db.$transaction(async tx=>{await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;await tx.relationship.deleteMany();await tx.entity.deleteMany();await tx.importBatch.deleteMany();},{timeout:30000});
-  const receipt={target,state:'loading',createdNodes:0,createdRelationships:0,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files};
-  const receiptPath=path.join(directory,'isolated-import-receipt.json');
+  const receipt={target,state:'loading',createdNodes:0,createdRelationships:0,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files,
+    enrichment:{recordings:graph.manifest.recordingLookups,catalog:graph.manifest.catalog||null,acoustic:graph.manifest.acoustic||null}};
+  const receiptPath=path.join(directory,receiptName);
   try {
     for(const [key,objects] of [['nodes',graph.nodes],['relationships',graph.relationships]])for(let i=0;i<objects.length;i+=200){
       const result=await persistDomainBatch(db,{[key]:objects.slice(i,i+200)});
@@ -122,4 +127,13 @@ async function loadIsolatedSnapshot({directory,replace=false,onProgress=()=>{}})
     fs.writeFileSync(receiptPath,JSON.stringify(receipt,null,2)+'\n');return receipt;
   }catch(error){receipt.state='incomplete';fs.writeFileSync(receiptPath,JSON.stringify(receipt,null,2)+'\n');throw error;}
 }
-module.exports={compileSnapshot,readSnapshot,assertIsolatedTarget,loadIsolatedSnapshot};
+function loadIsolatedSnapshot(options){
+  // Check before importing postgres/env: an absent explicit target cannot select main.
+  return loadSnapshot({...options,target:assertIsolatedTarget(process.env.DATABASE_URL),receiptName:'isolated-import-receipt.json'});
+}
+function loadMainDevelopmentSnapshot(options){
+  const target=assertMainDevelopmentTarget(process.env.DATABASE_URL);
+  require('./snapshotAudit').auditSnapshot({directory:options.directory,preparedDir:options.preparedDir});
+  return loadSnapshot({...options,target,receiptName:'main-development-import-receipt.json'});
+}
+module.exports={compileSnapshot,readSnapshot,assertIsolatedTarget,assertMainDevelopmentTarget,loadIsolatedSnapshot,loadMainDevelopmentSnapshot};
