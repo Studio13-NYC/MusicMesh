@@ -50,6 +50,10 @@ test('chat cannot invent provider identities, alter provider facts, or use misma
     assert.deepEqual(await db.entity.findUnique({where:{id:recording.id}}),before);
     await assert.rejects(()=>persistChatGraph({groundedGraph:{nodes:[{tempId:'r',name:'Wrong class',type:'Work',matchedCanonId:recording.id}]},threadId,turnId:'wrong'}),/class|type/i);
     await assert.rejects(()=>persistChatGraph({groundedGraph:{nodes:[{tempId:'r',name:'Invented',type:'Recording',properties:{externalId:{provider:'musicbrainz',type:'recording',value:randomUUID()}}}]},threadId,turnId:'invent'}),/provider/i);
+    for(const field of ['evidenceRefs','evidenceStorageVersion']){
+      await assert.rejects(()=>persistChatGraph({groundedGraph:{nodes:[{tempId:'r',name:'Forged',type:'Recording',properties:{[field]:field==='evidenceRefs'?{rawProvider:{version:1,sha256:'a'.repeat(64),bytes:1000}}:1}}]},threadId,turnId:'forged-'+field}),/evidence/i);
+      await assert.rejects(()=>persistChatGraph({groundedGraph:{nodes:[{tempId:'r',name:'Recording',type:'Recording'},{tempId:'w',name:'Work',type:'Work'}],relationships:[{sourceRef:'r',targetRef:'w',type:'PerformanceOf',assertionKey:'forged',properties:{[field]:field==='evidenceRefs'?{rawProvider:{version:1,sha256:'a'.repeat(64),bytes:1000}}:1}}]},threadId,turnId:'forged-edge-'+field}),/evidence/i);
+    }
     const work=new domain.Work({id:threadId+':work',name:'Stored work',properties:{threadId}});
     const providerEdge=new domain.MusicBrainzRelationship({source:recording,target:work,assertionKey:'provider-proof',properties:{providerTypeId:'a3005666-a872-32c3-ad06-98af558e99b0',providerTypeName:'performance',sourceType:'Recording',targetType:'Work',source:'musicbrainz',threadId}});
     await persistDomainBatch(db,{nodes:[work],relationships:[providerEdge]});

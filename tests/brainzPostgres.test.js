@@ -23,6 +23,12 @@ test('private listens cannot leak through search, degree counts, detail or trave
     assert.equal(search.length,2,'private records excluded from every search caller');
     assert.ok(search.every(x=>x.degree===0),'degree must not count private edges');
     assert.equal(await store.detail(ids[1],[],[],10),null);
+    const {getPublicEvidence}=require('../src/evidenceService');
+    let evidenceReads=0;
+    const evidenceOptions={db,readEvidence:async()=>{evidenceReads++;throw new Error('Private evidence read');}};
+    assert.equal(await getPublicEvidence({kind:'node',id:ids[1],field:'rawProvider'},evidenceOptions),null);
+    for(const edgeId of [prefix+':a',prefix+':b'])assert.equal(await getPublicEvidence({kind:'relationship',id:edgeId,field:'rawProvider'},evidenceOptions),null);
+    assert.equal(evidenceReads,0);
     await assert.rejects(()=>demo.getNodeDetail(ids[1]),{code:'GRAPH_NODE_NOT_FOUND'});
     assert.equal((await store.detail(ids[0],[],[],10)).relationshipCount,0);
     const graph=await store.neighborhood([ids[0]],{depth:3,pathLimit:100,nodeLimit:100,edgeLimit:100});
@@ -117,4 +123,21 @@ test('refresh batches distinct payloads including arrays, JSON, cleared fields a
   assert.equal(rows[1].description,'Keep this');assert.equal(rows[1].name,'Different B');
   assert.equal((await persistDomainBatch(db,{nodes:next,previousNodes:new Map(old.map(n=>[n.id,n]))})).updatedNodes,0);
  } finally {await db.entity.deleteMany({where:{id:{in:old.map(n=>n.id)}}});}
+});
+
+test('evidence migration compacts legacy rows, replays exactly, and protects corrections',{skip:!enabled},async()=>{
+ const {persistDomainBatch}=require('../src/domain/repository');
+ const db=isolated(),id='evidence-test:'+randomUUID();
+ const old=new domain.Release({id,name:'Edition',properties:{rawProvider:{country:'KR',payload:'x'.repeat(6000)},providerEvidence:{url:'source'}}});
+ const batch={nodes:[old],previousNodes:new Map([[id,old]]),compactEvidence:true};
+ try{
+  await persistDomainBatch(db,{nodes:[old]});
+  assert.equal((await persistDomainBatch(db,batch)).updatedNodes,1);
+  const row=await db.entity.findUnique({where:{id}});
+  assert.equal(row.extra.rawProvider,undefined);assert.equal(row.extra.country,'KR');assert.ok(row.extra.evidenceRefs.rawProvider.sha256);
+  assert.equal((await persistDomainBatch(db,batch)).updatedNodes,0);
+  await db.entity.update({where:{id},data:{description:'Keep my correction'}});
+  await assert.rejects(()=>persistDomainBatch(db,batch),/conflict/);
+  assert.equal((await db.entity.findUnique({where:{id}})).description,'Keep my correction');
+ }finally{await db.entity.deleteMany({where:{id}});}
 });

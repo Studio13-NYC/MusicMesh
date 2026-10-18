@@ -19,6 +19,8 @@ fs.mkdirSync(sharedDir, { recursive: true });
 fs.mkdirSync(contentDir, { recursive: true });
 
 const copies = [
+  ["src/evidenceArchive.js", "shared/evidenceArchive.js"],
+  ["src/evidenceService.js", "shared/evidenceService.js"],
   ["src/domain/catalog.js", "shared/domain/catalog.js"],
   ["src/domain/index.js", "shared/domain/index.js"],
   ["src/domain/repository.js", "shared/domain/repository.js"],

@@ -24,6 +24,14 @@ function sandbox(t) {
   const root=path.join(__dirname,'..','output','tests');fs.mkdirSync(root,{recursive:true});
   const dir=fs.mkdtempSync(path.join(root,'provider-'));t.after(()=>fs.rmSync(dir,{recursive:true}));return dir;
 }
+
+test('checkpoint rename retries transient Windows sharing locks without deleting the old checkpoint',t=>{
+ const file=path.join(sandbox(t),'progress.json'),original=fs.renameSync;let calls=0;
+ fs.writeFileSync(file,'{"old":true}');
+ t.mock.method(fs,'renameSync',(...args)=>{calls++;if(calls<3){assert.deepEqual(JSON.parse(fs.readFileSync(file)),{old:true});const e=new Error('sharing lock');e.code='EPERM';throw e;}return original(...args);});
+ require('../src/import/providerCache').atomicJson(file,{new:true});
+ assert.equal(calls,3);assert.deepEqual(JSON.parse(fs.readFileSync(file)),{new:true});
+});
 test('provider retry honors rate limits and resumes verified cache without another request',async t=>{
   const dir=sandbox(t);let calls=0, now=0;const waits=[];
   const client=new ProviderCache({dir,now:()=>now,sleep:async ms=>{waits.push(ms);now+=ms;},fetchImpl:async()=>{

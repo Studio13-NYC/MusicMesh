@@ -18,7 +18,7 @@ function nodeType(node){
 }
 function newProperties(input,context){
   const properties={...(input.properties||{})};
-  for(const reserved of ['externalId','rawProvider','providerEvidence','observations','hydrationStatus','providerTypeId','providerTypeName','responseHash','definitionUrl']){
+  for(const reserved of ['externalId','rawProvider','providerEvidence','observations','evidenceRefs','evidenceStorageVersion','hydrationStatus','providerTypeId','providerTypeName','responseHash','definitionUrl']){
     if(Object.hasOwn(properties,reserved))throw new Error('Chat cannot create provider or analysis evidence');
   }
   for(const key of ['id','name','ontologyVersion','assertionKey'])delete properties[key];

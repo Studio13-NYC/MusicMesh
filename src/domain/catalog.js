@@ -10,6 +10,7 @@ function deepFreeze(value) {
 }
 const field = (type, meaning, required = false, unit = null) => ({ type, meaning, required, ...(unit ? { unit } : {}) });
 const commonFields = {
+  evidenceRefs: field("object", "Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access."),
   beginDate: field("partialDate", "Start date, preserving source precision."),
   endDate: field("partialDate", "End date, preserving source precision."),
   source: field("string", "Provider or evidence source; not an instruction."),
@@ -153,7 +154,7 @@ const relationshipCrosswalk = [
 for (const [names, status, guidance] of relationshipCrosswalk) for (const key of names.split(" ")) legacyRelationships[key] = { status, guidance };
 
 const ontology = deepFreeze({ version: VERSION, entities, relationships, legacyEntities, legacyRelationships,
-  implementation: { stage: "typed-chat-and-isolated-import", writerEnforced: true, historyImported: false, isolatedImportSupported: true, note: "Domain validation is enforced in chat and import writes. Shared prompts and bounded stored-catalog context are implemented. Complete enrichment and production history activation remain pending. Operational counts belong in import receipts, not this static catalog." },
+  implementation: { stage: "typed-chat-and-history-import", writerEnforced: true, isolatedImportSupported: true, note: "Domain validation is enforced in chat and import writes. Shared development history imports and incremental enrichment are supported. Evidence storage references are importer-owned. Actual target state, counts and enrichment completion belong in import receipts, not this static catalog." },
   rules: [
     "Work, Recording, Track, Release and ReleaseGroup have different identities.",
     "Provider IDs are typed. Equal names are not identity evidence. Preserve submitted values and mapping uncertainty.",

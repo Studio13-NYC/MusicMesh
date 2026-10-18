@@ -6,7 +6,13 @@ const USER_AGENT='MusicMesh/1.0 (https://musicmesh.s13.nyc/)';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function atomicJson(file,value) {
   const temp=`${file}.${process.pid}.tmp`;
-  fs.writeFileSync(temp,JSON.stringify(value)+'\n');fs.renameSync(temp,file);
+  fs.writeFileSync(temp,JSON.stringify(value)+'\n');
+  // Windows readers/virus scanners may briefly deny replacement. Preserve the
+  // last checkpoint throughout bounded retries; never unlink it as a workaround.
+  for(let attempt=0;;attempt++){
+    try{fs.renameSync(temp,file);return;}
+    catch(error){if(!['EPERM','EBUSY','EACCES'].includes(error.code)||attempt>=19)throw error;Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,50);}
+  }
 }
 function recordingUrl(id) {
   if(typeof id!=='string'||!MBID.test(id))throw new Error('Invalid recording MBID');

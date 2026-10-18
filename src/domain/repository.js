@@ -1,5 +1,5 @@
-const assert=require('node:assert/strict');
-const {isDeepStrictEqual}=require('node:util');
+const {Prisma}=require('../../generated/prisma');
+const {compactProperties,FIELDS}=require('../evidenceArchive');
 const {DomainEntity,DomainRelationship}=require('./index');
 const {toColumns,searchText,entityRecord}=require('../graphProperties');
 const {entityFromGraph,relationshipFromGraph}=require('./serialization');
@@ -11,64 +11,62 @@ function edgeRow(edge){
   if(!(edge instanceof DomainRelationship))throw new Error('Persistence requires a validated domain relationship');
   return {id:edge.id,sourceId:edge.source,targetId:edge.target,type:edge.type,...toColumns(edge.toGraphRelationship().properties,true)};
 }
-function compare(expected,actual){
-  try {assert.deepEqual(Object.fromEntries(Object.keys(expected).map(k=>[k,actual?.[k]])),expected);}
-  catch {throw new Error(`Existing domain record conflict: ${expected.id}`);}
+function storageRow(object,relationship=false,compact=false){
+ const row=(relationship?edgeRow:nodeRow)(object);
+ if(compact)row.extra=compactProperties(row.extra);
+ return row;
 }
-/** One atomic, repeatable batch. Never overwrite a correction or an older differing assertion. */
-async function persistDomainBatchInTransaction(tx,{nodes=[],relationships=[]}){
-  const nodeRows=nodes.map(nodeRow),edgeRows=relationships.map(edgeRow);
-  if(new Set(nodeRows.map(n=>n.id)).size!==nodeRows.length || new Set(edgeRows.map(e=>e.id)).size!==edgeRows.length)throw new Error('Duplicate identities within import batch');
-    const insertedNodes=nodeRows.length?await tx.entity.createMany({data:nodeRows,skipDuplicates:true}):{count:0};
-    const actualNodes=new Map((await tx.entity.findMany({where:{id:{in:nodeRows.map(n=>n.id)}}})).map(n=>[n.id,n]));
-    for(const row of nodeRows)compare(row,actualNodes.get(row.id));
-    if(relationships.length){
-      const endpointIds=[...new Set(edgeRows.flatMap(row=>[row.sourceId,row.targetId]))];
-      const endpoints=new Map((await tx.entity.findMany({where:{id:{in:endpointIds}}})).map(row=>[row.id,entityFromGraph(entityRecord(row))]));
-      for(const edge of relationships){
-        try {relationshipFromGraph(edge.toGraphRelationship(),endpoints);}
-        catch(error){throw new Error(`Stored relationship endpoint validation failed: ${edge.id}`,{cause:error});}
-      }
-    }
-    const insertedEdges=edgeRows.length?await tx.relationship.createMany({data:edgeRows,skipDuplicates:true}):{count:0};
-    const actualEdges=new Map((await tx.relationship.findMany({where:{id:{in:edgeRows.map(e=>e.id)}}})).map(e=>[e.id,e]));
-    for(const row of edgeRows)compare(row,actualEdges.get(row.id));
-    return {createdNodes:insertedNodes.count,createdRelationships:insertedEdges.count,verifiedNodes:nodeRows.length,verifiedRelationships:edgeRows.length};
+async function verifyRows(tx,rows,relationship=false){
+ if(!rows.length)return;
+ const table=Prisma.raw(relationship?'relationships':'entities');
+ const conflicts=await tx.$queryRaw(Prisma.sql`SELECT src.id FROM jsonb_populate_recordset(NULL::${table}, ${JSON.stringify(rows)}::jsonb) src LEFT JOIN ${table} dst ON dst.id=src.id WHERE dst.id IS NULL OR to_jsonb(dst) IS DISTINCT FROM to_jsonb(src) LIMIT 1`);
+ if(conflicts.length)throw new Error('Existing domain record conflict: '+conflicts[0].id);
 }
-// A refresh is an explicit compare-and-swap against a previously imported snapshot.
-// Row locks also protect against writers that do not use our advisory lock.
-async function refreshRows(tx,objects,previous,relationship=false){
-  if(!previous?.size)return 0;
-  const changed=objects.filter(o=>previous.has(o.id));
-  if(!changed.length)return 0;
-  const ids=changed.map(o=>o.id),table=relationship?tx.relationship:tx.entity,toRow=relationship?edgeRow:nodeRow;
-  if(relationship)await tx.$queryRaw`SELECT id FROM relationships WHERE id = ANY(${ids}::text[]) FOR UPDATE`;
-  else await tx.$queryRaw`SELECT id FROM entities WHERE id = ANY(${ids}::text[]) FOR UPDATE`;
-  const current=new Map((await table.findMany({where:{id:{in:ids}}})).map(r=>[r.id,r]));
-  const updates=[];
-  for(const object of changed){
-    const next=toRow(object),before=toRow(previous.get(object.id)),actual=current.get(object.id);
-    if(isDeepStrictEqual(next,actual))continue;
-    compare(before,actual);
-    updates.push(next);
+/** Exact verification runs in PostgreSQL; only conflict IDs cross the network. */
+async function persistDomainBatchInTransaction(tx,{nodes=[],relationships=[],compactEvidence=false}){
+ const nodeRows=nodes.map(n=>storageRow(n,false,compactEvidence)),edgeRows=relationships.map(e=>storageRow(e,true,compactEvidence));
+ if(new Set(nodeRows.map(n=>n.id)).size!==nodeRows.length||new Set(edgeRows.map(e=>e.id)).size!==edgeRows.length)throw new Error('Duplicate identities within import batch');
+ const insertedNodes=nodeRows.length?await tx.entity.createMany({data:nodeRows,skipDuplicates:true}):{count:0};
+ await verifyRows(tx,nodeRows);
+ if(relationships.length){
+  const endpointIds=[...new Set(edgeRows.flatMap(row=>[row.sourceId,row.targetId]))];
+  const rows=await tx.$queryRaw`SELECT id, labels, name, "domainId", extra - ${FIELDS}::text[] AS extra FROM entities WHERE id=ANY(${endpointIds}::text[])`;
+  const endpoints=new Map(rows.map(row=>[row.id,entityFromGraph(entityRecord(row))]));
+  for(const edge of relationships){
+   try{relationshipFromGraph(edge.toGraphRelationship(),endpoints);}
+   catch(error){throw new Error('Stored relationship endpoint validation failed: '+edge.id,{cause:error});}
   }
-  if(!updates.length)return 0;
-  // Every row was locked and checked above. Apply this batch in one database
-  // round trip; identifiers come only from our fixed serializers, never input.
-  const {Prisma}=require('../../generated/prisma');
-  const sqlTable=Prisma.raw(relationship?'relationships':'entities');
-  const columns=Object.keys(updates[0]).filter(key=>key!=='id');
-  const assignments=Prisma.join(columns.map(key=>Prisma.sql`${Prisma.raw('"'+key+'"')} = src.${Prisma.raw('"'+key+'"')}`));
-  const updated=await tx.$executeRaw(Prisma.sql`UPDATE ${sqlTable} AS dst SET ${assignments} FROM jsonb_populate_recordset(NULL::${sqlTable}, ${JSON.stringify(updates)}::jsonb) AS src WHERE dst.id=src.id`);
-  if(updated!==updates.length)throw new Error('Refresh update count differs from locked rows');
-  return updated;
+ }
+ const insertedEdges=edgeRows.length?await tx.relationship.createMany({data:edgeRows,skipDuplicates:true}):{count:0};
+ await verifyRows(tx,edgeRows,true);
+ return {createdNodes:insertedNodes.count,createdRelationships:insertedEdges.count,verifiedNodes:nodeRows.length,verifiedRelationships:edgeRows.length};
+}
+// Row locks protect against non-cooperating writers as well as this importer's lock.
+async function refreshRows(tx,objects,previous,relationship=false,compact=false){
+ if(!previous?.size)return 0;
+ const changed=objects.filter(o=>previous.has(o.id));
+ if(!changed.length)return 0;
+ const ids=changed.map(o=>o.id),table=Prisma.raw(relationship?'relationships':'entities');
+ await tx.$queryRaw(Prisma.sql`SELECT id FROM ${table} WHERE id=ANY(${ids}::text[]) FOR UPDATE`);
+ const candidates=changed.map(o=>({id:o.id,next:storageRow(o,relationship,compact),before:storageRow(previous.get(o.id),relationship),compactBefore:compact?storageRow(previous.get(o.id),relationship,true):null}));
+ const states=await tx.$queryRaw(Prisma.sql`SELECT src.id, CASE WHEN to_jsonb(dst)=src.next THEN 'next' WHEN to_jsonb(dst)=src.before OR (${compact} AND to_jsonb(dst)=src."compactBefore") THEN 'before' ELSE 'conflict' END AS state FROM jsonb_to_recordset(${JSON.stringify(candidates)}::jsonb) AS src(id text,next jsonb,before jsonb,"compactBefore" jsonb) LEFT JOIN ${table} dst ON dst.id=src.id`);
+ const conflict=states.find(s=>s.state==='conflict');
+ if(conflict)throw new Error('Existing domain record conflict: '+conflict.id);
+ const updateIds=new Set(states.filter(s=>s.state==='before').map(s=>s.id));
+ const updates=candidates.filter(c=>updateIds.has(c.id)).map(c=>c.next);
+ if(!updates.length)return 0;
+ const columns=Object.keys(updates[0]).filter(key=>key!=='id');
+ const assignments=Prisma.join(columns.map(key=>Prisma.sql`${Prisma.raw('"'+key+'"')} = src.${Prisma.raw('"'+key+'"')}`));
+ const updated=await tx.$executeRaw(Prisma.sql`UPDATE ${table} AS dst SET ${assignments} FROM jsonb_populate_recordset(NULL::${table}, ${JSON.stringify(updates)}::jsonb) AS src WHERE dst.id=src.id`);
+ if(updated!==updates.length)throw new Error('Refresh update count differs from locked rows');
+ return updated;
 }
 async function persistDomainBatch(db,batch){
   return db.$transaction(async tx=>{
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;
-    const updatedNodes=await refreshRows(tx,batch.nodes||[],batch.previousNodes);
-    const updatedRelationships=await refreshRows(tx,batch.relationships||[],batch.previousRelationships,true);
+    const updatedNodes=await refreshRows(tx,batch.nodes||[],batch.previousNodes,false,!!batch.compactEvidence);
+    const updatedRelationships=await refreshRows(tx,batch.relationships||[],batch.previousRelationships,true,!!batch.compactEvidence);
     return {...await persistDomainBatchInTransaction(tx,batch),updatedNodes,updatedRelationships};
   },{isolationLevel:'ReadCommitted',timeout:30000});
 }
-module.exports={persistDomainBatch,persistDomainBatchInTransaction,nodeRow,edgeRow};
+module.exports={persistDomainBatch,persistDomainBatchInTransaction,nodeRow,edgeRow,storageRow};

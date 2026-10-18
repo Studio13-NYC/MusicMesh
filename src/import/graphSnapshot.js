@@ -114,6 +114,7 @@ function planSnapshotRefresh(previous,next){
     const serialize=o=>key==='nodes'?o.toGraphNode():o.toGraphRelationship();
     for(const object of next[key]){
       const old=before.get(object.id);if(!old)continue;
+      if(old===object)continue; // Domain objects are immutable; same-snapshot storage conversion.
       if(old.type!==object.type || (key==='relationships'&&(old.source!==object.source||old.target!==object.target)))throw new Error('Refresh domain identity differs');
       if(canonicalJson(serialize(old))!==canonicalJson(serialize(object)))plan[key].set(object.id,old);
     }
@@ -123,28 +124,52 @@ function planSnapshotRefresh(previous,next){
   }
   return plan;
 }
-async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,receiptName,previousDirectory}){
+function selectSnapshotDelta(previous,graph,refresh){
+  const result={};
+  for(const [key,suffix] of [['nodes','Nodes'],['relationships','Relationships']]){
+    const oldIds=new Set(previous[key].map(o=>o.id));
+    result[key]=graph[key].filter(o=>!oldIds.has(o.id)||refresh[key].has(o.id));
+    result['carried'+suffix]=graph[key].length-result[key].length;
+  }
+  return result;
+}
+async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,receiptName,previousDirectory,archiveDirectory}){
   if(replace&&previousDirectory)throw new Error('Replacement and refresh cannot be combined');
   const graph=readSnapshot(directory);
-  const previous=previousDirectory?readSnapshot(previousDirectory):null;
+  const previous=previousDirectory?(path.resolve(previousDirectory)===path.resolve(directory)?graph:readSnapshot(previousDirectory)):null;
+  const evidence=archiveDirectory?require('../evidenceArchive').verifiedArchive(archiveDirectory,graph.manifest.files):null;
+  if(evidence){
+    const archive=require('../evidenceArchive'),container=archive.getEvidenceContainer();
+    if(container.accountName!==evidence.receipt.account||(await container.getProperties()).blobPublicAccess)throw new Error('Evidence archive account/access mismatch');
+    for(const object of [...graph.nodes,...graph.relationships])archive.compactProperties(object.properties,ref=>{if(!evidence.hashes.has(ref.sha256))throw new Error('Snapshot evidence absent from verified archive');});
+  }
   const refresh=previous?planSnapshotRefresh(previous,graph):null;
   const {getDatabase}=require('../postgres'),{persistDomainBatch}=require('../domain/repository');
   const db=getDatabase();
   const identity=await db.$queryRaw`SELECT current_database() AS database`;
   if(identity[0].database!==target.database)throw new Error('Connected database identity differs');
-  if(previous&&!await db.importBatch.findUnique({where:{sourceHash:sha256(JSON.stringify(previous.manifest.files))}}))throw new Error('Previous snapshot has no verified import receipt in this database');
+  if(previous&&!await db.importBatch.findFirst({where:{sourceHash:{in:[sha256(JSON.stringify(previous.manifest.files)),'evidence-v1:'+sha256(JSON.stringify(previous.manifest.files))]}}}))throw new Error('Previous snapshot has no verified import receipt in this database');
+  const compactBaseline=previous&&await db.importBatch.findUnique({where:{sourceHash:'evidence-v1:'+sha256(JSON.stringify(previous.manifest.files))}});
+  if(!evidence&&(compactBaseline||await db.importBatch.findUnique({where:{sourceHash:'evidence-v1:'+sha256(JSON.stringify(graph.manifest.files))}})))throw new Error('Compacted database imports require --archive; do not restore duplicated evidence');
+  let selected={nodes:graph.nodes,relationships:graph.relationships,carriedNodes:0,carriedRelationships:0};
+  if(evidence&&compactBaseline)selected=selectSnapshotDelta(previous,graph,refresh);
+  else if(evidence&&previous){
+    // First storage conversion checks every baseline row, even unchanged sources.
+    refresh.nodes=new Map(previous.nodes.map(n=>[n.id,n]));refresh.relationships=new Map(previous.relationships.map(e=>[e.id,e]));
+  }
   if(replace)await db.$transaction(async tx=>{await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;await tx.relationship.deleteMany();await tx.entity.deleteMany();await tx.importBatch.deleteMany();},{timeout:30000});
-  const receipt={target,state:'loading',createdNodes:0,createdRelationships:0,updatedNodes:0,updatedRelationships:0,refresh:refresh?{...refresh.summary,previousSnapshotFiles:previous.manifest.files,omittedRecords:'retained'}:null,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files,
+  const receipt={target,carriedNodes:selected.carriedNodes,carriedRelationships:selected.carriedRelationships,evidence:evidence?{storageVersion:1,archiveManifestHash:evidence.receipt.manifestHash,account:evidence.receipt.account,container:evidence.receipt.container}:null,state:'loading',createdNodes:0,createdRelationships:0,updatedNodes:0,updatedRelationships:0,refresh:refresh?{...refresh.summary,previousSnapshotFiles:previous.manifest.files,omittedRecords:'retained'}:null,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files,
     enrichment:{recordings:graph.manifest.recordingLookups,catalog:graph.manifest.catalog||null,acoustic:graph.manifest.acoustic||null}};
-  const receiptPath=path.join(directory,receiptName);
+  const receiptPath=path.join(directory,evidence?receiptName.replace('.json','-evidence-v1.json'):receiptName);
   try {
-    for(const [key,objects] of [['nodes',graph.nodes],['relationships',graph.relationships]])for(let i=0;i<objects.length;i+=200){
-      const result=await persistDomainBatch(db,{[key]:objects.slice(i,i+200),previousNodes:refresh?.nodes,previousRelationships:refresh?.relationships});
+    for(const [key,objects] of [['nodes',selected.nodes],['relationships',selected.relationships]])for(let i=0;i<objects.length;i+=200){
+      const result=await persistDomainBatch(db,{[key]:objects.slice(i,i+200),previousNodes:refresh?.nodes,previousRelationships:refresh?.relationships,compactEvidence:!!evidence});
       for(const field of ['createdNodes','createdRelationships','updatedNodes','updatedRelationships','verifiedNodes','verifiedRelationships'])receipt[field]+=result[field];
       if(i%2000===0)onProgress({...receipt});
     }
     receipt.state='verified';receipt.verifiedAt=new Date().toISOString();
-    await db.importBatch.upsert({where:{sourceHash:sha256(JSON.stringify(graph.manifest.files))},create:{sourceHash:sha256(JSON.stringify(graph.manifest.files)),nodes:graph.nodes.length,relationships:graph.relationships.length},update:{}});
+    const sourceHash=(evidence?'evidence-v1:':'')+sha256(JSON.stringify(graph.manifest.files));
+    await db.importBatch.upsert({where:{sourceHash},create:{sourceHash,nodes:graph.nodes.length,relationships:graph.relationships.length},update:{}});
     fs.writeFileSync(receiptPath,JSON.stringify(receipt,null,2)+'\n');return receipt;
   }catch(error){receipt.state='incomplete';fs.writeFileSync(receiptPath,JSON.stringify(receipt,null,2)+'\n');throw error;}
 }
@@ -155,7 +180,7 @@ function loadIsolatedSnapshot(options){
 function loadMainDevelopmentSnapshot(options){
   const target=assertMainDevelopmentTarget(process.env.DATABASE_URL);
   require('./snapshotAudit').auditSnapshot({directory:options.directory,preparedDir:options.preparedDir});
-  if(options.previousDirectory)require('./snapshotAudit').auditSnapshot({directory:options.previousDirectory,preparedDir:options.preparedDir});
+  if(options.previousDirectory&&path.resolve(options.previousDirectory)!==path.resolve(options.directory))require('./snapshotAudit').auditSnapshot({directory:options.previousDirectory,preparedDir:options.preparedDir});
   return loadSnapshot({...options,target,receiptName:'main-development-import-receipt.json'});
 }
-module.exports={planSnapshotRefresh,compileSnapshot,readSnapshot,assertIsolatedTarget,assertMainDevelopmentTarget,loadIsolatedSnapshot,loadMainDevelopmentSnapshot};
+module.exports={selectSnapshotDelta,planSnapshotRefresh,compileSnapshot,readSnapshot,assertIsolatedTarget,assertMainDevelopmentTarget,loadIsolatedSnapshot,loadMainDevelopmentSnapshot};

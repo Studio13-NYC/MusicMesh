@@ -712,6 +712,13 @@ function startServer(port = DEFAULT_PORT) {
       return;
     }
 
+    if (request.method === "GET" && requestUrl.pathname === "/api/graph/evidence") {
+      const q=requestUrl.searchParams;
+      require('./evidenceService').evidenceResponse({kind:q.get('kind'),id:q.get('id'),field:q.get('field')})
+        .then(result=>sendJson(response,result.status,result.body));
+      return;
+    }
+
     if (request.method === "GET" && requestUrl.pathname === "/api/health") {
       sendJson(response, 200, {
         ok: true,
