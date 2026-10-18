@@ -44,14 +44,14 @@ Root `.env` is main. The local full restoration test database uses `.env.restore
 
 ## Optional Roon operator extension
 
-`tools/roon-browse/` now provides a separate local MusicMesh Browse extension with pinned SDK dependencies. It has contacted the discovered Core; user Enable is required. Current state and PID are in ignored `output/roon-browse/status.json`; successful authorization triggers one bounded genre-root read. This is not an Azure/app connector or a completed ten-album test. See [instructions](../../tools/roon-browse/README.md). Qobuz is deferred by Nick; retain the unsent request and evaluate Roon first.
+`tools/roon-browse/` now provides a separate local MusicMesh Browse extension with pinned SDK dependencies. Nick enabled it and a live ten-album capability test completed: all ten text-matched album candidates appeared in genre lists. Navigation keys proved unstable, and sampled album items did not expose structured credits or external IDs. Exact editions remain unverified. Current state/PID and private test receipts are in ignored `output/roon-browse/`. This is not an Azure/app connector or a database import. See [instructions](../../tools/roon-browse/README.md). Qobuz is deferred by Nick; retain the unsent request and evaluate Roon first.
 
 ## Current limits
 
 - Genre arrays/tags exist in archived provider payloads but are not yet normalized into complete queryable genre assignments. The aggregate reports this coverage gap while returning real play totals.
 - Factor comparison covers direct reviewed recording assertions plus imported MusicBrainz recording credits and instrument descriptors; use `credits` for edition-aware inherited factors. Imported provider release credits remain album-only unless separately evidenced as all-tracks.
 - The researcher can prepare a missing typed factor (such as equipment model, studio or person) together with its scoped evidence. The modal explicitly shows the new identity; no model assertion becomes provider evidence.
-- Roon needs a local Core extension connection; the official browse API supports a genres hierarchy, but export coverage and stable identities are unverified. Qobuz needs granted developer access; QobuzApiSharp provides useful metadata field references. Neither is connected. Read the [Roon/Qobuz assessment](../research/2026-10-18-roon-qobuz.md) before implementing adapters. Public source search requires BRAVE_API_KEY; public HTTPS text reads and supplied excerpts work independently.
+- Roon local browse access is authorized and the ten-album capability test passed; the app/Azure researcher is not connected to that local bridge. Browse navigation keys are unstable and exact edition identity is unresolved. Qobuz is deferred and unconnected. Read the [Roon/Qobuz assessment](../research/2026-10-18-roon-qobuz.md) before implementing adapters. Public source search requires BRAVE_API_KEY; public HTTPS text reads and supplied excerpts work independently.
 - No automatic claim of why Nick likes a song: explicit preferences and evidence coverage are separate from listening frequency and acoustic distance.
 - No Neo4j runtime, exporter/importer, driver, credential setting or rollback workflow remains. Historical Git commits and protected archives are history, not instructions.
 

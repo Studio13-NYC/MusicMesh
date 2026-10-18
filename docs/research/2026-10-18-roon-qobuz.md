@@ -4,6 +4,8 @@ Reviewed 18 October 2026 following Nick's suggestions. This is a source assessme
 
 Priority update, 18 October: Nick deferred Qobuz while we evaluate what Roon supplies. Keep the Qobuz request unsent and do not pursue credentials or implement its adapter now. The optional [MusicMesh Browse extension](../../tools/roon-browse/README.md) is the next Roon access step; its local receipt, not this assessment, establishes whether user authorization has completed.
 
+Live follow-up completed later on 18 October: Nick authorized the extension. Ten album-title/artist-text candidates from imported history all appeared in Roon genre lists (21 top-level genres and three Pop/Rock branches tested). All ten album detail lists and 24 genre membership lists were fully paged in 225 requests. All 21 root item keys changed on browse reset. Sampled album items exposed display text and navigation fields, not structured personnel roles or UPC/ISRC/MBIDs. These results support using Roon for attributed genre/library context, with edition matching still unresolved. Private album-level receipts and report are in `output/roon-browse/`. No graph import occurred. The source assessment below records the earlier evidence; live observations supersede its unverified capability questions only for these tested paths.
+
 ## Recommendation
 
 Prioritize Roon as a candidate for Nick's genre hierarchy and library classifications, and Qobuz for complementary edition metadata, personnel text and supplementary documents. Keep MusicBrainz identities and existing domain classes as the foundation. Neither source establishes why Nick likes a recording.

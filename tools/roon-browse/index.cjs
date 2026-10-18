@@ -17,6 +17,7 @@ const statusPath = path.join(directory, 'status.json');
 let stopping = false;
 let connection;
 let retry;
+let probeStarted = false;
 let status = { pid: process.pid, host, port, extensionName: 'MusicMesh Browse', startedAt: new Date().toISOString() };
 function update(state, details = {}) {
   status = { ...status, ...details, state, updatedAt: new Date().toISOString() };
@@ -43,6 +44,20 @@ const roon = new RoonApi({
     update('authorized', { coreName: core.display_name, coreVersion: core.display_version });
     const browse = core.services.RoonApiBrowse;
     if (!browse) return update('browse-unavailable');
+    if (probeStarted) return update('ready', { probeNotRepeatedAfterReconnect: true });
+    probeStarted = true;
+    if (process.argv.includes('--ten-albums')) {
+      require('./probe.cjs').tenAlbums(browse, directory)
+        .then(result => update('ten-album-test-complete', result))
+        .catch(error => update('ten-album-test-failed', { error: error.message }));
+      return;
+    }
+    if (process.argv.includes('--inspect')) {
+      require('./probe.cjs').inspect(browse, directory)
+        .then(result => update('inspection-complete', result))
+        .catch(error => update('inspection-failed', { error: error.message }));
+      return;
+    }
     // A single bounded read proves access. No action item or playback zone is selected.
     browse.browse({ hierarchy: 'genres', pop_all: true }, (error, body) => {
       if (error) return update('genre-probe-failed', { error: String(error) });
@@ -50,7 +65,7 @@ const roon = new RoonApi({
       browse.load({ hierarchy: 'genres', offset: 0, count: 20 }, (loadError, result) => {
         if (loadError) return update('genre-probe-failed', { error: String(loadError) });
         fs.writeFileSync(path.join(directory, 'genre-root.json'), JSON.stringify({ retrievedAt: new Date().toISOString(), coreName: core.display_name, ...result }, null, 2));
-        update('ready', { genreRootItems: result.items.length, genreRootTotal: result.list?.count, tenAlbumTestComplete: false });
+        update('ready', { genreRootItems: result.items.length, genreRootTotal: result.list?.count });
       });
     });
   },
