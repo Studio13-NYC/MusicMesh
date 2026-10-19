@@ -44,4 +44,4 @@ The conversation map has **28 nodes and 39 selectable connections** backed by 24
 
 The deployed app's Browse/Load path displayed *Moseley Shoals* with **7 nodes / 6 connections**. Fullscreen inspection showed the saved Les Paul claim at **95/100**, album scope and its firsthand source. Proof: `output/research/2026-10-18-cradock-ocs-oasis/deployed.png`. This used the existing zero-LLM browsing path. The larger conversation map is not a durable saved view in the app; broader retrieval and title disambiguation remain product work.
 
-Suggested next route: **P. P. Arnold → Small Faces / Steve Marriott / Ronnie Lane**, following her OCS/Weller sessions into the earlier British soul-rock network. This is a proposal awaiting Nick's Approve/Deny/Defer choice; it has not been researched as a new branch.
+Nick redirected the proposed P. P. Arnold / Small Faces branch toward instruments, effects and recording techniques of the main guitarists already connected. The completed [guitar-sound deep dive](2026-10-18-guitar-sound-deep-dive.md) adds 40 sourced claims. The Arnold branch has not been started.
