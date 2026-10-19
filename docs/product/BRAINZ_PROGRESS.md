@@ -251,7 +251,7 @@ Private proof under `output/imports/2026-10-18/`: `main-before-evidence.json`, `
 
 Catalog collection remains running separately: **53,561 successful requests**, zero missing/errors, stage `context` at 2026-10-18T17:57:46.797Z. These later downloads have not been imported. The final remaining request count is not yet established. Hourly status monitoring remains active.
 
-## 18 October ï¿½ researcher implementation
+## 18 October — researcher implementation
 
 Implemented the [approved researcher spec](../superpowers/specs/2026-10-18-researcher-design.md) and [plan](../superpowers/plans/2026-10-18-researcher.md): GPT-6 Luna/high, bounded task-directed graph tools, real graph results without model preview/plan/ground/review, durable decisions, source-backed album defaults with edition/track exceptions, explicit preferences and factor comparison. Neo4j executable code/dependency/settings removed. Typed graph and private Blob evidence architecture retained. Review found six important correctness/recovery issues; all corrected with regression proof (90 unit checks, 16 isolated SQL checks). Additive operational ResearchRun migration applied to shared main; application deployment is pending. This change does not import later collector downloads.
 

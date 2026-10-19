@@ -65,13 +65,13 @@ Fresh review of `db96e68..4a53698` identified six important findings and no crit
 
 18 October 19:19 UTC: additive `20261018190000_research_runs` migration applied to MusicMesh main. Azure model settings set to `gpt-6-luna` / `high`. Application deployment proof still pending. No bulk catalog reads/imports were performed for this change.
 
-## Deployed proof ï¿½ 18 October
+## Deployed proof — 18 October
 
 Commit `d941309` deployed successfully in [run 39158340330](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158340330). Actual Edge workbench request `req-e43d759b-9b07-4998-9b96-118d607dae2a` completed with seven stored nodes/six edges, four researcher calls, 8,875 total tokens and 13,139 ms summed model latency. Runtime telemetry confirms `gpt-6-luna` / high. Tape contains both the user prompt and final answer. Proof: `output/researcher-live-deployed.json`, `output/researcher-deployed-graph.jpg`.
 
 Final usability pass: compact approval details keep Approve/Deny/Defer visible; user-supplied source quotations can carry through the bounded recent user history. Assistant assertions and selected-node text do not become source evidence. Current tests: 91 unit passes and 16 isolated SQL passes. Transcript appends use stable IDs and ordinary retry suppression, but are observational rather than a transactional outbox; a storage outage can leave a tape gap even though run state is saved.
 
-## Completion ï¿½ 18 October 19:31 UTC
+## Completion — 18 October 19:31 UTC
 
 Core runtime `740bafa` deployed successfully in [run 39158974520](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158974520). Build, unit tests and Azure bundle checks all passed in CI. Actual deployed Defer -> full page reload -> Resume -> Approve completed request `req-5e8bbd40-a7dc-434b-a89e-748042a7342f` with the chosen answer; tape independently contains prompt, defer, approve and answer. Local Deny and Cancel stopped test enrichment without saving it. No fabricated claims remain in the catalog.
 
