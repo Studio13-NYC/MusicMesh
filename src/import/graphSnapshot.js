@@ -5,6 +5,7 @@ const {entityFromGraph,relationshipFromGraph,canonicalJson}=require('../domain/s
 const {sha256}=require('./history');
 const {recordingUrl}=require('./providerCache');
 const {recordingGraph}=require('./catalogGraph');
+const {readRecords,writeRecords}=require('./snapshotFiles');
 function readLines(bytes){return bytes.toString('utf8').split(/\r?\n/).filter(Boolean).map(JSON.parse);}
 function checkedFile(dir,manifest,name){
   const bytes=fs.readFileSync(path.join(dir,name));
@@ -76,8 +77,8 @@ function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCata
   fs.mkdirSync(outputDir,{recursive:true});
   if(fs.readdirSync(outputDir).length)throw new Error('Snapshot output must be empty');
   const files={};
-  for(const [name,objects] of [['nodes.ndjson',[...nodes.values()].map(n=>n.toGraphNode())],['relationships.ndjson',[...edges.values()].map(e=>e.toGraphRelationship())]]){
-    const bytes=objects.map(o=>JSON.stringify(o)).join('\n')+'\n';fs.writeFileSync(path.join(outputDir,name),bytes,{flag:'wx'});files[name]=sha256(bytes);
+  for(const [name,objects,serialize] of [['nodes.ndjson',nodes.values(),n=>n.toGraphNode()],['relationships.ndjson',edges.values(),e=>e.toGraphRelationship()]]){
+    files[name]=writeRecords(path.join(outputDir,name),(function*(){for(const object of objects)yield serialize(object);})());
   }
   const counts={};for(const node of nodes.values())counts[node.type]=(counts[node.type]||0)+1;
   const manifest={version:1,ontologyVersion:domain.getOntology().version,createdAt:new Date().toISOString(),sourceInput:prepared.input,
@@ -85,12 +86,13 @@ function compileSnapshot({preparedDir,cacheDir,outputDir,acousticDir,includeCata
   fs.writeFileSync(path.join(outputDir,'manifest.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});
   return manifest;
 }
-function readSnapshot(directory){
+function readSnapshot(directory,options={}){
   const manifest=JSON.parse(fs.readFileSync(path.join(directory,'manifest.json')));
-  if(manifest.version!==1 || manifest.ontologyVersion!==domain.getOntology().version)throw new Error('Unsupported snapshot/ontology version');
-  const nodes=readLines(checkedFile(directory,manifest,'nodes.ndjson')).map(entityFromGraph);
+  if(manifest.version!==1)throw new Error('Unsupported snapshot version');
+  require('../domain/versions').assertOntologyVersion(manifest.ontologyVersion);
+  const nodes=Array.from(readRecords(path.join(directory,'nodes.ndjson'),manifest.files['nodes.ndjson']),n=>entityFromGraph(n,options));
   const byId=new Map(nodes.map(n=>[n.id,n]));
-  const relationships=readLines(checkedFile(directory,manifest,'relationships.ndjson')).map(e=>relationshipFromGraph(e,byId));
+  const relationships=Array.from(readRecords(path.join(directory,'relationships.ndjson'),manifest.files['relationships.ndjson']),e=>relationshipFromGraph(e,byId,options));
   if(nodes.length!==manifest.nodes || byId.size!==nodes.length || relationships.length!==manifest.relationships || new Set(relationships.map(e=>e.id)).size!==relationships.length)throw new Error('Snapshot count/identity mismatch');
   return {manifest,nodes,relationships};
 }
@@ -133,22 +135,28 @@ function selectSnapshotDelta(previous,graph,refresh){
   }
   return result;
 }
-async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,receiptName,previousDirectory,archiveDirectory}){
+async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,receiptName,previousDirectory,archiveDirectory,researchDirectories=[]}){
   if(replace&&previousDirectory)throw new Error('Replacement and refresh cannot be combined');
-  const graph=readSnapshot(directory);
-  const previous=previousDirectory?(path.resolve(previousDirectory)===path.resolve(directory)?graph:readSnapshot(previousDirectory)):null;
+  if(researchDirectories.length&&(!previousDirectory||replace))throw new Error('Research baseline requires an additive previous snapshot');
+  const graph=readSnapshot(directory,{preserveOntologyVersion:true});
+  let previous=previousDirectory?readSnapshot(previousDirectory,{preserveOntologyVersion:true}):null;
   const evidence=archiveDirectory?require('../evidenceArchive').verifiedArchive(archiveDirectory,graph.manifest.files):null;
   if(evidence){
     const archive=require('../evidenceArchive'),container=archive.getEvidenceContainer();
     if(container.accountName!==evidence.receipt.account||(await container.getProperties()).blobPublicAccess)throw new Error('Evidence archive account/access mismatch');
     for(const object of [...graph.nodes,...graph.relationships])archive.compactProperties(object.properties,ref=>{if(!evidence.hashes.has(ref.sha256))throw new Error('Snapshot evidence absent from verified archive');});
   }
-  const refresh=previous?planSnapshotRefresh(previous,graph):null;
   const {getDatabase}=require('../postgres'),{persistDomainBatch}=require('../domain/repository');
   const db=getDatabase();
   const identity=await db.$queryRaw`SELECT current_database() AS database`;
   if(identity[0].database!==target.database)throw new Error('Connected database identity differs');
   if(previous&&!await db.importBatch.findFirst({where:{sourceHash:{in:[sha256(JSON.stringify(previous.manifest.files)),'evidence-v1:'+sha256(JSON.stringify(previous.manifest.files))]}}}))throw new Error('Previous snapshot has no verified import receipt in this database');
+  if(researchDirectories.length)previous=await require('./researchBaseline').extendResearchBaseline(previous,{directories:researchDirectories,db});
+  if(graph.manifest.researchBaselines){
+    const identities=list=>(list||[]).map(({sourceHash,files})=>({sourceHash,files})).sort((a,b)=>a.sourceHash.localeCompare(b.sourceHash));
+    if(canonicalJson(identities(graph.manifest.researchBaselines))!==canonicalJson(identities(previous?.researchBaselines)))throw new Error('Snapshot research baselines require matching verified research directories');
+  }
+  const refresh=previous?planSnapshotRefresh(previous,graph):null;
   const compactBaseline=previous&&await db.importBatch.findUnique({where:{sourceHash:'evidence-v1:'+sha256(JSON.stringify(previous.manifest.files))}});
   if(!evidence&&(compactBaseline||await db.importBatch.findUnique({where:{sourceHash:'evidence-v1:'+sha256(JSON.stringify(graph.manifest.files))}})))throw new Error('Compacted database imports require --archive; do not restore duplicated evidence');
   let selected={nodes:graph.nodes,relationships:graph.relationships,carriedNodes:0,carriedRelationships:0};
@@ -158,7 +166,7 @@ async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,re
     refresh.nodes=new Map(previous.nodes.map(n=>[n.id,n]));refresh.relationships=new Map(previous.relationships.map(e=>[e.id,e]));
   }
   if(replace)await db.$transaction(async tx=>{await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;await tx.relationship.deleteMany();await tx.entity.deleteMany();await tx.importBatch.deleteMany();},{timeout:30000});
-  const receipt={target,carriedNodes:selected.carriedNodes,carriedRelationships:selected.carriedRelationships,evidence:evidence?{storageVersion:1,archiveManifestHash:evidence.receipt.manifestHash,account:evidence.receipt.account,container:evidence.receipt.container}:null,state:'loading',createdNodes:0,createdRelationships:0,updatedNodes:0,updatedRelationships:0,refresh:refresh?{...refresh.summary,previousSnapshotFiles:previous.manifest.files,omittedRecords:'retained'}:null,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files,
+  const receipt={target,researchBaselines:previous?.researchBaselines||[],carriedNodes:selected.carriedNodes,carriedRelationships:selected.carriedRelationships,evidence:evidence?{storageVersion:1,archiveManifestHash:evidence.receipt.manifestHash,account:evidence.receipt.account,container:evidence.receipt.container}:null,state:'loading',createdNodes:0,createdRelationships:0,updatedNodes:0,updatedRelationships:0,refresh:refresh?{...refresh.summary,previousSnapshotFiles:previous.manifest.files,omittedRecords:'retained'}:null,verifiedNodes:0,verifiedRelationships:0,snapshotFiles:graph.manifest.files,
     enrichment:{recordings:graph.manifest.recordingLookups,catalog:graph.manifest.catalog||null,acoustic:graph.manifest.acoustic||null}};
   const receiptPath=path.join(directory,evidence?receiptName.replace('.json','-evidence-v1.json'):receiptName);
   try {

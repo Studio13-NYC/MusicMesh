@@ -6,8 +6,8 @@ async function main() {
   const {values,positionals}=parseArgs({allowPositionals:true,options:{
     source:{type:'string'},output:{type:'string'},account:{type:'string'},
     'listenbrainz-export':{type:'string'},'listenbrainz-account':{type:'string'},help:{type:'boolean'},
-    archive:{type:'string'},prepared:{type:'string'},cache:{type:'string'},coverage:{type:'string'},features:{type:'string'},neighbors:{type:'string'},limit:{type:'string'},
-    snapshot:{type:'string'},'previous-snapshot':{type:'string'},'catalog-checkpoint':{type:'string'},acoustic:{type:'string'},'replace-existing':{type:'boolean'},'include-catalog':{type:'boolean'},'wait-for-lock':{type:'boolean'},
+    archive:{type:'string'},'upload-concurrency':{type:'string'},prepared:{type:'string'},cache:{type:'string'},coverage:{type:'string'},features:{type:'string'},neighbors:{type:'string'},limit:{type:'string'},
+    snapshot:{type:'string'},'previous-snapshot':{type:'string'},'research-baseline':{type:'string',multiple:true},'catalog-checkpoint':{type:'string'},acoustic:{type:'string'},'replace-existing':{type:'boolean'},'include-catalog':{type:'boolean'},'wait-for-lock':{type:'boolean'},
   }});
   if(values.help) {
     console.log([
@@ -23,8 +23,10 @@ async function main() {
       'node --env-file=.env.migration scripts/importListeningHistory.js load-isolated --snapshot <directory> [--replace-existing | --previous-snapshot <loaded directory>]',
       'node --env-file=.env scripts/importListeningHistory.js load-main --prepared <directory> --snapshot <directory> [--replace-existing | --previous-snapshot <loaded directory>]',
       'npm run brainz:import -- prepare-evidence --snapshot <directory> --output <archive directory>',
-      'node --env-file=.env scripts/importListeningHistory.js upload-evidence --archive <directory>',
+      'node --env-file=.env scripts/importListeningHistory.js upload-evidence --archive <directory> [--upload-concurrency 1..32; default 8]',
       'Add --archive <verified uploaded archive> to load-main/load-isolated for compact storage.',
+      'Repeat --research-baseline <committed research directory> with --previous-snapshot to preserve later research baselines.',
+      'preserve-research --snapshot <compiled directory> --output <empty directory> --research-baseline <committed directory> (repeat for each batch)',
       'Only load-isolated and load-main write a database; each requires its named MusicMesh target. Main is the shared development backend. Partial enrichment is allowed and recorded. No command submits listens.'
     ].join('\n'));return;
   }
@@ -32,9 +34,13 @@ async function main() {
     if(!values.snapshot||!values.output)throw new Error('--snapshot and --output are required');
     console.log(JSON.stringify(await require('../src/import/evidencePreparation').prepareEvidenceArchive({directory:values.snapshot,outputDir:values.output}),null,2));return;
   }
+  if(positionals.length===1 && positionals[0]==='preserve-research') {
+    if(!values.snapshot||!values.output||!values['research-baseline']?.length)throw new Error('preserve-research requires --snapshot, --output and --research-baseline');
+    console.log(JSON.stringify(require('../src/import/researchBaseline').preserveResearchSnapshot({directory:values.snapshot,outputDir:values.output,researchDirectories:values['research-baseline']}),null,2));return;
+  }
   if(positionals.length===1 && positionals[0]==='upload-evidence') {
     if(!values.archive)throw new Error('--archive is required');
-    console.log(JSON.stringify(await require('../src/evidenceArchive').uploadEvidenceArchive(values.archive,{onProgress:p=>console.log(JSON.stringify(p))}),null,2));return;
+    console.log(JSON.stringify(await require('../src/evidenceArchive').uploadEvidenceArchive(values.archive,{concurrency:values['upload-concurrency']===undefined?8:Number(values['upload-concurrency']),onProgress:p=>console.log(JSON.stringify(p))}),null,2));return;
   }
   if(positionals.length===1 && positionals[0]==='fetch-recordings') {
     if(!values.prepared||!values.cache)throw new Error('--prepared and --cache are required');
@@ -71,12 +77,12 @@ async function main() {
   }
   if(positionals.length===1 && positionals[0]==='load-isolated') {
     if(!values.snapshot)throw new Error('load-isolated requires --snapshot');
-    try {console.log(JSON.stringify(await require('../src/import/graphSnapshot').loadIsolatedSnapshot({directory:values.snapshot,archiveDirectory:values.archive,previousDirectory:values['previous-snapshot'],replace:!!values['replace-existing'],onProgress:p=>console.log(JSON.stringify(p))}),null,2));}
+    try {console.log(JSON.stringify(await require('../src/import/graphSnapshot').loadIsolatedSnapshot({directory:values.snapshot,archiveDirectory:values.archive,previousDirectory:values['previous-snapshot'],researchDirectories:values['research-baseline'],replace:!!values['replace-existing'],onProgress:p=>console.log(JSON.stringify(p))}),null,2));}
     finally {await require('../src/postgres').closeDatabase();}return;
   }
   if(positionals.length===1 && positionals[0]==='load-main') {
     if(!values.snapshot||!values.prepared)throw new Error('load-main requires --snapshot and --prepared');
-    try {console.log(JSON.stringify(await require('../src/import/graphSnapshot').loadMainDevelopmentSnapshot({directory:values.snapshot,preparedDir:values.prepared,archiveDirectory:values.archive,previousDirectory:values['previous-snapshot'],replace:!!values['replace-existing'],onProgress:p=>console.log(JSON.stringify(p))}),null,2));}
+    try {console.log(JSON.stringify(await require('../src/import/graphSnapshot').loadMainDevelopmentSnapshot({directory:values.snapshot,preparedDir:values.prepared,archiveDirectory:values.archive,previousDirectory:values['previous-snapshot'],researchDirectories:values['research-baseline'],replace:!!values['replace-existing'],onProgress:p=>console.log(JSON.stringify(p))}),null,2));}
     finally {await require('../src/postgres').closeDatabase();}return;
   }
   if(positionals.length===1 && positionals[0]==='audit-snapshot') {

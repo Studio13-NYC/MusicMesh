@@ -59,3 +59,20 @@ test('failed uploads settle in-flight work and never publish a verified receipt'
   release();await rejected;assert.ok(calls<=8);assert.equal(fs.existsSync(path.join(dir,'archive-upload-receipt.json')),false);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('archive upload uses the selected bounded concurrency and rejects unsafe limits',async()=>{
+ const {uploadEvidenceArchive}=require('../src/evidenceArchive');
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'musicmesh-upload-concurrency-'));
+ try{
+  const archive=new LocalEvidenceArchive(dir);
+  for(let i=0;i<40;i++)compactProperties({rawProvider:{i,text:'x'.repeat(1000)}},(r,b)=>archive.put(r,b));
+  fs.writeFileSync(path.join(dir,'archive-manifest.json'),JSON.stringify({version:1,documents:[...archive.entries.values()]}));
+  let active=0,peak=0;
+  const container={accountName:'test',createIfNotExists:async()=>{},getProperties:async()=>({}),getBlockBlobClient:()=>({uploadData:async()=>{
+   active++;peak=Math.max(peak,active);await new Promise(resolve=>setImmediate(resolve));active--;
+  }})};
+  const receipt=await uploadEvidenceArchive(dir,{container,concurrency:16});
+  assert.equal(peak,16);assert.equal(receipt.verified,40);
+  for(const concurrency of [0,33,1.5,NaN])await assert.rejects(()=>uploadEvidenceArchive(dir,{container,concurrency}),/concurrency/i);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});

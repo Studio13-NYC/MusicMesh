@@ -34,6 +34,7 @@ const copies = [
   ["src/domain/index.js", "shared/domain/index.js"],
   ["src/domain/repository.js", "shared/domain/repository.js"],
   ["src/domain/serialization.js", "shared/domain/serialization.js"],
+  ["src/domain/versions.js", "shared/domain/versions.js"],
   ["src/env.js", "shared/env.js"],
   ["src/postgres.js", "shared/postgres.js"],
   ["src/graphStore.js", "shared/graphStore.js"],

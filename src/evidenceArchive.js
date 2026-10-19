@@ -61,7 +61,8 @@ async function readBlobEvidence(ref,container=getEvidenceContainer()){
  if(properties.contentLength>MAX_BYTES)throw new Error('Evidence exceeds retrieval limit');
  return decodeEvidence(ref,await client.downloadToBuffer(0,properties.contentLength,{conditions:{ifMatch:properties.etag}}));
 }
-async function uploadEvidenceArchive(directory,{onProgress=()=>{},container=getEvidenceContainer()}={}){
+async function uploadEvidenceArchive(directory,{onProgress=()=>{},container=getEvidenceContainer(),concurrency=8}={}){
+ if(!Number.isInteger(concurrency)||concurrency<1||concurrency>32)throw new Error('Evidence upload concurrency must be an integer from 1 to 32');
  const manifestBytes=fs.readFileSync(path.join(directory,'archive-manifest.json'));
  const manifest=JSON.parse(manifestBytes);
  if(manifest.version!==1)throw new Error('Unsupported evidence archive');
@@ -70,7 +71,7 @@ async function uploadEvidenceArchive(directory,{onProgress=()=>{},container=getE
  let created=0,verified=0,bytes=0;
  // Bounded parallel uploads, with transport checksums and conditional creation.
  let next=0,failure;
- await Promise.all(Array.from({length:8},async()=>{
+ await Promise.all(Array.from({length:concurrency},async()=>{
   try{while(!failure&&next<manifest.documents.length){
    const ref=manifest.documents[next++],name=blobName(ref),data=fs.readFileSync(path.join(directory,name));
    decodeEvidence(ref,data);

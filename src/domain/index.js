@@ -59,7 +59,7 @@ function validateFields(definition, properties) {
 }
 class DomainEntity {
   static get definition() { return getTypeDefinition(this.type); }
-  constructor({ id, name, externalId = null, properties = {} } = {}) {
+  constructor({ id, name, externalId = null, properties = {}, ontologyVersion = ontology.version } = {}) {
     const definition = this.constructor.definition;
     if (!nonempty(name)) throw new Error(`${definition.key}.name is required`);
     if (!properties || typeof properties !== "object" || Array.isArray(properties)) throw new Error("properties must be an object");
@@ -75,6 +75,7 @@ class DomainEntity {
     }
     if (!nonempty(identity) || identity !== identity.trim()) throw new Error(`${definition.key} requires an explicit identity without surrounding whitespace`);
     validateFields(definition, properties);
+    this.ontologyVersion = require('./versions').assertOntologyVersion(ontologyVersion);
     this.id = identity;
     this.type = definition.key;
     this.name = name;
@@ -83,7 +84,7 @@ class DomainEntity {
     Object.freeze(this);
   }
   toGraphNode() {
-    return { id: this.id, labels: [this.type], properties: { ...structuredClone(this.properties), id: this.id, name: this.name, ...(this.externalId ? { externalId: { ...this.externalId } } : {}), ontologyVersion: ontology.version } };
+    return { id: this.id, labels: [this.type], properties: { ...structuredClone(this.properties), id: this.id, name: this.name, ...(this.externalId ? { externalId: { ...this.externalId } } : {}), ontologyVersion: this.ontologyVersion } };
   }
 }
 class Artist extends DomainEntity { static type = "Artist"; }
@@ -130,7 +131,7 @@ class EvidenceAssertion extends DomainEntity { static type = "EvidenceAssertion"
 class PreferenceSignal extends DomainEntity { static type = "PreferenceSignal"; }
 class DomainRelationship {
   static get definition() { return getTypeDefinition(this.type); }
-  constructor({ source, target, assertionKey, properties = {} } = {}) {
+  constructor({ source, target, assertionKey, properties = {}, ontologyVersion = ontology.version } = {}) {
     const definition = this.constructor.definition;
     if (!(source instanceof DomainEntity) || !definition.sourceTypes.includes(source.type)) throw new Error(`${definition.key}: invalid source endpoint`);
     if (!(target instanceof DomainEntity) || !definition.targetTypes.includes(target.type)) throw new Error(`${definition.key}: invalid target endpoint`);
@@ -146,6 +147,7 @@ class DomainRelationship {
     if (definition.key === "CreditsArtist" && source.properties.credits[properties.position]?.artistId !== target.id) throw new Error("CreditsArtist: endpoint contradicts ordered credit position");
     if (definition.key === "MusicBrainzRelationship" && (properties.sourceType !== source.type || properties.targetType !== target.type)) throw new Error("MusicBrainzRelationship: endpoint type mismatch");
     if (definition.key === "RedirectsTo" && source.type !== target.type) throw new Error("RedirectsTo requires the same entity type");
+    this.ontologyVersion = require('./versions').assertOntologyVersion(ontologyVersion);
     this.id = `relationship:${createHash("sha256").update(JSON.stringify([definition.key, source.id, target.id, assertionKey])).digest("hex")}`;
     this.type = definition.key;
     this.source = source.id;
@@ -155,7 +157,7 @@ class DomainRelationship {
     Object.freeze(this);
   }
   toGraphRelationship() {
-    return { id: this.id, source: this.source, target: this.target, type: this.type, properties: { ...structuredClone(this.properties), assertionKey: this.assertionKey, ontologyVersion: ontology.version } };
+    return { id: this.id, source: this.source, target: this.target, type: this.type, properties: { ...structuredClone(this.properties), assertionKey: this.assertionKey, ontologyVersion: this.ontologyVersion } };
   }
 }
 class EditionOf extends DomainRelationship { static type = "EditionOf"; }
