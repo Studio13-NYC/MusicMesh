@@ -89,4 +89,4 @@ This is an additional research delta, separate from `main-development-snapshot-3
 
 ## Next route
 
-Propose Chris Spedding's artist network next: follow documented session collaborations outward from Eno, Cale and Jupp, then compare guitar roles, equipment and production methods. This is a proposal for Nick's next Approve/Deny/Defer decision, not authorization to start another branch.
+Nick declined the proposed Spedding expansion and selected Paul Weller, covering the Jam and solo work. That completed branch is documented in [Weller discovery](2026-10-18-weller-discovery.md).
