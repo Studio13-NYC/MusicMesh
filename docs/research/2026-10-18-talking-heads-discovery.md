@@ -68,6 +68,6 @@ Replay key: `operator-enrichment:e4cd1ca11c7f56fe90f6987e5371bb614072a7be4d630d1
 
 This delta is separate from `main-development-snapshot-3` and the running MusicBrainz collector. Preserve it alongside the Lowe/Edmunds, Mickey Jupp, Edmunds-sound and Thunderbirds/Vaughan deltas when constructing the final bulk-import baseline. Do not overwrite research claims or equate this receipt with completion of the background enrichment import.
 
-## Proposed next step
+## Next-step decision
 
-Follow the **Kirsty MacColl / Billy Bremner artist network**, comparing their vocal and guitar roles across Talking Heads and the Lowe/Edmunds circle, then drill into the strongest album and recording links. An alternative is the Belew/Eno network and its guitar and arrangement methods. These remain options for Nick's next Approve/Deny/Defer choice.
+Nick declined the MacColl/Bremner expansion and approved the Belew/Eno route. That bounded step is now saved and verified; see [Belew and Eno discovery](2026-10-18-belew-eno-discovery.md) for the Spedding/Jupp bridge, Cale links, recording methods, exact persistence receipt and next proposal.
