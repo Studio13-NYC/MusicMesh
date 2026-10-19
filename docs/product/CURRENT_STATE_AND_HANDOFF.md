@@ -1,6 +1,6 @@
 # MusicMesh current state and handoff
 
-Updated 18 October 2026. The deployed site and root `.env` select the shared **development** instance, not production. Never use Alexander. Keep `STAY/` and original source files intact.
+Updated 19 October 2026. The deployed site and root `.env` select the shared **development** instance, not production. Never use Alexander. Keep `STAY/` and original source files intact.
 
 ## Researcher runtime
 
@@ -17,11 +17,11 @@ The [approved specification](../superpowers/specs/2026-10-18-researcher-design.m
 
 ## Verified data baseline
 
-Shared backend: **182,221 entities, 368,477 relationships, 21,415 plays**, snapshot `main-development-snapshot-3`. Acoustic data includes 7,220 analyses and 31,357 comparisons including historical pilot comparisons. These counts describe the last verified backend receipt, not the ongoing collector.
+Shared backend: **488,631 entities, 858,394 relationships, 21,415 plays**, independently verified 19 October at 16:03 UTC after the `main-development-final-preserved` import. Acoustic data includes 7,220 analyses and 31,357 comparisons including retained pilots. All 239 research claims, 240 sources, 718 research links and research catalog rows passed exact preservation checks. See [final import report](../research/2026-10-19-final-enrichment-import.md).
 
-Private provider evidence is in `samusicmesh/musicmeshevidence` in `rg-musicmesh`. The compact conversion was verified 18 October at 17:55:58 UTC, followed by compaction at 17:56:21. Main measured 702,447,616 bytes (669.91 MiB). Read [EVIDENCE_STORAGE.md](EVIDENCE_STORAGE.md) before import work. Future enrichment imports require a prepared/uploaded archive. No full database reread is needed for monitoring.
+Private provider evidence is in `samusicmesh/musicmeshevidence` in `rg-musicmesh`; the final archive has 389,733 verified documents totaling 300,375,746 compressed bytes. A separate private backup of all 1,335 local research files passed restore and hash checks. Main now measures 2,222,186,496 bytes (2.22 GB), above the previous 1 GiB limit. Read [EVIDENCE_STORAGE.md](EVIDENCE_STORAGE.md) before further imports and [OCTOBER_NEON_BUDGET.md](OCTOBER_NEON_BUDGET.md) before the required storage reduction. No full database reread is needed for monitoring.
 
-The expanded MusicBrainz collector continues independently; read `output/imports/2026-10-17/musicbrainz/catalog-progress.json` and the hourly state. Its `requested` is attempts so far, not a final total. Later downloaded data has not automatically been imported. Read [BRAINZ_PROGRESS.md](BRAINZ_PROGRESS.md) for receipts and chronology. Preserve the October-only allowance in [OCTOBER_NEON_BUDGET.md](OCTOBER_NEON_BUDGET.md).
+The bounded MusicBrainz collection is complete: 71,249 successful requests, zero errors or pending requests. Final enrichment is imported and independently verified; 967 original unresolved mappings remain preserved. The hourly enrichment monitor is paused; the October 30 capacity review remains active. Latest receipts and progress are under `output/imports/2026-10-19/`. The deployed fullscreen workbench retained the Champagne Supernova E-Bow claim at 93/100 with its source and showed 29 nodes / 45 connections. Code commit `05baabb` is pushed but its GitHub deployment is queued without a hosted runner; the current compatible deployment passed these data checks.
 
 ## Commands and verification
 

@@ -52,6 +52,20 @@ node --max-old-space-size=24576 --env-file=.env scripts/importListeningHistory.j
 
 Do not run the load until the archive upload receipt exists and matches the reconciled snapshot. Upload uses the existing private `samusicmesh/musicmeshevidence` container in `rg-musicmesh`. Keep the October-only 25 GB allowance and check post-import storage against the lower-plan limit before any downgrade. No billing change is part of this run.
 
-## Current boundary
+## Completed import and independent verification
 
-Preparation, source audit and evidence upload are complete. All 389,733 archive documents were verified at 2026-10-19T15:25:46.312Z. Final database loading and independent post-import/product verification are in progress. A compiled snapshot is not an import receipt. Do not disable hourly monitoring until the final import and its independent verification succeed.
+The main import completed at **2026-10-19T16:02:55.083Z**. It added **304,848 entities and 487,351 relationships**, updated 182,170 entities and 368,273 relationships, and verified every written row in PostgreSQL. The 1,083 research catalog entities and 1,848 research catalog relationships were carried forward unchanged. No conflicts, replacement, resubmission or billing changes occurred.
+
+Independent verification at 16:03 UTC established **488,631 total entities, 858,394 total relationships and 21,415 plays**. All pre-import fingerprints matched: 239 EvidenceAssertions, 240 SourceDocuments, 718 research links, all plays and all identity mappings (excluding only the history ontology-version marker). Separate exact server-side comparisons verified all 1,083 research catalog entities and 1,848 research catalog relationships. The database totals exceed the source snapshot because prior pilot comparisons and research claims/sources remain retained.
+
+The deployed API returned checksum-matching release evidence, all 14 tracks for the selected medium, and the successfully retried Led Zeppelin 1971 European tour series with lookup metadata. Private listening-node and relationship evidence returned 404. A fresh Browse/Load in the deployed workbench showed Champagne Supernova with 29 nodes / 45 connections; the E-Bow assertion retained direct scope, 93/100 confidence and its Sound On Sound source. Browse uses name search; a raw graph ID did not match in that UI. No LLM research or new claim writes were used for verification.
+
+Proof files under output/imports/2026-10-19/: main-development-final-preserved/main-development-import-receipt-evidence-v1.json, after-import-verification.json, workbench-verification.json, final-import-progress.json, research-backup-receipt.json and final-evidence/archive-upload-receipt.json. The hourly enrichment automation is paused after completion; the October 30 capacity review remains active.
+
+## Capacity and deployment limits
+
+Allocated PostgreSQL size is **2,222,186,496 bytes (2.22 GB / 2.07 GiB)**. Relationships including indexes occupy 1,410,285,568 bytes; entities including indexes occupy 802,799,616 bytes. This does **not** fit the previous 1 GiB limit. Evidence archiving is complete, but a further measured storage reduction is required before downgrade; do not delete research or assume table maintenance alone will reach the target.
+
+Neon reported the same 509,167,979 transfer bytes before and just after the import. Those counters have not established the import's actual billed transfer; unchanged metadata is not proof of zero transfer. No full database download or full verification replay was performed. The verified research archive covers local research packets and notes, not all later mutable database state.
+
+Importer/runtime support was pushed in 05baabb. Local tests and build passed. The GitHub deployment run is still queued without a hosted runner; the live app checks above used the existing compatible deployment. Do not claim the new code has deployed until CI confirms it.

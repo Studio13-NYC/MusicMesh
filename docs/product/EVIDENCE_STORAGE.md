@@ -74,3 +74,10 @@ Shared space reclamation is a separate maintenance operation after a verified im
 Saved private verification artifacts: `storage-measurement.json`, `local-space-reclamation.json`, `archive-upload-receipt.json` inside `evidence-snapshot-3`, `deployed-evidence-verification.json`, `deployed-relationship-evidence.json`, `main-space-reclamation.json`, and `evidence-workbench-runtime.json` under `output/imports/2026-10-18/`. Live release evidence resolved to the same SHA-256 as the local source; the selected medium retained all 14 tracks. Workbench request `req-b607d29e-3806-432f-ba89-af15632a2205` answered KR/South Korea from the retained fields and completed answer_only with zero graph writes. Its five-node/four-edge visual preview is not a persisted graph.
 
 The 18 October storage validation preceded the later durable researcher changes. Its old background-planner and automated-review limitations do not describe the current runtime; consult [CURRENT_STATE_AND_HANDOFF.md](CURRENT_STATE_AND_HANDOFF.md). Actual catalog/API and completed runtime checks were used for the storage verification above.
+
+
+## Final catalog archive and import - 19 October
+
+The final reconciled source snapshot is output/imports/2026-10-19/main-development-final-preserved/. Its archive is output/imports/2026-10-19/final-evidence/: 389,733 verified documents / 300,375,746 compressed bytes, verified at 15:25:46 UTC. Final import completed at 16:02:55 UTC and independent verification passed at 16:03 UTC. Main contains 488,631 entities / 858,394 relationships / 21,415 plays. All research claims, sources, links and catalog rows passed preservation checks.
+
+Allocated database size is 2,222,186,496 bytes (2.22 GB), so archiving has not made this expanded graph fit the previous 1 GiB limit. Provider evidence, research files and older snapshots remain intact; do not garbage-collect them as part of downgrade preparation. Read docs/research/2026-10-19-final-enrichment-import.md for receipts, exact commands and the separately restored/hash-verified private research archive. No post-import table compaction or full database export was performed in this run.
