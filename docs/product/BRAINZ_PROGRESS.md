@@ -251,7 +251,7 @@ Private proof under `output/imports/2026-10-18/`: `main-before-evidence.json`, `
 
 Catalog collection remains running separately: **53,561 successful requests**, zero missing/errors, stage `context` at 2026-10-18T17:57:46.797Z. These later downloads have not been imported. The final remaining request count is not yet established. Hourly status monitoring remains active.
 
-## 18 October — researcher implementation
+## 18 October ï¿½ researcher implementation
 
 Implemented the [approved researcher spec](../superpowers/specs/2026-10-18-researcher-design.md) and [plan](../superpowers/plans/2026-10-18-researcher.md): GPT-6 Luna/high, bounded task-directed graph tools, real graph results without model preview/plan/ground/review, durable decisions, source-backed album defaults with edition/track exceptions, explicit preferences and factor comparison. Neo4j executable code/dependency/settings removed. Typed graph and private Blob evidence architecture retained. Review found six important correctness/recovery issues; all corrected with regression proof (90 unit checks, 16 isolated SQL checks). Additive operational ResearchRun migration applied to shared main; application deployment is pending. This change does not import later collector downloads.
 
@@ -349,4 +349,12 @@ Nick redirected the Spedding proposal to Paul Weller across the Jam and solo car
 
 Read docs/research/2026-10-18-weller-discovery.md for the Jam -> Bechirian -> Costello/Lowe path; Talbot, Winwood, Gallagher and Cradock recording roles; Wyatt/Eno and Rodgers repertoire bridges; and exact guitar/keyboard/method factors. The conversation map has 30 nodes / 32 selectable connections with saved backing paths. Deployed fullscreen Find El Dorado inspection exposed Cradock's producer assertion at98/100 with source. Search still selected the All Mod Cons song instead of the album; no runtime fix is claimed.
 
-Preserve output/research/2026-10-18-weller/ with the six prior operator deltas in the next bulk catalog/CAS baseline. This is a research addition, not the final background enrichment import. No listening writes, full scans, new background collector or billing changes. No runtime code changed. The next suggested route is Winwood/Traffic/Spencer Davis, alternatively Cradock/OCS/Gallagher; awaiting Nick's choice.
+Preserve output/research/2026-10-18-weller/ with the six prior operator deltas in the next bulk catalog/CAS baseline. This is a research addition, not the final background enrichment import. No listening writes, full scans, new background collector or billing changes. No runtime code changed. Nick declined Winwood/Traffic and approved Cradock/OCS/Oasis; the completed research is recorded below.
+
+## 18 October 2026 - Cradock / OCS / Oasis research saved
+
+Nick declined Winwood/Traffic and approved the Cradock/OCS/Oasis route. The shared main development batch committed at 2026-10-19T01:05:34.040Z: 322 entities / 470 relationships, including 30 confidence-scored assertions (18 direct recording, 9 album-credit, 3 artist-context). Independent bounded readback and idempotent replay passed. Private Azure evidence added 152,892 compressed bytes. Two Luna/Medium workers and an Astra/High reviewer supplied candidates; parent source/identity review finalized the packet.
+
+Read docs/research/2026-10-18-cradock-ocs-oasis-discovery.md for Weller's exact OCS/Oasis parts, the separate Fire and Skill performances, Echoes Round the Sun, the Come Together shared session, the gifted Rickenbacker, Black Barn and Lynch's production methods. The conversation map has 28 nodes / 39 connections, with saved assertion/catalog paths checked. Deployed Browse/Load and fullscreen Moseley Shoals inspection displayed 7 nodes / 6 connections and the Les Paul assertion at 95/100 with source and scope. No runtime code changed; a durable saved-view library and broader retrieval remain incomplete.
+
+Preserve output/research/2026-10-18-cradock-ocs-oasis/ with the seven earlier research deltas in the next bulk catalog/CAS baseline. This is not the final background enrichment import. No listening writes, full database scans, new background collector or billing changes. The next proposed route is P. P. Arnold through Small Faces / Marriott / Lane; awaiting Nick's Approve/Deny/Defer choice.

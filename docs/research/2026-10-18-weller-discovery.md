@@ -83,4 +83,4 @@ The deployed app's zero-LLM Browse/Load path displayed *Find El Dorado* (2 nodes
 
 Commit time: `2026-10-19T00:50:41.130Z`. Frozen replay key: `operator-enrichment:adbc56a528d569886ea63a5938780010e42fdcc027706dcf089122bfbd081db1`.
 
-Suggested next route: **Steve Winwood → Traffic / Spencer Davis Group → collaborators, Hammond parts and recording methods**, followed by comparisons back to Weller. Alternative: **Cradock / Ocean Colour Scene / Noel Gallagher**, following reciprocal recording contributions. Either requires Nick's next Approve/Deny/Defer choice; neither branch has started.
+Nick declined the Winwood/Traffic route and approved **Cradock / Ocean Colour Scene / Noel Gallagher**. That research is now saved and independently verified; see [the completed expansion](2026-10-18-cradock-ocs-oasis-discovery.md).

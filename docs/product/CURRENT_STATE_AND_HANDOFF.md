@@ -65,13 +65,13 @@ Fresh review of `db96e68..4a53698` identified six important findings and no crit
 
 18 October 19:19 UTC: additive `20261018190000_research_runs` migration applied to MusicMesh main. Azure model settings set to `gpt-6-luna` / `high`. Application deployment proof still pending. No bulk catalog reads/imports were performed for this change.
 
-## Deployed proof — 18 October
+## Deployed proof ï¿½ 18 October
 
 Commit `d941309` deployed successfully in [run 39158340330](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158340330). Actual Edge workbench request `req-e43d759b-9b07-4998-9b96-118d607dae2a` completed with seven stored nodes/six edges, four researcher calls, 8,875 total tokens and 13,139 ms summed model latency. Runtime telemetry confirms `gpt-6-luna` / high. Tape contains both the user prompt and final answer. Proof: `output/researcher-live-deployed.json`, `output/researcher-deployed-graph.jpg`.
 
 Final usability pass: compact approval details keep Approve/Deny/Defer visible; user-supplied source quotations can carry through the bounded recent user history. Assistant assertions and selected-node text do not become source evidence. Current tests: 91 unit passes and 16 isolated SQL passes. Transcript appends use stable IDs and ordinary retry suppression, but are observational rather than a transactional outbox; a storage outage can leave a tape gap even though run state is saved.
 
-## Completion — 18 October 19:31 UTC
+## Completion ï¿½ 18 October 19:31 UTC
 
 Core runtime `740bafa` deployed successfully in [run 39158974520](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158974520). Build, unit tests and Azure bundle checks all passed in CI. Actual deployed Defer -> full page reload -> Resume -> Approve completed request `req-5e8bbd40-a7dc-434b-a89e-748042a7342f` with the chosen answer; tape independently contains prompt, defer, approve and answer. Local Deny and Cancel stopped test enrichment without saving it. No fabricated claims remain in the catalog.
 
@@ -141,4 +141,12 @@ Nick redirected the Spedding proposal to Paul Weller across the Jam and solo car
 
 Read docs/research/2026-10-18-weller-discovery.md for the Jam -> Bechirian -> Costello/Lowe path; Talbot, Winwood, Gallagher and Cradock recording roles; Wyatt/Eno and Rodgers repertoire bridges; and exact guitar/keyboard/method factors. The conversation map has 30 nodes / 32 selectable connections with saved backing paths. Deployed fullscreen Find El Dorado inspection exposed Cradock's producer assertion at98/100 with source. Search still selected the All Mod Cons song instead of the album; no runtime fix is claimed.
 
-Preserve output/research/2026-10-18-weller/ with the six prior operator deltas in the next bulk catalog/CAS baseline. This is a research addition, not the final background enrichment import. No listening writes, full scans, new background collector or billing changes. No runtime code changed. The next suggested route is Winwood/Traffic/Spencer Davis, alternatively Cradock/OCS/Gallagher; awaiting Nick's choice.
+Preserve output/research/2026-10-18-weller/ with the six prior operator deltas in the next bulk catalog/CAS baseline. This is a research addition, not the final background enrichment import. No listening writes, full scans, new background collector or billing changes. No runtime code changed. Nick declined Winwood/Traffic and approved Cradock/OCS/Oasis; the completed research is recorded below.
+
+## 18 October 2026 - Cradock / OCS / Oasis research saved
+
+Nick declined Winwood/Traffic and approved the Cradock/OCS/Oasis route. The shared main development batch committed at 2026-10-19T01:05:34.040Z: 322 entities / 470 relationships, including 30 confidence-scored assertions (18 direct recording, 9 album-credit, 3 artist-context). Independent bounded readback and idempotent replay passed. Private Azure evidence added 152,892 compressed bytes. Two Luna/Medium workers and an Astra/High reviewer supplied candidates; parent source/identity review finalized the packet.
+
+Read docs/research/2026-10-18-cradock-ocs-oasis-discovery.md for Weller's exact OCS/Oasis parts, the separate Fire and Skill performances, Echoes Round the Sun, the Come Together shared session, the gifted Rickenbacker, Black Barn and Lynch's production methods. The conversation map has 28 nodes / 39 connections, with saved assertion/catalog paths checked. Deployed Browse/Load and fullscreen Moseley Shoals inspection displayed 7 nodes / 6 connections and the Les Paul assertion at 95/100 with source and scope. No runtime code changed; a durable saved-view library and broader retrieval remain incomplete.
+
+Preserve output/research/2026-10-18-cradock-ocs-oasis/ with the seven earlier research deltas in the next bulk catalog/CAS baseline. This is not the final background enrichment import. No listening writes, full database scans, new background collector or billing changes. The next proposed route is P. P. Arnold through Small Faces / Marriott / Lane; awaiting Nick's Approve/Deny/Defer choice.
