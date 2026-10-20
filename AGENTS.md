@@ -24,6 +24,8 @@ Domain semantics live in `src/domain/`: read `getOntology()`, `getTypeDefinition
 
 Evidence storage: read `docs/product/EVIDENCE_STORAGE.md` before provider-evidence or bulk-import work. Large evidence is private Azure Blob content referenced from the typed graph. After a verified compact baseline, enrichment imports require a prepared/uploaded `--archive`; do not restore inline duplication. Keep original snapshots and use SQL aggregates/targeted checks rather than full database downloads. Public evidence access is record-gated; listening events/mappings remain private.
 
+Cold graph storage update (20 October): read `docs/product/COLD_GRAPH_STORAGE.md`. External-link and acoustic-comparison payloads are in private Azure; existing SQL rows retain the complete searchable directory. Compatible readers hydrate bounded results into a process memory cache, never back into Neon. Preserve `storage:cold-graph:v1`, its importer path and original archives. Main conversion and independent preservation are complete. Use receipts and bounded checks; do not repeat full exports for monitoring.
+
 ## Always Check Current Status
 
 The MusicMesh UI and operator workflow are being actively refined.

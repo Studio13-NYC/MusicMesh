@@ -2,7 +2,11 @@
 
 19 October 2026, New York. Nick authorized moving additional data to Azure while preserving the complete graph and research. No billing change is part of this operation.
 
-## Current checkpoint
+## Later checkpoint - 20 October, 12:54 UTC
+
+External-link and acoustic payloads now load from private Azure through a bounded process cache. Local rehearsal, main conversion, independent preservation and deployed graph checks passed. Main application allocation is 829,759,488 bytes; all main databases total 852,623,360 bytes, an additional saving of 66,199,552 bytes. All research and connections remain. See [current cold-storage report](../product/COLD_GRAPH_STORAGE.md). The measurements below document the earlier v2 migration and branch retirement.
+
+## V2 checkpoint
 
 The main conversion, reclamation, independent preservation audit and deployed workbench checks passed. Conversion completed at 01:00:20 UTC on 20 October (9:00 p.m. New York on 19 October); reclamation completed at 01:00:41 UTC. The reader and incremental importer are deployed in commits `80b380f` and `2577821`; GitHub runs `39348409177` and `39349676969` succeeded. On 20 October, Nick explicitly approved deleting the backed-up test branch. Deletion succeeded and a fresh branch listing confirms only main remains. Billing is unchanged.
 
