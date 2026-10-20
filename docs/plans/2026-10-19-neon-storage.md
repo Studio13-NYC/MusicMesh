@@ -15,3 +15,7 @@ Nick authorized this work on 19 October 2026. The shared development graph must 
 5. Verify all graph identities/relationships and research/history content independently; test the actual deployed Discovery view and source access. Measure the resulting database and confirm account limits before calling it downgrade-ready.
 
 Evidence and executable operational scripts are under `output/storage/2026-10-19/`. This document is the execution plan; the running report records measured completion. Do not equate a smaller JSON estimate with reclaimed PostgreSQL storage.
+
+## Verified outcome
+
+Main conversion and reclamation completed on 19 October, followed by independent preservation and deployed graph checks. Allocation fell from 2,222,186,496 to 896,147,456 bytes (59.7%) while retaining every graph record and all research/history. See [completion report](../research/2026-10-19-neon-storage-reduction.md). The obsolete cloud test branch is backed up and restored locally but awaits deletion approval; refreshed provider usage and account eligibility remain necessary before downgrade. Billing is unchanged.

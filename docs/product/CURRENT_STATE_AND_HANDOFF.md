@@ -19,9 +19,9 @@ The [approved specification](../superpowers/specs/2026-10-18-researcher-design.m
 
 Shared backend: **488,631 entities, 858,394 relationships, 21,415 plays**, independently verified 19 October at 16:03 UTC after the `main-development-final-preserved` import. Acoustic data includes 7,220 analyses and 31,357 comparisons including retained pilots. All 239 research claims, 240 sources, 718 research links and research catalog rows passed exact preservation checks. See [final import report](../research/2026-10-19-final-enrichment-import.md).
 
-Private provider evidence is in `samusicmesh/musicmeshevidence` in `rg-musicmesh`; the final archive has 389,733 verified documents totaling 300,375,746 compressed bytes. A separate private backup of all 1,335 local research files passed restore and hash checks. Main now measures 2,222,186,496 bytes (2.22 GB), above the previous 1 GiB limit. Read [EVIDENCE_STORAGE.md](EVIDENCE_STORAGE.md) before further imports and [OCTOBER_NEON_BUDGET.md](OCTOBER_NEON_BUDGET.md) before the required storage reduction. No full database reread is needed for monitoring.
+Private provider evidence is in `samusicmesh/musicmeshevidence` in `rg-musicmesh`. The final source archive retains 389,733 verified documents / 300,375,746 compressed bytes. The subsequent storage migration added 5,601 verified metadata pages / 193,940,168 compressed bytes and reduced main to **896,147,456 bytes (896 MB / 854.6 MiB)**, a 59.7% reduction. Full main backup, Azure checksum readback, local restore, per-row conversion and independent final fingerprints all passed. All graph records, research/history and 22 research runs are preserved. The obsolete test branch has its own verified backup/local restore and awaits deletion approval. Neon's immediate post-reclamation branch counter was stale; account downgrade eligibility and billing are not claimed complete. Read the [storage report](../research/2026-10-19-neon-storage-reduction.md), [EVIDENCE_STORAGE.md](EVIDENCE_STORAGE.md) and [OCTOBER_NEON_BUDGET.md](OCTOBER_NEON_BUDGET.md). No full database reread is needed for monitoring.
 
-The bounded MusicBrainz collection is complete: 71,249 successful requests, zero errors or pending requests. Final enrichment is imported and independently verified; 967 original unresolved mappings remain preserved. The hourly enrichment monitor is paused; the October 30 capacity review remains active. Latest receipts and progress are under `output/imports/2026-10-19/`. The deployed fullscreen workbench retained the Champagne Supernova E-Bow claim at 93/100 with its source and showed 29 nodes / 45 connections. Code commit `05baabb` is pushed but its GitHub deployment is queued without a hosted runner; the current compatible deployment passed these data checks.
+The bounded MusicBrainz collection is complete: 71,249 successful requests, zero errors or pending requests. Final enrichment is imported and independently verified; 967 original unresolved mappings remain preserved. The hourly enrichment monitor is paused; the October 30 capacity review remains active. Import receipts are under `output/imports/2026-10-19/`; storage receipts are under `output/storage/2026-10-19/`. The freshly reloaded deployed fullscreen workbench retained the Champagne Supernova E-Bow claim at 93/100 with its source and showed 29 nodes / 45 connections after compaction. Reader/import support commits `80b380f` and `2577821` are deployed successfully. The earlier queued import deployment also completed.
 
 ## Commands and verification
 
@@ -65,13 +65,13 @@ Fresh review of `db96e68..4a53698` identified six important findings and no crit
 
 18 October 19:19 UTC: additive `20261018190000_research_runs` migration applied to MusicMesh main. Azure model settings set to `gpt-6-luna` / `high`. Application deployment proof still pending. No bulk catalog reads/imports were performed for this change.
 
-## Deployed proof — 18 October
+## Deployed proof â€” 18 October
 
 Commit `d941309` deployed successfully in [run 39158340330](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158340330). Actual Edge workbench request `req-e43d759b-9b07-4998-9b96-118d607dae2a` completed with seven stored nodes/six edges, four researcher calls, 8,875 total tokens and 13,139 ms summed model latency. Runtime telemetry confirms `gpt-6-luna` / high. Tape contains both the user prompt and final answer. Proof: `output/researcher-live-deployed.json`, `output/researcher-deployed-graph.jpg`.
 
 Final usability pass: compact approval details keep Approve/Deny/Defer visible; user-supplied source quotations can carry through the bounded recent user history. Assistant assertions and selected-node text do not become source evidence. Current tests: 91 unit passes and 16 isolated SQL passes. Transcript appends use stable IDs and ordinary retry suppression, but are observational rather than a transactional outbox; a storage outage can leave a tape gap even though run state is saved.
 
-## Completion — 18 October 19:31 UTC
+## Completion â€” 18 October 19:31 UTC
 
 Core runtime `740bafa` deployed successfully in [run 39158974520](https://github.com/Studio13-NYC/MusicMesh/actions/runs/39158974520). Build, unit tests and Azure bundle checks all passed in CI. Actual deployed Defer -> full page reload -> Resume -> Approve completed request `req-5e8bbd40-a7dc-434b-a89e-748042a7342f` with the chosen answer; tape independently contains prompt, defer, approve and answer. Local Deny and Cancel stopped test enrichment without saving it. No fabricated claims remain in the catalog.
 
