@@ -1,6 +1,7 @@
 const { getDatabase } = require("./postgres");
 const { entityRecord, relationshipRecord } = require("./graphProperties");
 const { getOntology } = require("./domain");
+const {hydrateColdRow,hydrateColdRows}=require('./coldGraph');
 const PRIVATE_LABELS = Object.values(getOntology().entities).filter(d=>d.visibility==="private").map(d=>d.key);
 const excludedLabels = labels => [...new Set([...PRIVATE_LABELS, ...(labels || [])])];
 
@@ -25,7 +26,7 @@ async function searchEntities(
       CASE WHEN e."primaryLabel" IN ('ArtistCredit','Medium','Track','EvidenceAssertion','SourceDocument') THEN 1 ELSE 0 END,
       degree DESC, lower(e."searchText") COLLATE "C", e.id COLLATE "C"
     LIMIT ${limit}`;
-  return rows.map((r) => ({ ...entityRecord(r), matchRank: r.matchRank }));
+  return (await hydrateColdRows(rows)).map((r,i) => ({ ...entityRecord(r), matchRank: rows[i].matchRank }));
 }
 
 async function neighborhood(
@@ -41,7 +42,7 @@ async function neighborhood(
   },
 ) {
   hiddenLabels = excludedLabels(hiddenLabels);
-  return getDatabase().$transaction(
+  const result=await getDatabase().$transaction(
     async (tx) => {
       const seeds = await tx.entity.findMany({
         where: {
@@ -101,23 +102,23 @@ async function neighborhood(
             Math.max(distances.get(b.sourceId), distances.get(b.targetId)) ||
           compareIds(a.id, b.id),
       );
-      const map = new Map(nodes.map((n) => [n.id, entityRecord(n)]));
+      const map = new Map(nodes.map((n) => [n.id,n]));
       return {
         seeds: foundIds,
         nodes: nodeIds.map((id) => map.get(id)).filter(Boolean),
-        relationships: relationships
-          .slice(0, edgeLimit)
-          .map(relationshipRecord),
+        relationships: relationships.slice(0,edgeLimit),
       };
     },
     { isolationLevel: "RepeatableRead", timeout: 15000 },
   );
+  return {...result,nodes:(await hydrateColdRows(result.nodes)).map(entityRecord),
+    relationships:(await hydrateColdRows(result.relationships,{relationship:true})).map(relationshipRecord)};
 }
 
 async function detail(nodeId, hiddenLabels, hiddenTypes, limit) {
   hiddenLabels = excludedLabels(hiddenLabels);
   hiddenTypes = hiddenTypes || [];
-  return getDatabase().$transaction(
+  const result=await getDatabase().$transaction(
     async (tx) => {
       const node = await tx.entity.findFirst({
         where: { id: nodeId, NOT: { labels: { hasSome: hiddenLabels } } },
@@ -130,12 +131,13 @@ async function detail(nodeId, hiddenLabels, hiddenTypes, limit) {
         AND NOT s.labels && ${hiddenLabels}::text[] AND NOT t.labels && ${hiddenLabels}::text[]
       GROUP BY r.type ORDER BY count DESC, r.type COLLATE "C"`;
       return {
-        node: entityRecord(node),
+        node,
         relationshipCount: rows.reduce((n, r) => n + r.count, 0),
         relationshipTypes: rows.slice(0, limit),
       };
     },
     { isolationLevel: "RepeatableRead" },
   );
+  return result?{...result,node:entityRecord(await hydrateColdRow(result.node))}:null;
 }
 module.exports = { searchEntities, neighborhood, detail };

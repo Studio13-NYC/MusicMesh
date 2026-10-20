@@ -8,7 +8,7 @@ const {MARKER}=require('../src/packedEvidence');
 async function hashFile(file){const h=crypto.createHash('sha256');for await(const b of fs.createReadStream(file))h.update(b);return h.digest('hex');}
 async function counts(c){return (await c.query(`SELECT pg_database_size(current_database())::text AS bytes,(SELECT count(*)::int FROM entities) AS entities,(SELECT count(*)::int FROM relationships) AS relationships,(SELECT count(*)::int FROM entities WHERE "primaryLabel"='ListeningEvent') AS plays`)).rows[0];}
 async function main(){
- const {positionals,values}=parseArgs({allowPositionals:true,options:{archive:{type:'string'},backup:{type:'string'}}});
+ const {positionals,values}=parseArgs({allowPositionals:true,options:{archive:{type:'string'},backup:{type:'string'},cold:{type:'boolean'}}});
  const command=positionals[0],mainTarget=command?.endsWith('-main');
  if(!['prepare','apply-local','apply-main','reclaim-local','reclaim-main'].includes(command)||!values.archive)throw Error('Usage: compactGraphStorage.js prepare|apply-local|apply-main|reclaim-local|reclaim-main --archive <directory> [--backup <verified backup directory>]');
  const url=new URL(mainTarget?process.env.DIRECT_URL:process.env.DATABASE_URL);
@@ -16,9 +16,9 @@ async function main(){
  else if(url.hostname!=='127.0.0.1'||url.port!=='55433'||url.pathname!=='/musicmesh_storage_20261019')throw Error('Use the dedicated local storage rehearsal database');
  const directory=path.resolve(values.archive),c=new Client({connectionString:url.toString(),connectionTimeoutMillis:15000,statement_timeout:300000,lock_timeout:10000});await c.connect();
  try{
-  if(command==='prepare'){const m=await prepareStorage(c,directory,{onProgress:p=>console.log(JSON.stringify(p))});console.log(JSON.stringify({...m,documents:m.documents.length}));return;}
+  if(command==='prepare'){const m=await prepareStorage(c,directory,{cold:!!values.cold,onProgress:p=>console.log(JSON.stringify(p))});console.log(JSON.stringify({...m,documents:m.documents.length}));return;}
   const manifest=JSON.parse(fs.readFileSync(path.join(directory,'archive-manifest.json')));
-  if(manifest.storageVersion!==2)throw Error('Packed archive required');
+  if(![2,3].includes(manifest.storageVersion))throw Error('Packed archive required');
   for(const [file,hash] of Object.entries(manifest.snapshotFiles))if(await hashFile(path.join(directory,file))!==hash)throw Error('Migration file checksum mismatch');
   if(mainTarget){
    if(!values.backup)throw Error('Verified full backup required');
@@ -31,7 +31,7 @@ async function main(){
   const receiptFile=path.join(directory,command+'-receipt.json');
   try{
    if(command.startsWith('apply')){
-    await c.query('INSERT INTO import_batches ("sourceHash",nodes,relationships) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',[MARKER,manifest.originalCounts.entities,manifest.originalCounts.relationships]);
+    await c.query('INSERT INTO import_batches ("sourceHash",nodes,relationships) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',[manifest.storageVersion===3?require('../src/coldGraph').MARKER:MARKER,manifest.originalCounts.entities,manifest.originalCounts.relationships]);
     for(const table of ['entities','relationships']){
      let batch=[];
      async function flush(){if(!batch.length)return;receipt.updated[table]+=await applyStorageBatch(c,table,batch);receipt.verified[table]+=batch.length;batch=[];if(receipt.verified[table]%10000===0){fs.writeFileSync(receiptFile,JSON.stringify(receipt,null,2));console.log(JSON.stringify({table,verified:receipt.verified[table],updated:receipt.updated[table]}));}}

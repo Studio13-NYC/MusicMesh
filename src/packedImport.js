@@ -2,6 +2,7 @@ const {canonicalJson}=require('./domain/serialization');
 const {packRows,expandRow,readPackedPage,uploadPackedPages}=require('./packedEvidence');
 async function preparePackedImport(db,batch,{readPage=readPackedPage,upload=uploadPackedPages}={}){
  const {storageRow}=require('./domain/repository'),result={nodes:[],relationships:[],beforeNodes:[],beforeRelationships:[]},cache=new Map();
+ const cold=!!(db.importBatch?.findUnique&&await db.importBatch.findUnique({where:{sourceHash:require('./coldGraph').MARKER},select:{sourceHash:true}}));
  const cached=ref=>{if(!cache.has(ref))cache.set(ref,readPage(ref));return cache.get(ref);};
  for(const [key,model,previousKey,beforeKey,relationship] of [['nodes','entity','previousNodes','beforeNodes',false],['relationships','relationship','previousRelationships','beforeRelationships',true]]){
   const objects=batch[key]||[];if(!objects.length)continue;
@@ -18,7 +19,8 @@ async function preparePackedImport(db,batch,{readPage=readPackedPage,upload=uplo
    }
    toPack.push(next);
   }
-  const packed=packRows(toPack,{relationship});await upload(packed.pages);
+  let packed=packRows(toPack,{relationship});await upload(packed.pages);
+  if(cold){packed=require('./coldGraph').packColdRows(packed.rows,{relationship});await upload(packed.pages);}
   const next=new Map(packed.rows.map(r=>[r.id,r]));result[key]=objects.map(o=>unchanged.get(o.id)||next.get(o.id));
  }
  return result;

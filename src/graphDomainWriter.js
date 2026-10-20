@@ -19,7 +19,7 @@ function nodeType(node){
 }
 function newProperties(input,context){
   const properties={...(input.properties||{})};
-  for(const reserved of ['externalId','rawProvider','providerEvidence','observations','evidenceRefs','detailsRef','evidenceStorageVersion','hydrationStatus','providerTypeId','providerTypeName','responseHash','definitionUrl']){
+  for(const reserved of ['externalId','rawProvider','providerEvidence','observations','evidenceRefs','detailsRef','coldRef','evidenceStorageVersion','hydrationStatus','providerTypeId','providerTypeName','responseHash','definitionUrl']){
     if(Object.hasOwn(properties,reserved))throw new Error('Chat cannot create provider or analysis evidence');
   }
   for(const key of ['id','name','ontologyVersion','assertionKey'])delete properties[key];
@@ -45,7 +45,7 @@ async function persistChatGraph({groundedGraph,threadId,turnId}){
       const ref=stableString(node.tempId||node.id),id=refs.get(ref),type=types.get(ref),row=stored.get(id);
       let object;
       if(row){
-        object=entityFromGraph(entityRecord(row));
+        object=entityFromGraph(entityRecord(await require('./coldGraph').hydrateColdRow(row)));
         if(object.type!==type)throw new Error('Matched stored entity class differs from the planned class');
         if(!node.matchedCanonId && (row.threadId!==threadId||row.turnId!==turnId))throw new Error('Chat identity belongs to another operation');
       }else{

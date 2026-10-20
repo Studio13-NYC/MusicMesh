@@ -206,6 +206,7 @@ const fields = [
   "externalId",
   "evidenceRefs",
   "detailsRef",
+  "coldRef",
   "mediumId",
   "recordingId",
   "releaseId",
@@ -241,7 +242,8 @@ async function nodesByIds(db, ids) {
   const rows = await db.$queryRaw(
     Prisma.sql`SELECT e.id,e.name,e."primaryLabel" AS kind,${extraSql} AS properties FROM entities e WHERE e.id=ANY(${ids}::text[]) AND e."primaryLabel"=ANY(${publicTypes}::text[]) AND NOT e.labels && ${privateTypes}::text[] ORDER BY e.id`,
   );
-  return rows.map(r=>({...r,properties:require("./packedEvidence").projectIdentity({id:r.id,extra:r.properties})}));
+  const hydrated=await require('./coldGraph').hydrateColdRows(rows.map(r=>({id:r.id,name:r.name,extra:r.properties})));
+  return rows.map((r,i)=>({...r,properties:Object.fromEntries(Object.entries(require("./packedEvidence").projectIdentity(hydrated[i])).filter(([key])=>fields.includes(key)))}));
 }
 async function node(db, id) {
   const rows = await nodesByIds(db, [identity(id)]);
@@ -404,10 +406,13 @@ async function graphTool(a, ctx) {
     if (root.kind !== "Recording")
       throw new Error("Acoustic comparison requires a Recording");
     const rows =
-      await db.$queryRaw`SELECT s.id,s.name,s.extra->>'featureFamily' AS family,s.extra->>'score' AS score,s.extra->>'scoreMeaning' AS "scoreMeaning",s.extra->>'method' AS method,s.extra->>'cohortId' AS cohort,s.extra->'recordingIds' AS "recordingIds" FROM relationships r JOIN entities s ON s.id=r."sourceId" WHERE r."targetId"=${a.id} AND r.type='ComparesRecording' ORDER BY s.id LIMIT ${take + 1} OFFSET ${skip}`;
+      await db.$queryRaw`SELECT s.id,s.name,s.extra FROM relationships r JOIN entities s ON s.id=r."sourceId" WHERE r."targetId"=${a.id} AND r.type='ComparesRecording' ORDER BY s.id LIMIT ${take + 1} OFFSET ${skip}`;
+    const comparisons=(await require('./coldGraph').hydrateColdRows(rows.slice(0,take))).map(s=>({
+      id:s.id,name:s.name,family:s.extra.featureFamily,score:String(s.extra.score),scoreMeaning:s.extra.scoreMeaning,method:s.extra.method,cohort:s.extra.cohortId,recordingIds:s.extra.recordingIds
+    }));
     return {
       data: {
-        comparisons: rows.slice(0, take),
+        comparisons,
         hasMore: rows.length > take,
         meaning:
           "Distances are comparable only within the same method, feature family and cohort. No causal or preference inference.",

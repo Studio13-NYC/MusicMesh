@@ -31,7 +31,7 @@ async function persistDomainBatchInTransaction(tx,{nodes=[],relationships=[],com
  if(relationships.length){
   const endpointIds=[...new Set(edgeRows.flatMap(row=>[row.sourceId,row.targetId]))];
   const rows=await tx.$queryRaw`SELECT id, labels, name, "domainId", extra - ${FIELDS}::text[] AS extra FROM entities WHERE id=ANY(${endpointIds}::text[])`;
-  const endpoints=new Map(rows.map(row=>[row.id,entityFromGraph(entityRecord(row))]));
+  const endpoints=new Map((await require('../coldGraph').hydrateColdRows(rows)).map(row=>[row.id,entityFromGraph(entityRecord(row))]));
   for(const edge of relationships){
    try{relationshipFromGraph(edge.toGraphRelationship(),endpoints);}
    catch(error){throw new Error('Stored relationship endpoint validation failed: '+edge.id,{cause:error});}

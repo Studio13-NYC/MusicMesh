@@ -176,7 +176,7 @@ async function startOrAdvance(
 async function endpoint(tx, id) {
   const row = await tx.entity.findFirst({ where: { id, ...visible } });
   if (!row) throw new Error("Decision endpoint no longer exists");
-  return entityFromGraph(entityRecord(row));
+  return entityFromGraph(entityRecord(await require('./coldGraph').hydrateColdRow(row)));
 }
 async function persistDecision(tx, state, d) {
   if (["clarification", "retry"].includes(d.kind)) return { confirmed: true };

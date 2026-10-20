@@ -137,7 +137,7 @@ async function readCatalogContext(graphContext={}) {
 async function lookupCanonRelationships(ids) {
   const publicNodes=await getDatabase().entity.findMany({where:{id:{in:[...new Set(ids)].slice(0,200)},primaryLabel:{in:Object.values(getOntology().entities).filter(d=>d.visibility!=='private').map(d=>d.key)}},select:{id:true}});
   const publicIds=publicNodes.map(node=>node.id);
-  return (await getDatabase().relationship.findMany({where:{sourceId:{in:publicIds},targetId:{in:publicIds}},orderBy:{id:'asc'},take:200})).map(row=>{
+  return (await require('./coldGraph').hydrateColdRows(await getDatabase().relationship.findMany({where:{sourceId:{in:publicIds},targetId:{in:publicIds}},orderBy:{id:'asc'},take:200}),{relationship:true})).map(row=>{
     const edge=require('./graphProperties').relationshipRecord(row);
     return {...edge,properties:catalogProperties(edge.properties)};
   });

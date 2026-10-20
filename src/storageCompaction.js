@@ -4,7 +4,7 @@ const {packRows,restoreRow}=require('./packedEvidence');
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const TABLES=['entities','relationships'];
 function tableName(table){if(!TABLES.includes(table))throw new Error('Invalid graph table');return table;}
-async function prepareStorage(client,directory,{onProgress=()=>{}}={}){
+async function prepareStorage(client,directory,{onProgress=()=>{},cold=false}={}){
  if(fs.existsSync(path.join(directory,'archive-manifest.json')))throw new Error('Archive already prepared; choose a new directory');
  const archive=new LocalEvidenceArchive(directory),files={},counts={},originalCounts={};
  for(const table of TABLES){
@@ -13,18 +13,18 @@ async function prepareStorage(client,directory,{onProgress=()=>{}}={}){
    const rows=(await client.query(`SELECT t.*,md5(to_jsonb(t)::text) AS "beforeHash" FROM ${table} t WHERE id>$1 ORDER BY id LIMIT 1000`,[cursor])).rows;
    if(!rows.length)break;
    cursor=rows.at(-1).id;const before=new Map(rows.map(({beforeHash,...row})=>[row.id,{row,beforeHash}]));
-   const packed=packRows([...before.values()].map(v=>v.row),{relationship:table==='relationships'});
+   const packed=(cold?require('./coldGraph').packColdRows:packRows)([...before.values()].map(v=>v.row),{relationship:table==='relationships'});
    const pages=new Map();for(const page of packed.pages){archive.put(page.reference,page.data);for(const id of Object.keys(page.document.records))pages.set(id,page.document);}
    for(const next of packed.rows){
     const prior=before.get(next.id);if(canonicalJson(prior.row)===canonicalJson(next))continue;
-    if(canonicalJson(restoreRow(next,pages.get(next.id),{relationship:table==='relationships'}))!==canonicalJson(prior.row))throw new Error('Lossless roundtrip failed: '+next.id);
+    if(canonicalJson((cold?require('./coldGraph').restoreColdRow:restoreRow)(next,pages.get(next.id),{relationship:table==='relationships'}))!==canonicalJson(prior.row))throw new Error('Lossless roundtrip failed: '+next.id);
     const line=Buffer.from(JSON.stringify({id:next.id,beforeHash:prior.beforeHash,next})+'\n');fs.writeSync(fd,line);hash.update(line);changed++;
    }
    seen+=rows.length;if(seen%10000===0)onProgress({table,seen,changed});
   }}finally{fs.closeSync(fd);}
   files[table+'.ndjson']=hash.digest('hex');counts[table]=changed;originalCounts[table]=seen;
  }
- const documents=[...archive.entries.values()],manifest={version:1,storageVersion:2,createdAt:new Date().toISOString(),snapshotFiles:files,counts,originalCounts,documents,compressedBytes:documents.reduce((n,d)=>n+d.compressedBytes,0)};
+ const documents=[...archive.entries.values()],manifest={version:1,storageVersion:cold?3:2,createdAt:new Date().toISOString(),snapshotFiles:files,counts,originalCounts,documents,compressedBytes:documents.reduce((n,d)=>n+d.compressedBytes,0)};
  fs.writeFileSync(path.join(directory,'archive-manifest.json'),JSON.stringify(manifest,null,2)+'\n');return manifest;
 }
 // Each batch is locked and checked against the backed-up original or the exact
@@ -38,10 +38,12 @@ async function applyStorageBatch(client,table,changes){
   const json=JSON.stringify(changes);
   const conflict=(await client.query(`SELECT s.id FROM jsonb_to_recordset($1::jsonb) AS s(id text,"beforeHash" text,next jsonb) LEFT JOIN ${table} t ON t.id=s.id WHERE t.id IS NULL OR (md5(to_jsonb(t)::text)<>s."beforeHash" AND to_jsonb(t) IS DISTINCT FROM s.next) LIMIT 1`,[json])).rows;
   if(conflict.length)throw new Error('Storage conflict: '+conflict[0].id);
-  // Only the two storage fields can change. Avoid rewriting every graph column
-  // (and re-evaluating composite records) for a metadata-only conversion.
-  const set=`extra=s.next->'extra'${table==='entities'?`,"domainId"=s.next->>'domainId'`:''}`;
-  const result=await client.query(`UPDATE ${table} t SET ${set} FROM jsonb_to_recordset($1::jsonb) AS s(id text,next jsonb) WHERE t.id=s.id AND to_jsonb(t) IS DISTINCT FROM s.next`,[json]);
+  // Only metadata columns can move. Identity, names, search text, labels and
+  // relationship endpoints/type cannot change; exact readback enforces that.
+  const mutable=['extra','domainId','label','description','aliasesJson','canonicalStatus','isProposed','source','threadId','turnId','lastChatThreadId','lastChatTurnId','lastChatSource','updatedAt','confidenceScore','evidenceBasis','year','basis','role','foundingMember','date','performanceName','format','position'];
+  const columns=mutable.filter(key=>Object.hasOwn(changes[0].next,key));
+  const set=columns.map(key=>`"${key}"=n."${key}"`).join(',');
+  const result=await client.query(`UPDATE ${table} t SET ${set} FROM jsonb_to_recordset($1::jsonb) AS s(id text,next jsonb) CROSS JOIN LATERAL jsonb_populate_record(NULL::${table},s.next) n WHERE t.id=s.id AND to_jsonb(t) IS DISTINCT FROM s.next`,[json]);
   const invalid=(await client.query(`SELECT s.id FROM jsonb_to_recordset($1::jsonb) AS s(id text,next jsonb) LEFT JOIN ${table} t ON t.id=s.id WHERE to_jsonb(t) IS DISTINCT FROM s.next LIMIT 1`,[json])).rows;
   if(invalid.length)throw new Error('Storage readback mismatch: '+invalid[0].id);
   await client.query('COMMIT');return result.rowCount;

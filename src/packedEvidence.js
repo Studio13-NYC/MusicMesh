@@ -82,6 +82,7 @@ async function readPackedPage(value,container=getEvidenceContainer()){
  return decodeEvidence(ref,await blob.downloadToBuffer(0,info.contentLength,{conditions:{ifMatch:info.etag}}));
 }
 async function expandRow(row,{relationship=false,readPage=readPackedPage}={}){
+ if(row.extra?.coldRef)row=await require('./coldGraph').hydrateColdRow(row,{relationship,readPage:readPage===readPackedPage?undefined:readPage});
  return row.extra?.detailsRef?restoreRow(row,await readPage(row.extra.detailsRef),{relationship}):row;
 }
 async function uploadPackedPages(pages,container){

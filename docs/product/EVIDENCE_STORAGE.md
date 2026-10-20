@@ -1,6 +1,6 @@
 # Evidence storage and recovery
 
-Updated 19 October 2026. The final enrichment import is complete; main currently occupies 2,222,186,496 bytes. The earlier 670 MiB result below describes snapshot 3, before the final expansion. A second storage reduction is in local rehearsal; see the final section. The graph remains OO domain classes over Prisma/PostgreSQL. Large source values are stored separately, not discarded.
+Updated 20 October 2026. Final enrichment and the v2 storage reduction are complete: main's application database measured 895,959,040 bytes on 20 October, with all records/research preserved. The earlier 670 MiB result below describes snapshot 3. The new external-link/acoustic on-demand conversion is in local rehearsal; see [COLD_GRAPH_STORAGE.md](COLD_GRAPH_STORAGE.md) for its reader, importer, preservation and cache contract. The graph remains OO domain classes over Prisma/PostgreSQL. Large source values are stored separately, not discarded.
 
 ## Layout and semantics
 

@@ -30,6 +30,7 @@ const copies = [
 
   ["src/evidenceArchive.js", "shared/evidenceArchive.js"],
   ["src/packedEvidence.js", "shared/packedEvidence.js"],
+  ["src/coldGraph.js", "shared/coldGraph.js"],
   ["src/packedImport.js", "shared/packedImport.js"],
   ["src/evidenceService.js", "shared/evidenceService.js"],
   ["src/domain/catalog.js", "shared/domain/catalog.js"],

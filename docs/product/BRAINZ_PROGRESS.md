@@ -426,3 +426,12 @@ Nick explicitly approved deleting the backed-up `migration-validation` branch. D
 Neon's refreshed main size is 919,445,504 bytes, below decimal 1 GB by about 80.6 MB. Fresh SQL totals 918,822,912 bytes across main databases. Post-deletion checks retain 488,631 entities, 858,394 relationships, 21,415 plays, 239 claims and 240 sources. Deployed graph access returned the 14-track medium and Azure-backed Version 2.0 provider evidence successfully. Temporary research-run state has 11 rows: 13 expired old rows are absent and two new runs exist, consistent with the existing 24-hour cleanup; original rows remain in the verified backup. No saved graph research was removed by this operation.
 
 Receipts: `output/storage/2026-10-20/branch-deletion.json` and `main-verification.json`. Billing and six-hour retention are unchanged. Storage now meets the target; account-level downgrade eligibility and effective date still require checking. No bulk import, collector or full-record verification replay was run.
+
+
+## 20 October 2026 - Azure cold payload rehearsal verified
+
+Nick authorized offloading external links and acoustic comparisons, with local verification before main. The new reader keeps the complete searchable connection directory in existing SQL tables and hydrates bounded payloads from private Azure, using a 32 MiB serialized-page process cache. It never refills Neon on reads. Domain/Prisma architecture and all public identities remain. See COLD_GRAPH_STORAGE.md and docs/plans/2026-10-20-azure-graph-cold-storage.md.
+
+Prepared and readback-verified 2,748 Azure pages / 54,449,962 compressed bytes. Local conversion verified 205,767 entities / 304,441 relationships with exact original-row checks and readback; independent fingerprints matched all graph identities, every unaffected row, 43,309 protected research/history entities and 718 protected links. The app found Ocean Way Recording's Discogs connection and the Rhythm similarity graph. Actual SQL/Azure fixture tests passed refresh/replay, bidirectional traversal, public retrieval and conflict preservation; default suite 123 passed / 22 opt-in skipped / zero failures. UI build and API bundle passed.
+
+Local reclamation measured 828,711,439 bytes versus 894,695,091 before, a saving of 65,983,652 bytes. This is smaller than the exploratory 600-700 MB target because searchable directory rows and indexes remain in PostgreSQL. Main conversion remains pending compatible reader deployment. No billing or retention changes.
