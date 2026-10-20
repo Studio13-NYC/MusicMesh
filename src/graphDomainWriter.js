@@ -4,6 +4,7 @@ const domain=require('./domain');
 const {entityRecord,relationshipRecord}=require('./graphProperties');
 const {entityFromGraph,relationshipFromGraph}=require('./domain/serialization');
 const {persistDomainBatchInTransaction}=require('./domain/repository');
+const {expandRow}=require('./packedEvidence');
 
 const IMPORT_ONLY=new Set(['ListeningEvent','IdentityMapping','AcousticAnalysis','SimilarityAssessment']);
 const ALLOWED_NODE_LABELS=new Set(Object.values(domain.getOntology().entities).filter(type=>type.visibility!=='private').map(type=>type.key));
@@ -69,7 +70,7 @@ async function persistChatGraph({groundedGraph,threadId,turnId}){
       if(edge.matchedRelationshipId){
         const row=await tx.relationship.findUnique({where:{id:edge.matchedRelationshipId}});
         if(!row||row.sourceId!==source.id||row.targetId!==target.id||row.type!==type)throw new Error('Matched relationship does not match the stored endpoints/type');
-        object=relationshipFromGraph(relationshipRecord(row),new Map([[source.id,source],[target.id,target]]));
+        object=relationshipFromGraph(relationshipRecord(await expandRow(row,{relationship:true})),new Map([[source.id,source],[target.id,target]]));
       }else{
         if(IMPORT_ONLY_RELATIONSHIPS.has(type))throw new Error('Provider and acoustic relationships require an existing verified relationship ID');
         const assertion=stableString(edge.assertionKey||edge.properties?.assertionKey||edge.tempId)||'relation-'+index;

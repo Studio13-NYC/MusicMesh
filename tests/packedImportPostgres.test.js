@@ -12,6 +12,8 @@ test('packed import creates, reads, refreshes and replays through Prisma and pri
   const first=await persistDomainBatch(db,{nodes:[a,b],relationships:[e],compactEvidence:true,packedEvidence:true});assert.equal(first.createdNodes,2);assert.equal(first.createdRelationships,1);
   const stored=await db.entity.findUnique({where:{id:a.id}});assert.ok(stored.extra.detailsRef);assert.equal(stored.domainId,null);
   const restored=await expandRow(stored);assert.deepEqual(restored.extra.providerEvidence,a.properties.providerEvidence);
+  const matched=await require('../src/graphDomainWriter').persistChatGraph({threadId:'packed-test',turnId:randomUUID(),groundedGraph:{nodes:[{tempId:'a',type:'Artist',matchedCanonId:a.id},{tempId:'b',type:'Artist',matchedCanonId:b.id}],relationships:[{sourceRef:'a',targetRef:'b',type:'MusicBrainzRelationship',matchedRelationshipId:e.id}]}});
+  assert.equal(matched.persistedRelationships[0].elementId,e.id);
   const next=new domain.Artist({id:a.id,externalId:a.externalId,name:'Updated packed fixture',properties:a.properties});
   const batch={nodes:[next],previousNodes:new Map([[a.id,a]]),compactEvidence:true,packedEvidence:true};
   assert.equal((await persistDomainBatch(db,batch)).updatedNodes,1);

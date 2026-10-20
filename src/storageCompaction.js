@@ -38,10 +38,10 @@ async function applyStorageBatch(client,table,changes){
   const json=JSON.stringify(changes);
   const conflict=(await client.query(`SELECT s.id FROM jsonb_to_recordset($1::jsonb) AS s(id text,"beforeHash" text,next jsonb) LEFT JOIN ${table} t ON t.id=s.id WHERE t.id IS NULL OR (md5(to_jsonb(t)::text)<>s."beforeHash" AND to_jsonb(t) IS DISTINCT FROM s.next) LIMIT 1`,[json])).rows;
   if(conflict.length)throw new Error('Storage conflict: '+conflict[0].id);
-  const columns=Object.keys(changes[0].next).filter(k=>k!=='id');
-  if(columns.some(k=>!/^\w+$/.test(k)))throw new Error('Invalid storage column');
-  const set=columns.map(k=>`"${k}"=n."${k}"`).join(',');
-  const result=await client.query(`UPDATE ${table} t SET ${set} FROM jsonb_to_recordset($1::jsonb) AS s(id text,next jsonb) CROSS JOIN LATERAL jsonb_populate_record(NULL::${table},s.next) n WHERE t.id=s.id AND to_jsonb(t) IS DISTINCT FROM to_jsonb(n)`,[json]);
+  // Only the two storage fields can change. Avoid rewriting every graph column
+  // (and re-evaluating composite records) for a metadata-only conversion.
+  const set=`extra=s.next->'extra'${table==='entities'?`,"domainId"=s.next->>'domainId'`:''}`;
+  const result=await client.query(`UPDATE ${table} t SET ${set} FROM jsonb_to_recordset($1::jsonb) AS s(id text,next jsonb) WHERE t.id=s.id AND to_jsonb(t) IS DISTINCT FROM s.next`,[json]);
   const invalid=(await client.query(`SELECT s.id FROM jsonb_to_recordset($1::jsonb) AS s(id text,next jsonb) LEFT JOIN ${table} t ON t.id=s.id WHERE to_jsonb(t) IS DISTINCT FROM s.next LIMIT 1`,[json])).rows;
   if(invalid.length)throw new Error('Storage readback mismatch: '+invalid[0].id);
   await client.query('COMMIT');return result.rowCount;

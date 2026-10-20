@@ -91,6 +91,7 @@ async function uploadPackedPages(pages,container){
  for(const page of pages){
   const {gzipSync}=require('node:zlib'),{createHash}=require('node:crypto');
   const data=gzipSync(page.data),ref=page.reference,blob=container.getBlockBlobClient(`v1/${ref.sha256.slice(0,2)}/${ref.sha256}.json.gz`);
+  decodeEvidence(ref,data);
   try{await blob.uploadData(data,{conditions:{ifNoneMatch:'*'},metadata:{sha256:ref.sha256,uncompressedbytes:String(ref.bytes)},blobHTTPHeaders:{blobContentType:'application/gzip',blobContentMD5:createHash('md5').update(data).digest()}});}
   catch(error){if(![409,412].includes(error.statusCode))throw error;await readPackedPage(Buffer.from(ref.sha256,'hex').toString('base64url'),container);}
  }

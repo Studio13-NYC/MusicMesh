@@ -12,6 +12,7 @@ test('storage CAS preserves edits, rolls back a whole batch and is idempotent',{
   await assert.rejects(()=>applyStorageBatch(c,'entities',changes),/conflict/);
   assert.equal((await c.query('SELECT extra FROM entities WHERE id=$1',[changes[0].id])).rows[0].extra.detailsRef,undefined);
   await c.query('UPDATE entities SET description=NULL WHERE id=$1',[changes[1].id]);
+  await assert.rejects(()=>applyStorageBatch(c,'entities',[{...changes[0],next:{...changes[0].next,name:'Unrelated change'}}]),/readback mismatch/);
   assert.equal(await applyStorageBatch(c,'entities',changes),2);
   assert.equal(await applyStorageBatch(c,'entities',changes),0);
   for(const [i,r] of (await c.query('SELECT * FROM entities WHERE id=ANY($1) ORDER BY id',[ids])).rows.entries())assert.deepEqual(r,packed.rows[i]);
