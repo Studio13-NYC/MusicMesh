@@ -148,6 +148,8 @@ async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,re
   }
   const {getDatabase}=require('../postgres'),{persistDomainBatch}=require('../domain/repository');
   const db=getDatabase();
+  const packedEvidence=!!await db.importBatch.findUnique({where:{sourceHash:require('../packedEvidence').MARKER}});
+  if(packedEvidence&&(!evidence||replace))throw new Error('Packed storage requires an additive import with a verified evidence archive');
   const identity=await db.$queryRaw`SELECT current_database() AS database`;
   if(identity[0].database!==target.database)throw new Error('Connected database identity differs');
   if(previous&&!await db.importBatch.findFirst({where:{sourceHash:{in:[sha256(JSON.stringify(previous.manifest.files)),'evidence-v1:'+sha256(JSON.stringify(previous.manifest.files))]}}}))throw new Error('Previous snapshot has no verified import receipt in this database');
@@ -171,7 +173,7 @@ async function loadSnapshot({directory,replace=false,onProgress=()=>{},target,re
   const receiptPath=path.join(directory,evidence?receiptName.replace('.json','-evidence-v1.json'):receiptName);
   try {
     for(const [key,objects] of [['nodes',selected.nodes],['relationships',selected.relationships]])for(let i=0;i<objects.length;i+=200){
-      const result=await persistDomainBatch(db,{[key]:objects.slice(i,i+200),previousNodes:refresh?.nodes,previousRelationships:refresh?.relationships,compactEvidence:!!evidence});
+      const result=await persistDomainBatch(db,{[key]:objects.slice(i,i+200),previousNodes:refresh?.nodes,previousRelationships:refresh?.relationships,compactEvidence:!!evidence,packedEvidence});
       for(const field of ['createdNodes','createdRelationships','updatedNodes','updatedRelationships','verifiedNodes','verifiedRelationships'])receipt[field]+=result[field];
       if(i%2000===0)onProgress({...receipt});
     }

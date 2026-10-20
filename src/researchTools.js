@@ -66,7 +66,7 @@ const toolDefinitions = [
     {
       id: string,
       kind: { enum: ["node", "relationship"] },
-      field: { enum: ["rawProvider", "providerEvidence", "observations"] },
+      field: { enum: ["rawProvider", "providerEvidence", "observations", "details", "explanation"] },
       offset: integer,
     },
     ["id", "kind", "field"],
@@ -205,6 +205,7 @@ const fields = [
   "hydrationStatus",
   "externalId",
   "evidenceRefs",
+  "detailsRef",
   "mediumId",
   "recordingId",
   "releaseId",
@@ -237,9 +238,10 @@ const fields = [
 const extraSql = Prisma.sql`jsonb_strip_nulls(jsonb_build_object(${Prisma.join(fields.flatMap((k) => [Prisma.sql`${k}::text`, k === "confidenceScore" ? Prisma.sql`to_jsonb(e."confidenceScore")` : Prisma.sql`e.extra->${k}::text`]))}))`;
 async function nodesByIds(db, ids) {
   if (!ids.length) return [];
-  return db.$queryRaw(
+  const rows = await db.$queryRaw(
     Prisma.sql`SELECT e.id,e.name,e."primaryLabel" AS kind,${extraSql} AS properties FROM entities e WHERE e.id=ANY(${ids}::text[]) AND e."primaryLabel"=ANY(${publicTypes}::text[]) AND NOT e.labels && ${privateTypes}::text[] ORDER BY e.id`,
   );
+  return rows.map(r=>({...r,properties:require("./packedEvidence").projectIdentity({id:r.id,extra:r.properties})}));
 }
 async function node(db, id) {
   const rows = await nodesByIds(db, [identity(id)]);
@@ -448,7 +450,7 @@ async function presentGraph(a, ctx) {
   const assertions = await nodesByIds(db, claims.slice(0, 60).map(row => row.id));
   const byId = new Map([...nodes, ...assertions].map(n => [n.id, n]));
   const allIds = [...byId.keys()];
-  const rows = await db.$queryRaw`SELECT r.id,r."sourceId",r."targetId",r.type,r.extra->>'providerTypeName' AS "providerTypeName",r.extra->'attributes' AS attributes,r.extra->>'definitionUrl' AS "definitionUrl" FROM relationships r WHERE r."sourceId"=ANY(${allIds}::text[]) AND r."targetId"=ANY(${allIds}::text[]) ORDER BY r.id LIMIT 241`;
+  const rows = await db.$queryRaw`SELECT r.id,r."sourceId",r."targetId",r.type,r.extra->>'providerTypeName' AS "providerTypeName",r.extra->'attributes' AS attributes,coalesce(r.extra->>'definitionUrl','https://musicbrainz.org/relationship/'||(r.extra->>'providerTypeId')) AS "definitionUrl" FROM relationships r WHERE r."sourceId"=ANY(${allIds}::text[]) AND r."targetId"=ANY(${allIds}::text[]) ORDER BY r.id LIMIT 241`;
   const graph = asGraph([...byId.values()], rows.slice(0, 240));
   graph.seedNode = graph.nodes.find(n => n.id === ids[0]);
   graph.meta = { ...graph.meta, title: a.title.trim(), presentation: true,

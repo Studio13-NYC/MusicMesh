@@ -1,6 +1,6 @@
 # Evidence storage and recovery
 
-18 October 2026. Implemented, deployed, uploaded and migrated; shared space reclamation verified at 17:56 UTC. Main is 702,447,616 bytes (670 MiB), with unchanged history and graph counts. Consult BRAINZ_PROGRESS.md for receipts and the still-pending final catalog enrichment. The graph remains OO domain classes over Prisma/PostgreSQL. Large source values are stored separately, not discarded.
+Updated 19 October 2026. The final enrichment import is complete; main currently occupies 2,222,186,496 bytes. The earlier 670 MiB result below describes snapshot 3, before the final expansion. A second storage reduction is in local rehearsal; see the final section. The graph remains OO domain classes over Prisma/PostgreSQL. Large source values are stored separately, not discarded.
 
 ## Layout and semantics
 
@@ -81,3 +81,17 @@ The 18 October storage validation preceded the later durable researcher changes.
 The final reconciled source snapshot is output/imports/2026-10-19/main-development-final-preserved/. Its archive is output/imports/2026-10-19/final-evidence/: 389,733 verified documents / 300,375,746 compressed bytes, verified at 15:25:46 UTC. Final import completed at 16:02:55 UTC and independent verification passed at 16:03 UTC. Main contains 488,631 entities / 858,394 relationships / 21,415 plays. All research claims, sources, links and catalog rows passed preservation checks.
 
 Allocated database size is 2,222,186,496 bytes (2.22 GB), so archiving has not made this expanded graph fit the previous 1 GiB limit. Provider evidence, research files and older snapshots remain intact; do not garbage-collect them as part of downgrade preparation. Read docs/research/2026-10-19-final-enrichment-import.md for receipts, exact commands and the separately restored/hash-verified private research archive. No post-import table compaction or full database export was performed in this run.
+
+## Packed metadata pages - 19 October storage reduction
+
+Implementation and full local rehearsal are underway; this section does not claim shared migration completion. `src/packedEvidence.js` stores checksum-addressed pages with up to 200 records (normally below 1 MiB uncompressed) in the same private container. `detailsRef` is the 43-character base64url encoding of the complete SHA-256, not a truncated hash. Blob paths remain `v1/<prefix>/<hex SHA-256>.json.gz`; the document envelope identifies version 2 and node/relationship kind. Hash, byte length, ETag, page kind and owning record identity are checked before use.
+
+Queryable music facts and structural links stay in PostgreSQL. Source envelopes, small raw fragments, existing evidence references, detailed acoustic explanations and redundant relationship bookkeeping move into pages. Exact original metadata can be reconstructed. MusicBrainz external identities and definition URLs are projected from their validated stable IDs; the original values also remain archived. Redundant `domainId` values become null only when exactly equal to the primary graph ID. Conflicting values are preserved. Claims, source documents, preference signals, listening events, identity mappings and their research assertion links are excluded from compaction.
+
+Public API: existing `rawProvider`, `providerEvidence` and `observations` lookups continue to work. `field=details` retrieves only the authorized record's metadata, never the containing page; `field=explanation` retrieves the acoustic explanation. Ordinary graph traversal does not download pages. Private records remain inaccessible. Chat cannot manufacture `detailsRef`. Domain definitions and researcher tools advertise on-demand access.
+
+`storage:packed-evidence:v2` in ImportBatch enables packed incremental bulk imports. They require verified source evidence, preserve user corrections with exact comparison and locked compare-and-swap, and upload immutable pages before the database transaction. Original import snapshots and receipts remain valid source baselines. This marker prevents replacement/inline-only bulk imports from restoring duplicate payloads. Existing unchanged records remain untouched.
+
+The index migration retains primary keys, labels, type and both endpoint access paths. It replaces the unused `(primaryLabel,domainId)` key with `primaryLabel`, and the oversized `(sourceId,type,targetId)` key with `sourceId`. It removes no music relationships. Validate traversal against actual data when applying it.
+
+Full backup: `output/storage/2026-10-19/main-before-storage-verified-tls.dump`, 194,517,200 bytes, SHA-256 `5a26bf358a4fa4c5a14a94fb46836313c3c289f89e71aca345c037191640a229`. It is privately backed up under `backups/database/2026-10-19-<SHA-256>.dump`. Azure download checksum and local restoration of all five tables passed exact fingerprints. The dedicated restored database is `127.0.0.1:55433/musicmesh_storage_20261019`; do not reset the older `musicmesh_restore` database. No shared data has been changed at this documentation checkpoint.

@@ -23,8 +23,8 @@ async function verifyRows(tx,rows,relationship=false){
  if(conflicts.length)throw new Error('Existing domain record conflict: '+conflicts[0].id);
 }
 /** Exact verification runs in PostgreSQL; only conflict IDs cross the network. */
-async function persistDomainBatchInTransaction(tx,{nodes=[],relationships=[],compactEvidence=false}){
- const nodeRows=nodes.map(n=>storageRow(n,false,compactEvidence)),edgeRows=relationships.map(e=>storageRow(e,true,compactEvidence));
+async function persistDomainBatchInTransaction(tx,{nodes=[],relationships=[],compactEvidence=false,storageRows}){
+ const nodeRows=storageRows?.nodes||nodes.map(n=>storageRow(n,false,compactEvidence)),edgeRows=storageRows?.relationships||relationships.map(e=>storageRow(e,true,compactEvidence));
  if(new Set(nodeRows.map(n=>n.id)).size!==nodeRows.length||new Set(edgeRows.map(e=>e.id)).size!==edgeRows.length)throw new Error('Duplicate identities within import batch');
  const insertedNodes=nodeRows.length?await tx.entity.createMany({data:nodeRows,skipDuplicates:true}):{count:0};
  await verifyRows(tx,nodeRows);
@@ -62,11 +62,12 @@ async function refreshRows(tx,objects,previous,relationship=false,compact=false)
  return updated;
 }
 async function persistDomainBatch(db,batch){
+  const packed=batch.packedEvidence?await require('../packedImport').preparePackedImport(db,batch):null;
   return db.$transaction(async tx=>{
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(73130908)::text`;
-    const updatedNodes=await refreshRows(tx,batch.nodes||[],batch.previousNodes,false,!!batch.compactEvidence);
-    const updatedRelationships=await refreshRows(tx,batch.relationships||[],batch.previousRelationships,true,!!batch.compactEvidence);
-    return {...await persistDomainBatchInTransaction(tx,batch),updatedNodes,updatedRelationships};
+    const updatedNodes=packed?await require('../packedImport').refreshPackedRows(tx,packed.nodes,packed.beforeNodes,false):await refreshRows(tx,batch.nodes||[],batch.previousNodes,false,!!batch.compactEvidence);
+    const updatedRelationships=packed?await require('../packedImport').refreshPackedRows(tx,packed.relationships,packed.beforeRelationships,true):await refreshRows(tx,batch.relationships||[],batch.previousRelationships,true,!!batch.compactEvidence);
+    return {...await persistDomainBatchInTransaction(tx,{...batch,storageRows:packed}),updatedNodes,updatedRelationships};
   },{isolationLevel:'ReadCommitted',timeout:30000});
 }
 module.exports={persistDomainBatch,persistDomainBatchInTransaction,nodeRow,edgeRow,storageRow};

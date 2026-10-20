@@ -44,11 +44,12 @@ function toColumns(properties, relationship = false) {
 }
 
 function fromColumns(row, relationship = false) {
-  const properties = { ...(row.extra || {}) };
+  const properties = require('./packedEvidence').projectIdentity(row);
   for (const key of relationship ? relationshipFields : entityFields)
     if (row[key] !== null && row[key] !== undefined) properties[key] = row[key];
   if (!relationship && row.domainId !== null && row.domainId !== undefined)
     properties.id = row.domainId;
+  else if (!relationship && row.extra?.detailsRef) properties.id = row.id;
   return properties;
 }
 

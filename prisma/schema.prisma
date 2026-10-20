@@ -33,7 +33,7 @@ model Entity {
   outgoing         Relationship[] @relation("source")
   incoming         Relationship[] @relation("target")
 
-  @@index([primaryLabel, domainId])
+  @@index([primaryLabel])
   @@index([labels], type: Gin)
   @@map("entities")
 }
@@ -67,7 +67,7 @@ model Relationship {
   evidenceBasis    String?
   extra            Json     @default("{}")
 
-  @@index([sourceId, type, targetId])
+  @@index([sourceId])
   @@index([targetId])
   @@index([type])
   @@map("relationships")

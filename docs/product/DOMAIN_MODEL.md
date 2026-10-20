@@ -32,6 +32,7 @@ Identity: musicbrainz:artist:<MBID>, or an explicit local identity pending resol
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -53,6 +54,7 @@ Distinct from: Recording, Track.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -73,6 +75,7 @@ Distinct from: Work, Track, Release.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -95,6 +98,7 @@ Distinct from: Release.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -115,6 +119,7 @@ Distinct from: ReleaseGroup.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -137,6 +142,7 @@ Distinct from: Company.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -157,6 +163,7 @@ Distinct from: Place.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -177,6 +184,7 @@ Distinct from: Area.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -197,6 +205,7 @@ Distinct from: RecordingSession.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -217,6 +226,7 @@ Distinct from: Equipment.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -235,6 +245,7 @@ Identity: musicbrainz:genre:<MBID>, or an explicit local identity pending resolu
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -253,6 +264,7 @@ Identity: musicbrainz:series:<MBID>, or an explicit local identity pending resol
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -271,6 +283,7 @@ Identity: musicbrainz:url:<MBID>, or an explicit local identity pending resoluti
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -289,6 +302,7 @@ Distinct from: Format.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -312,6 +326,7 @@ Distinct from: Recording, Work.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -333,6 +348,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -350,6 +366,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -372,6 +389,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -394,6 +412,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -415,6 +434,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -439,6 +459,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -455,6 +476,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -471,6 +493,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -487,6 +510,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -503,6 +527,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -519,6 +544,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -535,6 +561,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -551,6 +578,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -567,6 +595,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -583,6 +612,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -599,6 +629,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -615,6 +646,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -631,6 +663,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -647,6 +680,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -663,6 +697,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -679,6 +714,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -695,6 +731,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -711,6 +748,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -727,6 +765,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -743,6 +782,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -762,6 +802,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |
@@ -796,6 +837,7 @@ Identity: Explicit source/context identity; never infer equality from name alone
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| detailsRef | string | No | Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged. |
 | evidenceRefs | object | No | Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access. |
 | beginDate | partialDate | No | Start date, preserving source precision. |
 | endDate | partialDate | No | End date, preserving source precision. |

@@ -29,6 +29,8 @@ const copies = [
   ["src/researchApi.js", "shared/researchApi.js"],
 
   ["src/evidenceArchive.js", "shared/evidenceArchive.js"],
+  ["src/packedEvidence.js", "shared/packedEvidence.js"],
+  ["src/packedImport.js", "shared/packedImport.js"],
   ["src/evidenceService.js", "shared/evidenceService.js"],
   ["src/domain/catalog.js", "shared/domain/catalog.js"],
   ["src/domain/index.js", "shared/domain/index.js"],

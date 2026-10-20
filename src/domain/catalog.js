@@ -10,6 +10,7 @@ function deepFreeze(value) {
 }
 const field = (type, meaning, required = false, unit = null) => ({ type, meaning, required, ...(unit ? { unit } : {}) });
 const commonFields = {
+  detailsRef: field("string", "Private checksum-addressed metadata page. Ordinary graph facts remain inline. Resolve this record only with GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=details, or request rawProvider, providerEvidence, observations or explanation individually. A page can contain other private records: never expose the page or treat its hash as authorization. Stored source identities, confidence and scope are unchanged."),
   evidenceRefs: field("object", "Private Blob references for large original source fields: each value has version 1, SHA-256 of canonical JSON and uncompressed bytes. Resolve public catalog evidence through GET /api/graph/evidence?kind=node|relationship&id=<encoded identity>&field=rawProvider|observations|providerEvidence. Private listening evidence requires authorized local storage access; hashes do not grant public access."),
   beginDate: field("partialDate", "Start date, preserving source precision."),
   endDate: field("partialDate", "End date, preserving source precision."),
