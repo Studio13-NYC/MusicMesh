@@ -55,7 +55,7 @@ Optional env keys:
 Important rule:
 
 - If PostgreSQL is unavailable, graph checks are blocked infrastructure, not an app bug. Docker MCP is not needed.
-- Root `.env` selects the shared main development backend; the user confirmed there is no production instance. For isolated test fixtures, use `node --env-file=.env.migration src/index.js`. Available real history is loaded into main with the explicit command in `docs/product/HISTORY_IMPORT.md`.
+- Root `.env` selects the shared main development backend; the user confirmed there is no production instance. The cloud validation branch was retired on 20 October after verified backup/restoration; do not use `.env.migration` or historical commands that reference it. Isolated tests require an explicitly selected local PostgreSQL fixture. For local Prisma operations set both `DATABASE_URL` and `DIRECT_URL`; never fall back to main. Available real history is loaded into main with the explicit command in `docs/product/HISTORY_IMPORT.md`.
 - See [Neon migration](deployment/NEON_MIGRATION.md) for branch IDs and deployment status.
 
 ## Commands

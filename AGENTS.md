@@ -8,7 +8,7 @@ Discovery update (18 October): read `docs/product/DISCOVERY_GRAPH.md` for the de
 
 Current researcher update (18 October): read `docs/product/CURRENT_STATE_AND_HANDOFF.md` and `docs/superpowers/specs/2026-10-18-researcher-design.md`. Local/Azure share `researchApi`, `researchStore`, `researchRunner` and `researchTools`. The app uses GPT-6 Luna/high in a bounded, durable tool loop. Existing graph IDs render directly. Approve/Deny/Defer is the explicit user-decision modal; no automatic preview/plan/ground/review chain remains. Nick/Guest is attribution, not authentication. Detailed semantics are fetched on demand rather than sending the whole ontology each call.
 
-Environment clarification (2026-10-17): the user confirmed that MusicMesh has no production environment. The deployed site and Neon main branch selected by root `.env` are the shared development instance. Load verified available data there while enrichment continues; do not wait for a production release gate. `.env.migration` remains available for isolated tests. Historical docs calling main "production" describe deployment topology, not its actual product stage. Never use Alexander.
+Environment clarification (updated 2026-10-20): the user confirmed that MusicMesh has no production environment. The deployed site and Neon main branch selected by root `.env` are the shared development instance. Load verified available data there; do not wait for a production release gate. The obsolete `migration-validation` Neon branch was deleted with explicit user approval after verified Azure backup and local restoration. `.env.migration` targets that retired branch and must not be used. Isolated tests use an explicitly selected local PostgreSQL fixture; never silently substitute main. Historical docs calling main "production" describe deployment topology, not its actual product stage. Never use Alexander.
 
 More specific direct user instructions take priority over this file.
 
@@ -287,7 +287,7 @@ Current optional env keys:
 
 Operational rules:
 
-- The shared development backend uses the dedicated MusicMesh Neon main branch. Optional isolated tests use the validation branch; never point either at Alexander.
+- The shared development backend uses the dedicated MusicMesh Neon main branch. Optional isolated tests use explicit local PostgreSQL fixtures; the old cloud validation branch is retired. Never use Alexander.
 - Do not silently switch database targets to make a check pass.
 - If PostgreSQL, OpenAI, or Playwright is unavailable, report blocked infrastructure rather than treating it as an app bug.
 - Never print or commit secrets.
