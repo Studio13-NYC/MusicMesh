@@ -1,10 +1,10 @@
 # MusicMesh current state and handoff
 
-Updated 20 October 2026. The deployed site and root `.env` select the shared **development** instance, not production. Never use Alexander. Keep `STAY/` and original source files intact.
+Model defaults updated 31 October 2026 on the migration branch; deployment remains unverified. Infrastructure status below is from 20 October 2026. The deployed site and root `.env` select the shared **development** instance, not production. Never use Alexander. Keep `STAY/` and original source files intact.
 
 ## Researcher runtime
 
-The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6 Luna/high Responses API researcher. Discovery runtime and artist-context support are deployed (856010e / e425ab5). The approved Edmunds research is saved and independently verified; see the dated entries below.
+The [approved specification](../superpowers/specs/2026-10-18-researcher-design.md) and [implementation plan](../superpowers/plans/2026-10-18-researcher.md) define the current change. Local code now uses a single GPT-6.1 Terra/high Responses API researcher. Discovery runtime and artist-context support are deployed (856010e / e425ab5). The approved Edmunds research is saved and independently verified; see the dated entries below.
 
 - `src/researchRunner.js`: one model call per durable step, tool-directed exploration, bounded history/context/calls. No automatic model preview, planner, grounder or review chain.
 - `src/researchTools.js`: compact catalog search/detail/adjacency/neighbors, edition tracklist, acoustic comparisons, private-history aggregates, semantics, evidence, sources, scoped credits and factor comparison.
@@ -85,7 +85,7 @@ Final visual verification: `ad5d6ff` deployed successfully in [run 39159228539](
 
 ## Bounded enrichment team pilot
 
-The first operator-led research batch used two GPT-6 Luna/Medium source researchers and GPT-6 Astra/High review: 11 claims reviewed, 2 supported, 6 qualified, 3 lead-only. Private collated report and structured staging: `output/research/2026-10-18-enrichment-team/REPORT.md` and `reviewed-candidates.json`. That original review used a readiness gate now superseded by confidence-scored persistence. One sourced album claim has since been saved and reassessed through the workbench; the remaining batch is staged. This is not a deployed multi-agent service or completed batch import. The ordinary application researcher remains Luna/high. See [workflow and next steps](../research/2026-10-18-enrichment-team.md).
+The first operator-led research batch used two GPT-6 Luna/Medium source researchers and GPT-6 Astra/High review: 11 claims reviewed, 2 supported, 6 qualified, 3 lead-only. Private collated report and structured staging: `output/research/2026-10-18-enrichment-team/REPORT.md` and `reviewed-candidates.json`. That original review used a readiness gate now superseded by confidence-scored persistence. One sourced album claim has since been saved and reassessed through the workbench; the remaining batch is staged. This is not a deployed multi-agent service or completed batch import. The ordinary application researcher is now Terra/high on the migration branch. See [workflow and next steps](../research/2026-10-18-enrichment-team.md).
 
 ## Confidence-scored persistence - 18 October
 

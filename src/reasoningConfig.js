@@ -122,7 +122,7 @@ function normalizeOpenAiModel(model) {
   const normalized = typeof model === "string" ? model.trim() : "";
 
   if (!normalized) {
-    return "gpt-6-luna";
+    return "gpt-6.1-terra";
   }
 
   return normalized.toLowerCase();

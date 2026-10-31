@@ -6,7 +6,7 @@ Read this first.
 
 Discovery update (18 October): read `docs/product/DISCOVERY_GRAPH.md` for the default interactive graph and agent population contract. Discovery uses immediate SVG connections and node buttons, with fullscreen source/confidence inspection. Cytoscape remains the Network view. `graph` action `present` takes a seed `id` or ordered public `nodeIds`; direct Browse/Load uses the same bounded read without an LLM call.
 
-Current researcher update (18 October): read `docs/product/CURRENT_STATE_AND_HANDOFF.md` and `docs/superpowers/specs/2026-10-18-researcher-design.md`. Local/Azure share `researchApi`, `researchStore`, `researchRunner` and `researchTools`. The app uses GPT-6 Luna/high in a bounded, durable tool loop. Existing graph IDs render directly. Approve/Deny/Defer is the explicit user-decision modal; no automatic preview/plan/ground/review chain remains. Nick/Guest is attribution, not authentication. Detailed semantics are fetched on demand rather than sending the whole ontology each call.
+Current researcher update (18 October): read `docs/product/CURRENT_STATE_AND_HANDOFF.md` and `docs/superpowers/specs/2026-10-18-researcher-design.md`. Local/Azure share `researchApi`, `researchStore`, `researchRunner` and `researchTools`. The app uses GPT-6.1 Terra/high in a bounded, durable tool loop. Existing graph IDs render directly. Approve/Deny/Defer is the explicit user-decision modal; no automatic preview/plan/ground/review chain remains. Nick/Guest is attribution, not authentication. Detailed semantics are fetched on demand rather than sending the whole ontology each call.
 
 Environment clarification (updated 2026-10-20): the user confirmed that MusicMesh has no production environment. The deployed site and Neon main branch selected by root `.env` are the shared development instance. Load verified available data there; do not wait for a production release gate. The obsolete `migration-validation` Neon branch was deleted with explicit user approval after verified Azure backup and local restoration. `.env.migration` targets that retired branch and must not be used. Isolated tests use an explicitly selected local PostgreSQL fixture; never silently substitute main. Historical docs calling main "production" describe deployment topology, not its actual product stage. Never use Alexander.
 
@@ -156,7 +156,7 @@ Current workbench shape:
 
 Important limitations:
 
-- the UI uses a durable GPT-6 Luna/high Responses API researcher
+- the UI uses a durable GPT-6.1 Terra/high Responses API researcher
 - the workbench reads recent conversation tape entries and runtime events from disk
 - chat and graph demo routes can read and write PostgreSQL through the local API
 - the operator surface is minimally live, not complete
