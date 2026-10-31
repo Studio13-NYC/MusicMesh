@@ -16,7 +16,7 @@ const textResponse = (text) => ({
   ],
   usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 },
 });
-test("simple answer takes one call, caps history and uses high Luna without preview chain", async () => {
+test("simple answer takes one call, caps history and uses high Terra without preview chain", async () => {
   const state = newState({
     prompt: "hello",
     messages: Array.from({ length: 100 }, () => ({
@@ -28,7 +28,7 @@ test("simple answer takes one call, caps history and uses high Luna without prev
   const result = await advanceState(state, {
     respond: async (body) => {
       calls++;
-      assert.equal(body.model, "gpt-6-luna");
+      assert.equal(body.model, "gpt-6.1-terra");
       assert.equal(body.reasoning.effort, "high");
       assert.ok(JSON.stringify(body.input).length < 18000);
       return textResponse("Hello");

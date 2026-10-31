@@ -1,5 +1,7 @@
 > Current implementation and known limits: [researcher handoff](docs/product/CURRENT_STATE_AND_HANDOFF.md). Local/Azure use one bounded, durable researcher; the old automatic model preview/planning chain is retired.
 
+Current OpenAI model routing: [Terra/high and Astra/medium](OPENAI-MODELS.md).
+
 # MusicMesh
 
 MusicMesh is a clean-sheet restart of an LLM-native operator product for music knowledge work.
